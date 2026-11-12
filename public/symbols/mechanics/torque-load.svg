@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle id="shaft" cx="40" cy="40" r="5"/>
+  <path id="arc-up" d="M18 40A22 22 0 0 1 62 40"/>
+  <path id="head-up" d="M62 40L55 33M62 40L55 47"/>
+  <path id="arc-down" d="M62 40A22 22 0 0 1 18 40"/>
+  <path id="head-down" d="M18 40L25 33M18 40L25 47"/>
+</svg>

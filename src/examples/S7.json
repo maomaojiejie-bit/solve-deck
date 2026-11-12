@@ -1,0 +1,317 @@
+{
+  "templateId": "S7",
+  "subject": "statics",
+  "parsed_given": {
+    "左臂": 0.4,
+    "右臂": 0.6,
+    "重物": 100
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "识别单自由度机构",
+      "formula_tex": "\\text{DOF}=1",
+      "substitution": "杠杆绕 O 转动，只有一个独立虚位移 δθ",
+      "value": "左臂 0.4 m、右臂 0.6 m",
+      "basis": "虚位移原理要求理想约束",
+      "highlight": [
+        "e-lever",
+        "n-pivot"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "给虚位移，写出各点位移",
+      "formula_tex": "\\delta_1=a\\,\\delta\\theta,\\ \\delta_2=b\\,\\delta\\theta",
+      "substitution": "δθ=1e-3 rad",
+      "value": "δ₁=4.000e-4 m（向下），δ₂=6.000e-4 m（向上）",
+      "basis": "刚体绕定轴转动",
+      "highlight": [
+        "e-virtual"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "虚功方程",
+      "formula_tex": "\\delta W=W\\delta_1-F\\delta_2=0",
+      "substitution": "100×4.000e-4 − F×6.000e-4 = 0",
+      "value": "F=66.667 N",
+      "basis": "理想约束不做功，只有主动力做功",
+      "highlight": []
+    },
+    {
+      "i": 3,
+      "title": "静力法对照",
+      "formula_tex": "\\sum M_O=0:\\ Fb=Wa",
+      "substitution": "100×0.4/0.6",
+      "value": "F=66.667 N",
+      "basis": "与虚功解一致",
+      "highlight": []
+    },
+    {
+      "i": 4,
+      "title": "结论",
+      "formula_tex": "F=\\frac{Wa}{b}",
+      "substitution": "100×0.4/0.6",
+      "value": "F=66.67 N（臂越长越省力）",
+      "basis": "杠杆原理",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "F": 66.666667,
+    "delta1": 0.0004,
+    "delta2": 0.0006,
+    "ratio": 0.666667,
+    "status": "ok",
+    "conclusion": "F=66.67 N（虚功 F=Wa/b 与静力 ΣM_O=0 一致）"
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "freebody",
+      "nodes": [
+        {
+          "id": "n-end-a",
+          "x": 166.66666666666666,
+          "y": 130,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-end-b",
+          "x": 533.3333333333334,
+          "y": 130,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-pivot",
+          "x": 313.33333333333337,
+          "y": 130,
+          "kind": "pinSupport",
+          "label": "支点 O",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-w",
+          "x": 166.66666666666666,
+          "y": 130,
+          "kind": "arrow",
+          "rot": 0,
+          "label": "W = 100 N",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-f",
+          "x": 533.3333333333334,
+          "y": 130,
+          "kind": "arrow",
+          "rot": 180,
+          "label": "F = 66.67 N",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-a",
+          "x": 240,
+          "y": 156,
+          "kind": "text",
+          "label": "0.4 m",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-b",
+          "x": 423.33333333333337,
+          "y": 156,
+          "kind": "text",
+          "label": "0.6 m",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-note",
+          "x": 313.33333333333337,
+          "y": 34,
+          "kind": "text",
+          "label": "虚线 = 虚位移（示意放大 4°）",
+          "labelSide": "up"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-lever",
+          "from": "n-end-a",
+          "to": "n-end-b",
+          "kind": "line",
+          "weight": 2,
+          "points": [
+            [
+              166.66666666666666,
+              130
+            ],
+            [
+              533.3333333333334,
+              130
+            ]
+          ]
+        },
+        {
+          "id": "e-virtual",
+          "from": "n-end-a",
+          "to": "n-end-b",
+          "kind": "line",
+          "weight": 1,
+          "dashed": true,
+          "points": [
+            [
+              167.02393929522577,
+              140.23094948247171
+            ],
+            [
+              532.7974243904947,
+              114.65357577629243
+            ]
+          ]
+        }
+      ],
+      "frames": []
+    },
+    {
+      "id": "checks",
+      "role": "secondary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "校验项",
+          "期望",
+          "实际",
+          "相对误差",
+          "结论",
+          "说明",
+          "来源"
+        ],
+        "rows": [
+          [
+            "虚功方程残差 W·δ₁−F·δ₂",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "δθ=1e-3 rad ⇒ δ₁=4.000e-4 m，δ₂=6.000e-4 m",
+            "本页自算"
+          ],
+          [
+            "虚功解 vs 静力解 F=Wa/b",
+            "66.6667",
+            "66.6667",
+            "0",
+            "通过",
+            "两条完全不同的推理：一个用虚位移，一个用 ΣM_O=0",
+            "本页自算"
+          ],
+          [
+            "位移比 = 臂长比 δ₁/δ₂",
+            "0.666667",
+            "0.666667",
+            "0",
+            "通过",
+            "δ₁/δ₂=0.666667，a/b=0.666667",
+            "本页自算"
+          ],
+          [
+            "ΣM_O=0 残差",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "W·a=40.000 N·m = F·b=40.000 N·m",
+            "本页自算"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "S7 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "静力学量统一为 m / kN / N / 度；截面尺寸用 mm，换算处已标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "S7 虚功方程 / 力矩平衡 / 位移比：最大相对差 0.000e+0"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "静定结果，平衡残差与判据均已记录在校验表"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "2 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T13:09:52.424Z",
+  "contractVersion": "v2.2",
+  "warnings": [
+    "S7 只做单自由度杠杆 / 简单机构；多自由度与摩擦做功不在范围内"
+  ]
+}

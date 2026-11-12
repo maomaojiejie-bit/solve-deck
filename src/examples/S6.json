@@ -1,0 +1,350 @@
+{
+  "templateId": "S6",
+  "subject": "statics",
+  "parsed_given": {
+    "翼缘宽": 100,
+    "翼缘厚": 20,
+    "腹板宽": 20,
+    "腹板高": 100
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "把组合体拆成两块矩形",
+      "formula_tex": "A=\\sum A_i",
+      "substitution": "翼缘 100×20，腹板 20×100",
+      "value": "翼缘: A=2000 mm², y=110.0 mm；腹板: A=2000 mm², y=50.0 mm",
+      "basis": "分块法：每块都是矩形，形心在几何中心",
+      "highlight": []
+    },
+    {
+      "i": 1,
+      "title": "分块面积矩",
+      "formula_tex": "S_y=\\sum A_i y_i",
+      "substitution": "2000×110.0 + 2000×50.0",
+      "value": "ΣAᵢyᵢ=320000.0 mm³",
+      "basis": "面积矩（静矩）",
+      "highlight": []
+    },
+    {
+      "i": 2,
+      "title": "形心高度",
+      "formula_tex": "\\bar y=\\frac{\\sum A_i y_i}{\\sum A_i}",
+      "substitution": "320000.0/4000.0",
+      "value": "ȳ=80.000 mm = 0.080000 m",
+      "basis": "形心定义式",
+      "highlight": []
+    },
+    {
+      "i": 3,
+      "title": "数值积分对拍",
+      "formula_tex": "\\bar y=\\frac{\\int y\\,w(y)\\,dy}{\\int w(y)\\,dy}",
+      "substitution": "沿高度 400 段 Simpson",
+      "value": "ȳ=80.000000 mm（与分块式差 0.00e+0）",
+      "basis": "不经过分块公式的第二条路",
+      "highlight": []
+    },
+    {
+      "i": 4,
+      "title": "惯性矩与静矩回代",
+      "formula_tex": "I_x=\\sum\\left(\\frac{bh^3}{12}+A_i d_i^2\\right)",
+      "substitution": "ΣA ᵢ(yᵢ−ȳ)²",
+      "value": "I_x=5333333.3 mm⁴，对形心静矩 0.00e+0",
+      "basis": "平行轴定理",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "A_mm2": 4000,
+    "A_m2": 0.004,
+    "ybar_mm": 80,
+    "ybar_m": 0.08,
+    "Ix_mm4": 5333333.333,
+    "status": "ok",
+    "conclusion": "A=0.0040 m²，ȳ=0.0800 m（距底边）"
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "freebody",
+      "nodes": [
+        {
+          "id": "n-centroid",
+          "x": 310,
+          "y": 150,
+          "kind": "dot",
+          "label": "形心 ȳ=80.0 mm",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-flange",
+          "x": 442,
+          "y": 90,
+          "kind": "text",
+          "label": "翼缘 100×20",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-web",
+          "x": 362,
+          "y": 210,
+          "kind": "text",
+          "label": "腹板 20×100",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-note",
+          "x": 210,
+          "y": 364,
+          "kind": "text",
+          "label": "y=0（底边）",
+          "labelSide": "right"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-flange",
+          "from": "n-flange",
+          "to": "n-flange",
+          "kind": "line",
+          "weight": 2,
+          "points": [
+            [
+              210,
+              110
+            ],
+            [
+              410,
+              110
+            ],
+            [
+              410,
+              70
+            ],
+            [
+              210,
+              70
+            ],
+            [
+              210,
+              110
+            ]
+          ]
+        },
+        {
+          "id": "e-web",
+          "from": "n-web",
+          "to": "n-web",
+          "kind": "line",
+          "weight": 2,
+          "points": [
+            [
+              290,
+              310
+            ],
+            [
+              330,
+              310
+            ],
+            [
+              330,
+              110
+            ],
+            [
+              290,
+              110
+            ],
+            [
+              290,
+              310
+            ]
+          ]
+        },
+        {
+          "id": "e-axis",
+          "from": "n-note",
+          "to": "n-note",
+          "kind": "line",
+          "weight": 1,
+          "dashed": true,
+          "points": [
+            [
+              186,
+              310
+            ],
+            [
+              434,
+              310
+            ]
+          ]
+        },
+        {
+          "id": "e-centroid-axis",
+          "from": "n-centroid",
+          "to": "n-centroid",
+          "kind": "line",
+          "weight": 1,
+          "dashed": true,
+          "points": [
+            [
+              192,
+              150
+            ],
+            [
+              428,
+              150
+            ]
+          ]
+        }
+      ],
+      "frames": []
+    },
+    {
+      "id": "checks",
+      "role": "secondary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "校验项",
+          "期望",
+          "实际",
+          "相对误差",
+          "结论",
+          "说明",
+          "来源"
+        ],
+        "rows": [
+          [
+            "总面积 A=ΣAᵢ",
+            "4000",
+            "4000",
+            "0",
+            "通过",
+            "分块求和 vs 沿高度积分 ∫w(y)dy",
+            "本页自算"
+          ],
+          [
+            "形心 ȳ=ΣAᵢyᵢ/ΣAᵢ",
+            "80",
+            "80",
+            "0",
+            "通过",
+            "分块式 vs 数值积分 ∫y·w(y)dy/A",
+            "本页自算"
+          ],
+          [
+            "对形心轴的总静矩 = 0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "ΣAᵢ(yᵢ−ȳ)=0，形心的定义式回代",
+            "本页自算"
+          ],
+          [
+            "x̄ = 0（左右对称）",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "T 形关于竖直中轴对称，x̄ 必为 0",
+            "本页自算"
+          ],
+          [
+            "面积单位换算 A(m²)=A(mm²)/10⁶",
+            "0.004",
+            "0.004",
+            "0",
+            "通过",
+            "A=4000.0 mm² = 0.004000 m²",
+            "本页自算"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "S6 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "静力学量统一为 m / kN / N / 度；截面尺寸用 mm，换算处已标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "S6 分块求和 / 高度积分 / 静矩回代：最大相对差 0.000e+0"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "静定结果，平衡残差与判据均已记录在校验表"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "2 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T13:25:15.939Z",
+  "contractVersion": "v2.2",
+  "warnings": [
+    "S6 只处理矩形/圆的并集与差集组合；型钢表查值不在范围内"
+  ]
+}

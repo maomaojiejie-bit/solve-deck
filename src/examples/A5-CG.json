@@ -1,0 +1,1162 @@
+{
+  "templateId": "A5",
+  "subject": "analog",
+  "parsed_given": {
+    "config": "CG",
+    "gm": 0.001,
+    "ro": 5000000,
+    "Rd": 2000,
+    "Rl": 10000,
+    "Rs": 1000,
+    "Rss": 1000
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "识别原电路与交流通路",
+      "formula_tex": "V_{DD}\\Rightarrow\\text{交流地},\\quad C_b\\Rightarrow\\text{短路}",
+      "substitution": "组态 CG：输入 s，输出 d",
+      "value": "晶体管仍是器件符号，其余元件按交流通路重画（主图）",
+      "basis": "直流通路 → 交流通路",
+      "highlight": [
+        "n-vs",
+        "n-rs"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "晶体管换成小信号模型",
+      "formula_tex": "i_d=g_m v_{gs},\\quad v_{gs}=v_g-v_s",
+      "substitution": "VCCS 接在 d-s 之间，ro 并接在 d-s 之间",
+      "value": "受控源 gm·vgs 与 ro 并接（辅图）",
+      "basis": "MOS 混合 π 模型",
+      "highlight": [
+        "n-q",
+        "pi-n-gm"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "确定 gm 与 ro",
+      "formula_tex": "g_m=\\frac{2I_D}{V_{OV}},\\quad r_o=\\frac{1}{\\lambda I_D}",
+      "substitution": "gm=1.000mS，ro=5.00MΩ",
+      "value": "小信号参数由直流工作点决定",
+      "basis": "MOS 小信号参数定义",
+      "highlight": [
+        "pi-n-gm",
+        "pi-n-ro"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "MNA 求 Av / Ri / Ro",
+      "formula_tex": "A_v=\\frac{v_o}{v_s}",
+      "substitution": "Av=0.83328，Ro=2.000kΩ",
+      "value": "Av=0.8333",
+      "basis": "节点电压法（含 gds/ro）",
+      "highlight": [
+        "pi-n-ro",
+        "n-rd",
+        "n-rl"
+      ]
+    },
+    {
+      "i": 4,
+      "title": "手推闭式（含 ro）与教学近似",
+      "formula_tex": "A_v=k\\frac{R_i}{R_s+R_i},\\ k=\\frac{(1+g_m r_o)R_{DL}}{R_{DL}+r_o}",
+      "substitution": "闭式 Av=0.83328；忽略 ro 教学近似 Av=0.83333；同相、低输入阻抗",
+      "value": "闭式 vs MNA 偏差 1.33e-14%；忽略 ro 误差 0.01%",
+      "basis": "含 ro 闭式；忽略 ro 仅作教学对照",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "config": "CG",
+    "Av": 0.8332777925886428,
+    "Ri": 1000.1333066719988,
+    "Ro": 1999.6001199640111,
+    "AvApprox": 0.8332777925886429,
+    "AvNoRo": 0.8333333333333334
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "schematic",
+      "nodes": [
+        {
+          "id": "n-vs",
+          "x": 160,
+          "y": 390,
+          "kind": "vsrc",
+          "label": "Vs",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-rs",
+          "x": 250,
+          "y": 320,
+          "kind": "res",
+          "label": "Rs",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-q",
+          "x": 480,
+          "y": 310,
+          "kind": "nmos-r90",
+          "label": "M",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-rd",
+          "x": 560,
+          "y": 120,
+          "kind": "res",
+          "label": "Rd 2.0k",
+          "rot": 90,
+          "labelSide": "right"
+        },
+        {
+          "id": "n-rl",
+          "x": 700,
+          "y": 290,
+          "kind": "res",
+          "label": "Rl 10.0k",
+          "rot": 90,
+          "labelSide": "right"
+        },
+        {
+          "id": "t-g-ac",
+          "x": 446,
+          "y": 120,
+          "kind": "text",
+          "label": "G 交流地",
+          "labelSide": "left"
+        },
+        {
+          "id": "d-g-ac",
+          "x": 480,
+          "y": 120,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "t-vdd",
+          "x": 594,
+          "y": 76,
+          "kind": "text",
+          "label": "VDD（交流地）",
+          "labelSide": "right"
+        },
+        {
+          "id": "d-dbus",
+          "x": 600,
+          "y": 164,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "d-rd-bus",
+          "x": 560,
+          "y": 164,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "n-gnd",
+          "x": 340,
+          "y": 470,
+          "kind": "gnd",
+          "label": "",
+          "labelSide": "down"
+        },
+        {
+          "id": "t-note",
+          "x": 520,
+          "y": 516,
+          "kind": "text",
+          "label": "输入改接到 S，G 交流接地，输出仍取 D",
+          "labelSide": "right"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-in",
+          "from": "160,346",
+          "to": "206,320",
+          "kind": "wire",
+          "points": [
+            [
+              160,
+              346
+            ],
+            [
+              160,
+              320
+            ],
+            [
+              206,
+              320
+            ]
+          ]
+        },
+        {
+          "id": "e-vs-gnd",
+          "from": "160,434",
+          "to": "160,470",
+          "kind": "wire",
+          "points": [
+            [
+              160,
+              434
+            ],
+            [
+              160,
+              470
+            ]
+          ]
+        },
+        {
+          "id": "e-rs-s",
+          "from": "294,320",
+          "to": "430,320",
+          "kind": "wire",
+          "points": [
+            [
+              294,
+              320
+            ],
+            [
+              430,
+              320
+            ]
+          ]
+        },
+        {
+          "id": "e-g-ac",
+          "from": "480,260",
+          "to": "480,120",
+          "kind": "wire",
+          "points": [
+            [
+              480,
+              260
+            ],
+            [
+              480,
+              120
+            ]
+          ]
+        },
+        {
+          "id": "e-g-ac-bar",
+          "from": "454,120",
+          "to": "506,120",
+          "kind": "wire",
+          "points": [
+            [
+              454,
+              120
+            ],
+            [
+              506,
+              120
+            ]
+          ],
+          "weight": 2
+        },
+        {
+          "id": "e-dbus",
+          "from": "560,164",
+          "to": "700,164",
+          "kind": "wire",
+          "points": [
+            [
+              560,
+              164
+            ],
+            [
+              700,
+              164
+            ]
+          ],
+          "weight": 2
+        },
+        {
+          "id": "e-d-bus",
+          "from": "530,320",
+          "to": "600,164",
+          "kind": "wire",
+          "points": [
+            [
+              530,
+              320
+            ],
+            [
+              600,
+              320
+            ],
+            [
+              600,
+              164
+            ]
+          ]
+        },
+        {
+          "id": "e-vdd-bar",
+          "from": "534,76",
+          "to": "586,76",
+          "kind": "wire",
+          "points": [
+            [
+              534,
+              76
+            ],
+            [
+              586,
+              76
+            ]
+          ],
+          "weight": 2
+        },
+        {
+          "id": "e-rl-bus",
+          "from": "700,164",
+          "to": "700,246",
+          "kind": "wire",
+          "points": [
+            [
+              700,
+              164
+            ],
+            [
+              700,
+              246
+            ]
+          ]
+        },
+        {
+          "id": "e-rl-gnd",
+          "from": "700,334",
+          "to": "700,470",
+          "kind": "wire",
+          "points": [
+            [
+              700,
+              334
+            ],
+            [
+              700,
+              470
+            ]
+          ]
+        },
+        {
+          "id": "e-out",
+          "from": "700,164",
+          "to": "762,164",
+          "kind": "wire",
+          "points": [
+            [
+              700,
+              164
+            ],
+            [
+              762,
+              164
+            ]
+          ],
+          "tag": "Vo"
+        },
+        {
+          "id": "e-gnd-rail",
+          "from": "160,470",
+          "to": "700,470",
+          "kind": "wire",
+          "points": [
+            [
+              160,
+              470
+            ],
+            [
+              700,
+              470
+            ]
+          ],
+          "weight": 2
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeNodes": [
+            "n-vs",
+            "n-rs"
+          ],
+          "activeEdges": [
+            "e-in",
+            "e-vs-gnd",
+            "e-rs-s"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeNodes": [
+            "n-q"
+          ],
+          "activeEdges": [
+            "e-in",
+            "e-vs-gnd",
+            "e-rs-s",
+            "e-g-ac",
+            "e-g-ac-bar",
+            "e-dbus",
+            "e-d-bus",
+            "e-vdd-bar",
+            "e-rl-bus",
+            "e-rl-gnd",
+            "e-out",
+            "e-gnd-rail"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeNodes": [
+            "n-vs",
+            "n-rs",
+            "n-q",
+            "n-rd",
+            "n-rl",
+            "t-g-ac",
+            "d-g-ac",
+            "t-vdd",
+            "d-dbus",
+            "d-rd-bus",
+            "n-gnd",
+            "t-note"
+          ],
+          "activeEdges": [
+            "e-in",
+            "e-vs-gnd",
+            "e-rs-s",
+            "e-g-ac",
+            "e-g-ac-bar",
+            "e-dbus",
+            "e-d-bus",
+            "e-vdd-bar",
+            "e-rl-bus",
+            "e-rl-gnd",
+            "e-out",
+            "e-gnd-rail"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeNodes": [
+            "n-rd",
+            "n-rl",
+            "n-gnd"
+          ],
+          "activeEdges": [
+            "e-in",
+            "e-vs-gnd",
+            "e-rs-s",
+            "e-g-ac",
+            "e-g-ac-bar",
+            "e-dbus",
+            "e-d-bus",
+            "e-vdd-bar",
+            "e-rl-bus",
+            "e-rl-gnd",
+            "e-out",
+            "e-gnd-rail"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeNodes": [
+            "n-vs",
+            "n-rs",
+            "n-q",
+            "n-rd",
+            "n-rl",
+            "t-g-ac",
+            "d-g-ac",
+            "t-vdd",
+            "d-dbus",
+            "d-rd-bus",
+            "n-gnd",
+            "t-note"
+          ],
+          "activeEdges": [
+            "e-in",
+            "e-vs-gnd",
+            "e-rs-s",
+            "e-g-ac",
+            "e-g-ac-bar",
+            "e-dbus",
+            "e-d-bus",
+            "e-vdd-bar",
+            "e-rl-bus",
+            "e-rl-gnd",
+            "e-out",
+            "e-gnd-rail"
+          ],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "pi",
+      "role": "secondary",
+      "derivedFrom": "main",
+      "type": "schematic",
+      "nodes": [
+        {
+          "id": "pi-n-vs",
+          "x": 140,
+          "y": 390,
+          "kind": "vsrc",
+          "label": "vs",
+          "labelSide": "left"
+        },
+        {
+          "id": "pi-n-rs",
+          "x": 230,
+          "y": 310,
+          "kind": "res",
+          "label": "Rs",
+          "labelSide": "up"
+        },
+        {
+          "id": "pi-n-s",
+          "x": 380,
+          "y": 310,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "pi-t-s",
+          "x": 380,
+          "y": 286,
+          "kind": "text",
+          "label": "S",
+          "labelSide": "up"
+        },
+        {
+          "id": "pi-n-gm",
+          "x": 480,
+          "y": 230,
+          "kind": "ctrlsrc",
+          "label": "gm·vgs (1.00mS)",
+          "labelSide": "right"
+        },
+        {
+          "id": "pi-n-ro",
+          "x": 560,
+          "y": 230,
+          "kind": "res",
+          "label": "",
+          "rot": 90
+        },
+        {
+          "id": "pi-t-ro",
+          "x": 590,
+          "y": 320,
+          "kind": "text",
+          "label": "ro 5.0M",
+          "labelSide": "right"
+        },
+        {
+          "id": "pi-n-rd",
+          "x": 660,
+          "y": 110,
+          "kind": "res",
+          "label": "Rd 2.0k",
+          "rot": 90,
+          "labelSide": "right"
+        },
+        {
+          "id": "pi-n-rl",
+          "x": 660,
+          "y": 390,
+          "kind": "res",
+          "label": "Rl 10.0k",
+          "rot": 90,
+          "labelSide": "right"
+        },
+        {
+          "id": "pi-d-d480",
+          "x": 480,
+          "y": 154,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "pi-d-d580",
+          "x": 560,
+          "y": 154,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "pi-d-d660",
+          "x": 660,
+          "y": 154,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "pi-d-s480",
+          "x": 480,
+          "y": 374,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "pi-d-s580",
+          "x": 560,
+          "y": 374,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "t-pi-vdd",
+          "x": 694,
+          "y": 66,
+          "kind": "text",
+          "label": "VDD（交流地）",
+          "labelSide": "right"
+        },
+        {
+          "id": "t-pi-g-ac",
+          "x": 334,
+          "y": 150,
+          "kind": "text",
+          "label": "G 交流地",
+          "labelSide": "right"
+        },
+        {
+          "id": "pi-d-g-ac",
+          "x": 300,
+          "y": 150,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "pi-n-gnd",
+          "x": 240,
+          "y": 470,
+          "kind": "gnd",
+          "label": "",
+          "labelSide": "right"
+        }
+      ],
+      "edges": [
+        {
+          "id": "pi-e-in",
+          "from": "140,346",
+          "to": "186,310",
+          "kind": "wire",
+          "points": [
+            [
+              140,
+              346
+            ],
+            [
+              140,
+              310
+            ],
+            [
+              186,
+              310
+            ]
+          ]
+        },
+        {
+          "id": "pi-e-rs-s",
+          "from": "274,310",
+          "to": "380,310",
+          "kind": "wire",
+          "points": [
+            [
+              274,
+              310
+            ],
+            [
+              380,
+              310
+            ]
+          ]
+        },
+        {
+          "id": "pi-e-vs-gnd",
+          "from": "140,434",
+          "to": "140,470",
+          "kind": "wire",
+          "points": [
+            [
+              140,
+              434
+            ],
+            [
+              140,
+              470
+            ]
+          ]
+        },
+        {
+          "id": "pi-e-sbus",
+          "from": "380,374",
+          "to": "580,374",
+          "kind": "wire",
+          "points": [
+            [
+              380,
+              374
+            ],
+            [
+              580,
+              374
+            ]
+          ],
+          "weight": 2
+        },
+        {
+          "id": "pi-e-s-down",
+          "from": "380,310",
+          "to": "380,374",
+          "kind": "wire",
+          "points": [
+            [
+              380,
+              310
+            ],
+            [
+              380,
+              374
+            ]
+          ]
+        },
+        {
+          "id": "pi-e-dbus",
+          "from": "480,154",
+          "to": "660,154",
+          "kind": "wire",
+          "points": [
+            [
+              480,
+              154
+            ],
+            [
+              660,
+              154
+            ]
+          ],
+          "weight": 2
+        },
+        {
+          "id": "pi-e-gm-d",
+          "from": "480,154",
+          "to": "480,186",
+          "kind": "wire",
+          "points": [
+            [
+              480,
+              154
+            ],
+            [
+              480,
+              186
+            ]
+          ]
+        },
+        {
+          "id": "pi-e-gm-s",
+          "from": "480,274",
+          "to": "480,374",
+          "kind": "wire",
+          "points": [
+            [
+              480,
+              274
+            ],
+            [
+              480,
+              374
+            ]
+          ]
+        },
+        {
+          "id": "pi-e-ro-d",
+          "from": "560,154",
+          "to": "560,186",
+          "kind": "wire",
+          "points": [
+            [
+              560,
+              154
+            ],
+            [
+              560,
+              186
+            ]
+          ]
+        },
+        {
+          "id": "pi-e-ro-s",
+          "from": "560,274",
+          "to": "560,374",
+          "kind": "wire",
+          "points": [
+            [
+              560,
+              274
+            ],
+            [
+              560,
+              374
+            ]
+          ]
+        },
+        {
+          "id": "e-pi-vdd-bar",
+          "from": "634,66",
+          "to": "686,66",
+          "kind": "wire",
+          "points": [
+            [
+              634,
+              66
+            ],
+            [
+              686,
+              66
+            ]
+          ],
+          "weight": 2
+        },
+        {
+          "id": "pi-e-rl-d",
+          "from": "660,154",
+          "to": "660,346",
+          "kind": "wire",
+          "points": [
+            [
+              660,
+              154
+            ],
+            [
+              660,
+              346
+            ]
+          ]
+        },
+        {
+          "id": "pi-e-rl-s",
+          "from": "660,434",
+          "to": "660,470",
+          "kind": "wire",
+          "points": [
+            [
+              660,
+              434
+            ],
+            [
+              660,
+              470
+            ]
+          ]
+        },
+        {
+          "id": "pi-e-out",
+          "from": "660,154",
+          "to": "722,154",
+          "kind": "wire",
+          "points": [
+            [
+              660,
+              154
+            ],
+            [
+              722,
+              154
+            ]
+          ],
+          "tag": "Vo"
+        },
+        {
+          "id": "e-pi-g-ac-bar",
+          "from": "274,150",
+          "to": "326,150",
+          "kind": "wire",
+          "points": [
+            [
+              274,
+              150
+            ],
+            [
+              326,
+              150
+            ]
+          ],
+          "weight": 2
+        },
+        {
+          "id": "pi-e-g-gnd",
+          "from": "300,150",
+          "to": "400,230",
+          "kind": "wire",
+          "points": [
+            [
+              300,
+              150
+            ],
+            [
+              300,
+              230
+            ],
+            [
+              400,
+              230
+            ]
+          ]
+        },
+        {
+          "id": "pi-e-vgs",
+          "from": "400,230",
+          "to": "454,230",
+          "kind": "wire",
+          "points": [
+            [
+              400,
+              230
+            ],
+            [
+              454,
+              230
+            ]
+          ],
+          "dashed": true,
+          "label": "vgs"
+        },
+        {
+          "id": "pi-e-gnd-rail",
+          "from": "140,470",
+          "to": "660,470",
+          "kind": "wire",
+          "points": [
+            [
+              140,
+              470
+            ],
+            [
+              660,
+              470
+            ]
+          ],
+          "weight": 2
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeNodes": [],
+          "activeEdges": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeNodes": [
+            "pi-n-gm"
+          ],
+          "activeEdges": [
+            "pi-e-in",
+            "pi-e-rs-s",
+            "pi-e-vs-gnd",
+            "pi-e-sbus",
+            "pi-e-s-down",
+            "pi-e-dbus",
+            "pi-e-gm-d",
+            "pi-e-gm-s",
+            "pi-e-ro-d",
+            "pi-e-ro-s",
+            "e-pi-vdd-bar",
+            "pi-e-rl-d",
+            "pi-e-rl-s",
+            "pi-e-out",
+            "e-pi-g-ac-bar",
+            "pi-e-g-gnd",
+            "pi-e-vgs",
+            "pi-e-gnd-rail"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeNodes": [
+            "pi-n-gm",
+            "pi-n-ro"
+          ],
+          "activeEdges": [
+            "pi-e-in",
+            "pi-e-rs-s",
+            "pi-e-vs-gnd",
+            "pi-e-sbus",
+            "pi-e-s-down",
+            "pi-e-dbus",
+            "pi-e-gm-d",
+            "pi-e-gm-s",
+            "pi-e-ro-d",
+            "pi-e-ro-s",
+            "e-pi-vdd-bar",
+            "pi-e-rl-d",
+            "pi-e-rl-s",
+            "pi-e-out",
+            "e-pi-g-ac-bar",
+            "pi-e-g-gnd",
+            "pi-e-vgs",
+            "pi-e-gnd-rail"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeNodes": [
+            "pi-n-ro",
+            "pi-n-rd",
+            "pi-n-rl",
+            "pi-n-gnd"
+          ],
+          "activeEdges": [
+            "pi-e-in",
+            "pi-e-rs-s",
+            "pi-e-vs-gnd",
+            "pi-e-sbus",
+            "pi-e-s-down",
+            "pi-e-dbus",
+            "pi-e-gm-d",
+            "pi-e-gm-s",
+            "pi-e-ro-d",
+            "pi-e-ro-s",
+            "e-pi-vdd-bar",
+            "pi-e-rl-d",
+            "pi-e-rl-s",
+            "pi-e-out",
+            "e-pi-g-ac-bar",
+            "pi-e-g-gnd",
+            "pi-e-vgs",
+            "pi-e-gnd-rail"
+          ],
+          "labels": [
+            {
+              "id": "pi-n-gnd",
+              "text": "Av=0.833 Ri=1.00k Ro=2.00k"
+            }
+          ]
+        },
+        {
+          "stepIndex": 4,
+          "activeNodes": [
+            "pi-n-vs",
+            "pi-n-rs",
+            "pi-n-s",
+            "pi-t-s",
+            "pi-n-gm",
+            "pi-n-ro",
+            "pi-t-ro",
+            "pi-n-rd",
+            "pi-n-rl",
+            "pi-d-d480",
+            "pi-d-d580",
+            "pi-d-d660",
+            "pi-d-s480",
+            "pi-d-s580",
+            "t-pi-vdd",
+            "t-pi-g-ac",
+            "pi-d-g-ac",
+            "pi-n-gnd"
+          ],
+          "activeEdges": [
+            "pi-e-in",
+            "pi-e-rs-s",
+            "pi-e-vs-gnd",
+            "pi-e-sbus",
+            "pi-e-s-down",
+            "pi-e-dbus",
+            "pi-e-gm-d",
+            "pi-e-gm-s",
+            "pi-e-ro-d",
+            "pi-e-ro-s",
+            "e-pi-vdd-bar",
+            "pi-e-rl-d",
+            "pi-e-rl-s",
+            "pi-e-out",
+            "e-pi-g-ac-bar",
+            "pi-e-g-gnd",
+            "pi-e-vgs",
+            "pi-e-gnd-rail"
+          ],
+          "labels": [
+            {
+              "id": "pi-n-gnd",
+              "text": "Av=0.833 Ri=1.00k Ro=2.00k"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 3.4101505358295335e-16,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "A5 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "模电参数均为 SI 量（V/A/Ω/F/H），无量纲增益单独标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "A/B/C 一致：Av=0.83328；最大相对偏差 3.410e-16"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "Av 有限、Ri/Ro 为正（或 ∞）"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "3 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=3.4101505358295335e-16，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T10:12:22.212Z",
+  "contractVersion": "v2.2",
+  "warnings": []
+}

@@ -1,0 +1,385 @@
+{
+  "templateId": "S3",
+  "subject": "statics",
+  "parsed_given": {
+    "L": 3,
+    "x1": 1,
+    "P1": 10,
+    "x2": 2,
+    "P2": 20
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "取梁为隔离体",
+      "formula_tex": "\\text{梁} + R_A + R_B + P_1 + P_2",
+      "substitution": "L=3 m，P1=10 kN@1 m，P2=20 kN@2 m",
+      "value": "支座：A 固定铰（2 未知量）、B 可动铰（1 未知量）",
+      "basis": "受力分析",
+      "highlight": [
+        "e-member",
+        "n-sup-0",
+        "n-sup-1"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "向 A 点简化：主矢与主矩",
+      "formula_tex": "R'=\\sum\\vec F_i,\\ M_A=\\sum M_A(\\vec F_i)",
+      "substitution": "R'=-30.000 kN，M_A=-50.000 kN·m",
+      "value": "主矢 30.000 kN 向下；主矩 50.000 kN·m 顺时针",
+      "basis": "力系简化的两个不变量",
+      "highlight": []
+    },
+    {
+      "i": 2,
+      "title": "对 A 取矩求 RB",
+      "formula_tex": "\\sum M_A=0:\\ R_B L=P_1x_1+P_2x_2",
+      "substitution": "(10×1+20×2)/3",
+      "value": "RB=16.667 kN",
+      "basis": "一个方程解一个未知量",
+      "highlight": [
+        "n-sup-1"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "竖直方向求 RA",
+      "formula_tex": "\\sum F_y=0:\\ R_A+R_B=P_1+P_2",
+      "substitution": "10+20−16.667",
+      "value": "RA=13.333 kN",
+      "basis": "两个竖向反力分担总载荷",
+      "highlight": [
+        "n-sup-0"
+      ]
+    },
+    {
+      "i": 4,
+      "title": "校核",
+      "formula_tex": "\\sum F_x=0,\\ \\sum F_y=0,\\ \\sum M_A=0",
+      "substitution": "ΣFx=0.00e+0，ΣFy=0.00e+0，ΣM_A=0.00e+0",
+      "value": "三个残差均为机器零",
+      "basis": "刚体平衡",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "RA": 13.333333,
+    "RB": 16.666667,
+    "RAx": 0,
+    "Fy": -30,
+    "MA": -50,
+    "status": "ok",
+    "conclusion": "RA=13.333 kN，RB=16.667 kN（ΣM_A 与 ΣF_y 两式联立）"
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "freebody",
+      "nodes": [
+        {
+          "id": "n-end-a",
+          "x": 140,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-end-b",
+          "x": 780,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-sup-0",
+          "x": 140,
+          "y": 250,
+          "kind": "pinSupport",
+          "label": "固定铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-sup-1",
+          "x": 780,
+          "y": 250,
+          "kind": "rollerSupport",
+          "label": "可动铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-load-0",
+          "x": 353.3333333333333,
+          "y": 250,
+          "kind": "arrow",
+          "rot": 0,
+          "label": "P1 = 10 kN",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-load-1",
+          "x": 566.6666666666666,
+          "y": 250,
+          "kind": "arrow",
+          "rot": 0,
+          "label": "P2 = 20 kN",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-reaction-0",
+          "x": 140,
+          "y": 308,
+          "kind": "arrow",
+          "rot": 180,
+          "label": "R_A = 13.33 kN",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-reaction-1",
+          "x": 780,
+          "y": 308,
+          "kind": "arrow",
+          "rot": 180,
+          "label": "R_B = 16.67 kN",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-span",
+          "x": 460,
+          "y": 336,
+          "kind": "text",
+          "label": "L = 3 m",
+          "labelSide": "up"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-member",
+          "from": "n-end-a",
+          "to": "n-end-b",
+          "kind": "beam",
+          "weight": 2,
+          "points": [
+            [
+              140,
+              250
+            ],
+            [
+              780,
+              250
+            ]
+          ]
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-load-0",
+            "n-load-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-sup-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "checks",
+      "role": "secondary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "校验项",
+          "期望",
+          "实际",
+          "相对误差",
+          "结论",
+          "说明",
+          "来源"
+        ],
+        "rows": [
+          [
+            "ΣFx=0 残差",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "两个载荷都竖直，A 铰的水平反力应为 0",
+            "本页自算（刚体平衡）"
+          ],
+          [
+            "ΣFy=0 残差",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "RA+RB=30.000 kN 应等于 P1+P2=30.000 kN",
+            "本页自算（刚体平衡）"
+          ],
+          [
+            "ΣM_A=0 残差",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "RB·L=50.000 应等于 P1x1+P2x2=50.000",
+            "本页自算（刚体平衡）"
+          ],
+          [
+            "主矢与反力互抵 |R′+ΣR|",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "主矢 R′=-30.000 kN（向下），反力之和 30.000 kN（向上）",
+            "本页自算（刚体平衡）"
+          ],
+          [
+            "主矩与反力偶互抵 |M_A+R_B·L|",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "主矩 M_A=-50.000 kN·m（顺时针）与 RB·L 抵消",
+            "本页自算（刚体平衡）"
+          ],
+          [
+            "平衡方程求解残差 ||A·r−b||/||b||",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "未知量按 3 方程求解",
+            "本页自算（刚体平衡）"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "S3 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "静力学量统一为 m / kN / N / 度；截面尺寸用 mm，换算处已标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "S3 约束矩阵求解 / 取矩闭式 / 竖向平衡：最大相对差 0.000e+0"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "静定结果，平衡残差与判据均已记录在校验表"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "2 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T16:32:07.296Z",
+  "contractVersion": "v2.2",
+  "warnings": [
+    "S3 只做静定梁的反力与简化；外伸梁 / 多跨连续梁属静不定，本工具拒绝"
+  ]
+}

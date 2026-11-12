@@ -1,0 +1,55 @@
+import type { GoldenCase } from './types';
+
+export const A2_GOLDEN: GoldenCase<Record<string, number | string>>[] = [
+  {
+    id: 'A2-01',
+    templateId: 'A2',
+    title: '分压偏置放大区工作点',
+    input: {},
+    expected: {
+      zone: 'active',
+      IB: 0.000019238176760111283,
+      IC: 0.0019238176760111283,
+      IE: 0.0019430558527712396,
+      VBE: 0.7,
+      VCE: 3.708345816392037,
+    },
+    residualThreshold: 1e-6,
+    handCheck: 'VBB=2.79V，RB=7.67k；IB=(2.79-0.7)/(7.67k+101k)=19.24μA，IC=1.924mA，VCE=3.708V。',
+    provenance: 'self-authored',
+  },
+  {
+    id: 'A2-02',
+    templateId: 'A2',
+    title: '强基极驱动进入饱和区',
+    input: { R1: 10000, R2: 100000, Rc: 1000, Re: 100 },
+    expected: {
+      zone: 'saturation',
+      IB: 0.000995049504950495,
+      IC: 0.010636813681368136,
+      IE: 0.01163186318631863,
+      VBE: 0.7,
+      VCE: 0.2,
+    },
+    residualThreshold: 1e-6,
+    handCheck: 'VBB=10.91V，IB≈0.995mA，IC受Rc限制≈10.64mA < βIB≈99.5mA，故饱和。',
+    provenance: 'self-authored',
+  },
+  {
+    id: 'A2-03',
+    templateId: 'A2',
+    title: '基极分压不足进入截止区',
+    input: { R1: 100000, R2: 4700 },
+    expected: {
+      zone: 'cutoff',
+      IB: 0,
+      IC: 0,
+      IE: 0,
+      VBE: 0.5386819484240688,
+      VCE: 12,
+    },
+    residualThreshold: 1e-6,
+    handCheck: 'VBB=0.539V<0.7V，BE 结不导通，IC=0，VCE=VCC=12V。',
+    provenance: 'self-authored',
+  },
+];

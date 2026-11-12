@@ -1,0 +1,573 @@
+{
+  "templateId": "A7",
+  "subject": "analog",
+  "parsed_given": {
+    "A": 100000,
+    "beta": 0.01,
+    "Rin": 10000,
+    "Rout": 100,
+    "Rl": 10000
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "判断反馈组态",
+      "formula_tex": "\\text{series-shunt}",
+      "substitution": "A=1.00e+5，β=0.01，Rout=100Ω，Rl=10000Ω",
+      "value": "电压串联负反馈",
+      "basis": "输入串联求和、输出取电压",
+      "highlight": [
+        "n-fb"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "断开环路求环路增益 T",
+      "formula_tex": "T=A'\\beta,\\quad A'=A\\frac{R_L}{R_{out}+R_L}",
+      "substitution": "A'=99009.901，T=990.10",
+      "value": "T=990.099",
+      "basis": "环路增益法",
+      "highlight": [
+        "n-amp"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "闭环增益",
+      "formula_tex": "A_f=\\frac{A'}{1+T}",
+      "substitution": "A'=99009.901，T=990.10",
+      "value": "Af=99.89910",
+      "basis": "负反馈基本关系",
+      "highlight": [
+        "n-out"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "闭环 MNA 直接求解",
+      "formula_tex": "V_e=V_s-\\beta V_o",
+      "substitution": "不拆环路，直接解 MNA：Af=99.89910",
+      "value": "闭环 MNA A_f=99.89910（答案位；1/β=100.000 仅作参照）",
+      "basis": "闭环节点方程",
+      "highlight": [
+        "n-sum",
+        "n-out"
+      ]
+    },
+    {
+      "i": 4,
+      "title": "深度负反馈渐近判据",
+      "formula_tex": "\\left|1/\\beta-A_f\\right|/|A_f|\\downarrow\\ (T\\uparrow)",
+      "substitution": "T=10:超域，T=30:超域，T=100:1.00%，T=300:0.33%，T=1000:0.10%",
+      "value": "T<100 超出深度负反馈近似域；T≥100 时误差 <5%：true",
+      "basis": "渐近一致性（不是等式判据）",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "T": 990.09900990099,
+    "AfAnswer": 99.89910190707386,
+    "AfLoop": 99.89910190707386,
+    "AfMNA": 99.89910190707384,
+    "AfDeep": 100,
+    "errorAtT1000": 0.001000000000000224
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "schematic",
+      "nodes": [
+        {
+          "id": "n-vs",
+          "x": 160,
+          "y": 350,
+          "kind": "vsrc",
+          "label": "Vs",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-rin",
+          "x": 270,
+          "y": 250,
+          "kind": "res",
+          "label": "Rin 10.0k",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-sum",
+          "x": 400,
+          "y": 250,
+          "kind": "sum",
+          "label": ""
+        },
+        {
+          "id": "n-amp",
+          "x": 520,
+          "y": 250,
+          "kind": "block",
+          "label": "A 1e+5"
+        },
+        {
+          "id": "n-rout",
+          "x": 630,
+          "y": 250,
+          "kind": "res",
+          "label": "Rout 100Ω",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-fb",
+          "x": 520,
+          "y": 400,
+          "kind": "block",
+          "label": "β 0.01"
+        },
+        {
+          "id": "n-rl",
+          "x": 880,
+          "y": 350,
+          "kind": "res",
+          "label": "Rl",
+          "rot": 90,
+          "labelSide": "right"
+        },
+        {
+          "id": "n-out",
+          "x": 760,
+          "y": 250,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "d-fb",
+          "x": 400,
+          "y": 400,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "t-fb",
+          "x": 400,
+          "y": 440,
+          "kind": "text",
+          "label": "负反馈：β 取输出的一部分回到求和点",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-gnd",
+          "x": 400,
+          "y": 470,
+          "kind": "gnd",
+          "label": "",
+          "labelSide": "right"
+        },
+        {
+          "id": "d-gnd-880",
+          "x": 880,
+          "y": 470,
+          "kind": "dot",
+          "label": ""
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-in",
+          "from": "160,306",
+          "to": "226,250",
+          "kind": "wire",
+          "points": [
+            [
+              160,
+              306
+            ],
+            [
+              160,
+              250
+            ],
+            [
+              226,
+              250
+            ]
+          ]
+        },
+        {
+          "id": "e-rin-sum",
+          "from": "314,250",
+          "to": "356,250",
+          "kind": "wire",
+          "points": [
+            [
+              314,
+              250
+            ],
+            [
+              356,
+              250
+            ]
+          ]
+        },
+        {
+          "id": "e-sum-amp",
+          "from": "444,250",
+          "to": "470,250",
+          "kind": "wire",
+          "points": [
+            [
+              444,
+              250
+            ],
+            [
+              470,
+              250
+            ]
+          ]
+        },
+        {
+          "id": "e-amp-rout",
+          "from": "570,250",
+          "to": "586,250",
+          "kind": "wire",
+          "points": [
+            [
+              570,
+              250
+            ],
+            [
+              586,
+              250
+            ]
+          ]
+        },
+        {
+          "id": "e-rout-out",
+          "from": "674,250",
+          "to": "760,250",
+          "kind": "wire",
+          "points": [
+            [
+              674,
+              250
+            ],
+            [
+              760,
+              250
+            ]
+          ]
+        },
+        {
+          "id": "e-out",
+          "from": "760,250",
+          "to": "880,306",
+          "kind": "wire",
+          "points": [
+            [
+              760,
+              250
+            ],
+            [
+              880,
+              250
+            ],
+            [
+              880,
+              306
+            ]
+          ],
+          "tag": "Vo"
+        },
+        {
+          "id": "e-rl-gnd",
+          "from": "880,394",
+          "to": "880,470",
+          "kind": "wire",
+          "points": [
+            [
+              880,
+              394
+            ],
+            [
+              880,
+              470
+            ]
+          ]
+        },
+        {
+          "id": "e-out-fb",
+          "from": "760,250",
+          "to": "570,400",
+          "kind": "wire",
+          "points": [
+            [
+              760,
+              250
+            ],
+            [
+              760,
+              440
+            ],
+            [
+              620,
+              440
+            ],
+            [
+              620,
+              400
+            ],
+            [
+              570,
+              400
+            ]
+          ]
+        },
+        {
+          "id": "e-fb-sum",
+          "from": "470,400",
+          "to": "400,294",
+          "kind": "wire",
+          "points": [
+            [
+              470,
+              400
+            ],
+            [
+              400,
+              400
+            ],
+            [
+              400,
+              294
+            ]
+          ]
+        },
+        {
+          "id": "e-vs-gnd",
+          "from": "160,394",
+          "to": "160,470",
+          "kind": "wire",
+          "points": [
+            [
+              160,
+              394
+            ],
+            [
+              160,
+              470
+            ]
+          ]
+        },
+        {
+          "id": "e-gnd-rail",
+          "from": "160,470",
+          "to": "880,470",
+          "kind": "wire",
+          "points": [
+            [
+              160,
+              470
+            ],
+            [
+              880,
+              470
+            ]
+          ],
+          "weight": 2
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [
+            "e-in",
+            "e-rin-sum",
+            "e-sum-amp",
+            "e-amp-rout",
+            "e-rout-out",
+            "e-out",
+            "e-rl-gnd",
+            "e-out-fb",
+            "e-fb-sum",
+            "e-vs-gnd",
+            "e-gnd-rail"
+          ],
+          "activeNodes": [
+            "n-vs",
+            "n-rin",
+            "n-sum",
+            "n-amp",
+            "n-rout",
+            "n-fb",
+            "n-rl",
+            "n-out",
+            "d-fb",
+            "t-fb",
+            "n-gnd",
+            "d-gnd-880"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-in",
+            "e-rin-sum",
+            "e-sum-amp",
+            "e-amp-rout",
+            "e-rout-out",
+            "e-out",
+            "e-rl-gnd",
+            "e-out-fb",
+            "e-fb-sum",
+            "e-vs-gnd",
+            "e-gnd-rail"
+          ],
+          "activeNodes": [
+            "n-vs",
+            "n-rin",
+            "n-sum",
+            "n-amp",
+            "n-rout",
+            "n-fb",
+            "n-rl",
+            "n-out",
+            "d-fb",
+            "t-fb",
+            "n-gnd",
+            "d-gnd-880"
+          ],
+          "labels": [
+            {
+              "id": "n-out",
+              "text": "Af=99.899"
+            }
+          ]
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "e-in",
+            "e-rin-sum",
+            "e-sum-amp",
+            "e-amp-rout",
+            "e-rout-out",
+            "e-out",
+            "e-rl-gnd",
+            "e-out-fb",
+            "e-fb-sum",
+            "e-vs-gnd",
+            "e-gnd-rail"
+          ],
+          "activeNodes": [
+            "n-vs",
+            "n-rin",
+            "n-sum",
+            "n-amp",
+            "n-rout",
+            "n-fb",
+            "n-rl",
+            "n-out",
+            "d-fb",
+            "t-fb",
+            "n-gnd",
+            "d-gnd-880"
+          ],
+          "labels": [
+            {
+              "id": "n-out",
+              "text": "Af=99.899"
+            }
+          ]
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "e-in",
+            "e-rin-sum",
+            "e-sum-amp",
+            "e-amp-rout",
+            "e-rout-out",
+            "e-out",
+            "e-rl-gnd",
+            "e-out-fb",
+            "e-fb-sum",
+            "e-vs-gnd",
+            "e-gnd-rail"
+          ],
+          "activeNodes": [
+            "n-vs",
+            "n-rin",
+            "n-sum",
+            "n-amp",
+            "n-rout",
+            "n-fb",
+            "n-rl",
+            "n-out",
+            "d-fb",
+            "t-fb",
+            "n-gnd",
+            "d-gnd-880"
+          ],
+          "labels": [
+            {
+              "id": "n-out",
+              "text": "Af=99.899"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0.001000000000000224,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "A7 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "模电参数均为 SI 量（V/A/Ω/F/H），无量纲增益单独标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "T<100 超域；T=100→1000 误差 1.00%→0.33%→0.10%，单调下降；T≥100 <5%"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "T>0，T=1000 时误差 <5%"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "1 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0.001000000000000224，tolerance=0.005"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T10:12:21.551Z",
+  "contractVersion": "v2.2",
+  "warnings": []
+}

@@ -1,0 +1,620 @@
+{
+  "templateId": "M4",
+  "subject": "mechanics",
+  "parsed_given": {
+    "L": 4,
+    "a": 2,
+    "P": 20,
+    "b": 100,
+    "h": 200,
+    "allow": 160
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "截面几何量",
+      "formula_tex": "I_y=\\frac{bh^3}{12},\\ W=\\frac{bh^2}{6}",
+      "substitution": "b=100 mm，h=200 mm",
+      "value": "Iy=66666666.7 mm⁴，W=666666.7 mm³",
+      "basis": "矩形截面惯性矩 / 抗弯截面系数",
+      "highlight": [
+        "e-member"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "取最大弯矩截面",
+      "formula_tex": "M_{max}=\\max|M(x)|",
+      "substitution": "简支梁 P@x=2 m",
+      "value": "|M|max=20.000 kN·m @ x=2.000 m",
+      "basis": "库 diagrams.extrema（dM/dx=Q=0 处）",
+      "highlight": [
+        "e-member",
+        "n-load-0"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "最大弯曲正应力",
+      "formula_tex": "\\sigma_{max}=\\frac{M}{W}",
+      "substitution": "M=20.000 kN·m，W=666666.7 mm³",
+      "value": "σmax=30.000 MPa（库 stresses.sigma_max）",
+      "basis": "弯曲正应力公式",
+      "highlight": [
+        "e-member"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "沿截面线性分布",
+      "formula_tex": "\\sigma(y)=\\frac{N}{A}+\\frac{My}{I_y}",
+      "substitution": "上缘 -30.0 MPa，下缘 30.0 MPa，中性轴 y=0.0 mm",
+      "value": "受拉侧：y=下缘；σ 沿高度线性",
+      "basis": "平面假设 + 库 ∫σdA=N / ∫yσdA=M 校核",
+      "highlight": [
+        "n-span"
+      ]
+    },
+    {
+      "i": 4,
+      "title": "强度校核",
+      "formula_tex": "\\sigma_{max}\\le[\\sigma]",
+      "substitution": "σmax=30.000 MPa，[σ]=160 MPa",
+      "value": "σmax = 30.000 MPa ≤ 许用 160.000 MPa（富余 81.3%）",
+      "basis": "强度条件 + 库 checks[]",
+      "highlight": [
+        "e-member",
+        "n-span"
+      ]
+    }
+  ],
+  "result": {
+    "W": 666666.667,
+    "Iy": 66666666.667,
+    "Mmax": 20,
+    "sigmaMax": 30,
+    "sigmaMin": -30,
+    "sigmaAllow": 160,
+    "neutralAxis": 0,
+    "ratio": 0.1875,
+    "status": "ok",
+    "conclusion": "σmax = 30.000 MPa ≤ 许用 160.000 MPa（富余 81.3%）"
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "freebody",
+      "nodes": [
+        {
+          "id": "n-end-a",
+          "x": 140,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-end-b",
+          "x": 780,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-sup-0",
+          "x": 140,
+          "y": 250,
+          "kind": "pinSupport",
+          "label": "固定铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-sup-1",
+          "x": 780,
+          "y": 250,
+          "kind": "rollerSupport",
+          "label": "可动铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-load-0",
+          "x": 460,
+          "y": 250,
+          "kind": "arrow",
+          "rot": 0,
+          "label": "P = 20 kN",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-reaction-0",
+          "x": 140,
+          "y": 308,
+          "kind": "arrow",
+          "rot": 180,
+          "label": "R_A = 10.00 kN",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-reaction-1",
+          "x": 780,
+          "y": 308,
+          "kind": "arrow",
+          "rot": 180,
+          "label": "R_B = 10.00 kN",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-span",
+          "x": 460,
+          "y": 336,
+          "kind": "text",
+          "label": "L = 4 m　b×h = 100×200 mm",
+          "labelSide": "up"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-member",
+          "from": "n-end-a",
+          "to": "n-end-b",
+          "kind": "beam",
+          "weight": 2,
+          "points": [
+            [
+              140,
+              250
+            ],
+            [
+              780,
+              250
+            ]
+          ]
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-load-0"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-load-0"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-span"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-span"
+          ],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "sigma",
+      "role": "secondary",
+      "type": "stress",
+      "nodes": [],
+      "edges": [],
+      "chart": {
+        "id": "sigma",
+        "title": "截面正应力分布（x=2.00 m）",
+        "unit": "MPa",
+        "xLabel": "y (mm，向下为正)",
+        "yLabel": "MPa",
+        "xDomain": [
+          -100,
+          100
+        ],
+        "yDomain": [
+          -34.79999999999999,
+          34.79999999999999
+        ],
+        "zeroLine": true,
+        "series": [
+          {
+            "kind": "line",
+            "points": [
+              [
+                -100,
+                -29.999999999999993
+              ],
+              [
+                -95,
+                -28.499999999999993
+              ],
+              [
+                -90,
+                -26.99999999999999
+              ],
+              [
+                -85,
+                -25.499999999999996
+              ],
+              [
+                -80,
+                -23.999999999999996
+              ],
+              [
+                -75,
+                -22.499999999999993
+              ],
+              [
+                -70,
+                -20.999999999999996
+              ],
+              [
+                -65,
+                -19.499999999999996
+              ],
+              [
+                -60,
+                -17.999999999999996
+              ],
+              [
+                -55,
+                -16.499999999999996
+              ],
+              [
+                -50,
+                -14.999999999999996
+              ],
+              [
+                -45,
+                -13.499999999999995
+              ],
+              [
+                -40,
+                -11.999999999999998
+              ],
+              [
+                -35,
+                -10.499999999999998
+              ],
+              [
+                -30,
+                -8.999999999999998
+              ],
+              [
+                -25,
+                -7.499999999999998
+              ],
+              [
+                -20,
+                -5.999999999999999
+              ],
+              [
+                -15,
+                -4.499999999999999
+              ],
+              [
+                -10,
+                -2.9999999999999996
+              ],
+              [
+                -5,
+                -1.4999999999999998
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                5,
+                1.4999999999999998
+              ],
+              [
+                10,
+                2.9999999999999996
+              ],
+              [
+                15,
+                4.499999999999999
+              ],
+              [
+                20,
+                5.999999999999999
+              ],
+              [
+                25,
+                7.499999999999998
+              ],
+              [
+                30,
+                8.999999999999998
+              ],
+              [
+                35,
+                10.499999999999998
+              ],
+              [
+                40,
+                11.999999999999998
+              ],
+              [
+                45,
+                13.499999999999995
+              ],
+              [
+                50,
+                14.999999999999996
+              ],
+              [
+                55,
+                16.499999999999996
+              ],
+              [
+                60,
+                17.999999999999996
+              ],
+              [
+                65,
+                19.499999999999996
+              ],
+              [
+                70,
+                20.999999999999996
+              ],
+              [
+                75,
+                22.499999999999993
+              ],
+              [
+                80,
+                23.999999999999996
+              ],
+              [
+                85,
+                25.499999999999996
+              ],
+              [
+                90,
+                26.99999999999999
+              ],
+              [
+                95,
+                28.499999999999993
+              ],
+              [
+                100,
+                29.999999999999993
+              ]
+            ],
+            "label": "σ(y)",
+            "fill": true
+          }
+        ],
+        "marks": [
+          {
+            "x": -100,
+            "y": -29.999999999999993,
+            "text": "σ=-30.0 MPa",
+            "side": "right"
+          },
+          {
+            "x": 100,
+            "y": 29.999999999999993,
+            "text": "σ=30.0 MPa",
+            "side": "left"
+          },
+          {
+            "x": 0,
+            "y": 0,
+            "text": "中性轴 σ=0",
+            "side": "down"
+          }
+        ],
+        "convention": "σ = N/A + M·y/Iy，y 自中性轴向下为正（与库算出的数一致），拉应力为正　W=bh²/6"
+      },
+      "frames": []
+    },
+    {
+      "id": "checks",
+      "role": "secondary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "校验项",
+          "期望",
+          "实际",
+          "相对误差",
+          "结论",
+          "说明",
+          "来源"
+        ],
+        "rows": [
+          [
+            "ΣFx=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "ΣFy=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "ΣM(对左端)=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "dM/dx=Q（数值差分抽查 2 点）",
+            "-10",
+            "-10",
+            "5.10e-11",
+            "通过",
+            "最差样本 x=3（中心差分 h=0.000004）",
+            "库 checks[]"
+          ],
+          [
+            "简支端 M=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "铰/辊轴支座 x=0, 4",
+            "库 checks[]"
+          ],
+          [
+            "∫σdA=N（线性正应力 σ=N/A+M·y/Iy）",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "截面 x=2（数值条带积分）",
+            "库 checks[]"
+          ],
+          [
+            "∫yσdA=M（同上）",
+            "20",
+            "20",
+            "0",
+            "通过",
+            "截面 x=2（数值条带积分）",
+            "库 checks[]"
+          ],
+          [
+            "平衡方程求解残差 ||A·r-b||/||b||",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "未知量按 3/4 方程求解",
+            "库 checks[]"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "M4 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "力学量统一换算为 m / kN / GPa / MPa 后求解，图与文字同单位"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "M4 库 stresses vs σ=M/W / 闭式 vs 截面条带积分：最大相对差 0.000e+0"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "未超限，用量比 0.188"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "2 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T13:48:29.384Z",
+  "contractVersion": "v2.2",
+  "warnings": [
+    "本工具不计算变形（挠度/转角/变形协调均无）：静定反力、内力与应力不需要 section.E；要挠度请另行积分 EI·v''=M 并代入边界条件"
+  ]
+}

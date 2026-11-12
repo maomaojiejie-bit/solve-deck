@@ -1,0 +1,125 @@
+{
+  "spec": {
+    "kind": "bar",
+    "length": 1,
+    "supports": [
+      {
+        "x": 0,
+        "type": "pin"
+      },
+      {
+        "x": 1,
+        "type": "pin"
+      }
+    ],
+    "loads": [
+      {
+        "type": "point_force",
+        "x": 1,
+        "value": 40,
+        "dir": "axial"
+      }
+    ],
+    "section": {
+      "shape": "rect",
+      "params": {
+        "b": 0.02,
+        "h": 0.01
+      },
+      "E": 200000000000
+    }
+  },
+  "expected": {
+    "ok": true,
+    "kind": "bar",
+    "determinate": false,
+    "unsupported": [
+      "静不定：本工具 Phase 1 覆盖静定问题，需变形协调或刚度法"
+    ],
+    "conventions": {
+      "N": "拉为正",
+      "Q": "顺时针为正",
+      "M": "下侧受拉为正",
+      "T": "右手螺旋+x为正",
+      "x": "自构件左端量起，单位同 units.length",
+      "point_force": "沿 dir 的分量：transverse 向上为正，axial 沿 +x 为正",
+      "distributed": "q 为集度(力/长度)，向上为正，沿 x 线性",
+      "point_moment": "逆时针为正",
+      "point_torque": "右手螺旋沿 +x 为正",
+      "support": "Rx 沿+x，Ry 向上，Mz 逆时针，Mx 右手螺旋+x",
+      "sigma": "σ=N/A+M·y/Iy，y 自中性轴向上为正，拉应力为正",
+      "M_definition": "M=Σ_{a<x}[(x-a)·Fy-Mz]，满足 dM/dx=Q"
+    },
+    "units": {
+      "length": "m",
+      "force": "kN",
+      "moment": "kN*m",
+      "stress": "MPa"
+    },
+    "reactions": [],
+    "section": {
+      "shape": "rect",
+      "params": {
+        "b": 0.02,
+        "h": 0.01
+      },
+      "A": 0.0002,
+      "Iy": 1.666666666666667e-9,
+      "W": 3.3333333333333335e-7,
+      "Sy": 2.5000000000000004e-7,
+      "Ip": null,
+      "Wp": null,
+      "ymax": 0.005,
+      "tau_max_coeff": 1.5,
+      "E": 200000000000,
+      "material": null,
+      "units": {
+        "length": "m",
+        "force": "kN",
+        "moment": "kN*m",
+        "stress": "MPa"
+      }
+    },
+    "diagrams": {},
+    "extrema": {},
+    "stresses": {},
+    "checks": [
+      {
+        "name": "截面面积一致性 ∫dA=A",
+        "expected": 0.0002,
+        "actual": 0.00019999999999999822,
+        "rel_error": 8.944667923005412e-15,
+        "pass": true,
+        "note": "数值积分核对解析面积"
+      },
+      {
+        "name": "中性轴过形心 ∫y dA=0",
+        "expected": 0,
+        "actual": 6.098637220230962e-23,
+        "rel_error": 6.098637220230961e-17,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "name": "惯性矩一致性 ∫y²dA=Iy",
+        "expected": 1.666666666666667e-9,
+        "actual": 1.6666666666666681e-9,
+        "rel_error": 7.444625512977248e-16,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "name": "静定判定（未知反力数 ≤ 平衡方程数）",
+        "expected": 3,
+        "actual": 4,
+        "rel_error": 0.3333333333333333,
+        "pass": false,
+        "note": "未知反力 4 > 方程 3，Phase 1 不支持静不定"
+      }
+    ],
+    "warnings": [
+      "静不定：未求解反力与内力，仅给出截面几何与可核验的几何 checks",
+      "非圆截面：Ip/Wp 不适用，已返回 null（扭转切应力需查表或数值方法）"
+    ]
+  }
+}

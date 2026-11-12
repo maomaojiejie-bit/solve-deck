@@ -1,0 +1,490 @@
+{
+  "templateId": "M2",
+  "subject": "mechanics",
+  "parsed_given": {
+    "L": 1,
+    "d": 40,
+    "T": 1,
+    "G": 80,
+    "allow": 40,
+    "kind": "shaft"
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "求扭矩反力",
+      "formula_tex": "\\sum M_x = 0",
+      "substitution": "外扭矩 T=1 kN·m 作用于 x=L",
+      "value": "Mx = -1.0000 kN·m",
+      "basis": "绕轴平衡（ΣMx=0）",
+      "highlight": [
+        "n-sup-0"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "作扭矩图",
+      "formula_tex": "T(x) = -\\sum_{a<x} M_x",
+      "substitution": "轴段内无分布扭矩，T(x) 为常量",
+      "value": "T = 1.0000 kN·m",
+      "basis": "库的符号约定（右手螺旋 +x 为正）",
+      "highlight": [
+        "e-member",
+        "n-moment-0"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "截面几何量",
+      "formula_tex": "I_p = \\frac{\\pi d^4}{32},\\; W_p = \\frac{\\pi d^3}{16}",
+      "substitution": "d = 40 mm",
+      "value": "Ip = 251327.4 mm⁴，Wp = 12566.4 mm³",
+      "basis": "圆截面极惯性矩 / 抗扭截面系数",
+      "highlight": [
+        "e-member"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "最大切应力",
+      "formula_tex": "\\tau_{max} = \\frac{T}{W_p}",
+      "substitution": "T=1.0000 kN·m，Wp=12566.4 mm³",
+      "value": "τmax = 79.577 MPa（库 stresses.tau_torsion_max）",
+      "basis": "圆轴扭转切应力",
+      "highlight": [
+        "e-member"
+      ]
+    },
+    {
+      "i": 4,
+      "title": "刚度与强度校核",
+      "formula_tex": "\\varphi = \\frac{TL}{GI_p},\\; \\tau_{max}\\le[\\tau]",
+      "substitution": "G=80 GPa，数值积分 φ=0.049736 rad",
+      "value": "φ = 0.049736 rad（2.85°）；τmax = 79.577 MPa > 许用 40.000 MPa，超限 98.9%",
+      "basis": "扭转角公式（库不算）+ 强度条件",
+      "highlight": [
+        "e-member",
+        "n-span"
+      ]
+    }
+  ],
+  "result": {
+    "Tmax": 1,
+    "Wp": 12566.371,
+    "Ip": 251327.412,
+    "tauMax": 79.577472,
+    "tauAllow": 40,
+    "ratio": 1.9894,
+    "phiPerRad": 0.04973592,
+    "phiDeg": 2.8497,
+    "status": "over",
+    "conclusion": "τmax = 79.577 MPa > 许用 40.000 MPa，超限 98.9%"
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "freebody",
+      "nodes": [
+        {
+          "id": "n-end-a",
+          "x": 140,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-end-b",
+          "x": 780,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-sup-0",
+          "x": 140,
+          "y": 250,
+          "kind": "fixedSupport",
+          "label": "固定端",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-reaction-0",
+          "x": 140,
+          "y": 186,
+          "kind": "momentArrow",
+          "rot": 180,
+          "label": "T_A = -1.00 kN·m",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-moment-0",
+          "x": 780,
+          "y": 250,
+          "kind": "text",
+          "label": "T = 1 kN·m（右手螺旋 +x）",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-span",
+          "x": 460,
+          "y": 336,
+          "kind": "text",
+          "label": "L = 1 m",
+          "labelSide": "up"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-member",
+          "from": "n-end-a",
+          "to": "n-end-b",
+          "kind": "shaft",
+          "weight": 2,
+          "points": [
+            [
+              140,
+              250
+            ],
+            [
+              780,
+              250
+            ]
+          ]
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-sup-0"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-moment-0"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-moment-0"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-span"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-span"
+          ],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "torque",
+      "role": "secondary",
+      "type": "shaft",
+      "nodes": [],
+      "edges": [],
+      "chart": {
+        "id": "torque",
+        "title": "扭矩图",
+        "unit": "kN·m",
+        "xLabel": "x (m)",
+        "yLabel": "kN·m",
+        "xDomain": [
+          0,
+          1
+        ],
+        "yDomain": [
+          -0.08,
+          1.08
+        ],
+        "zeroLine": true,
+        "series": [
+          {
+            "kind": "step",
+            "points": [
+              [
+                0,
+                1
+              ],
+              [
+                0.3333333333333333,
+                1
+              ],
+              [
+                0.6666666666666666,
+                1
+              ],
+              [
+                1,
+                1
+              ]
+            ],
+            "label": "T(x)"
+          }
+        ],
+        "marks": [
+          {
+            "x": 0,
+            "y": 1,
+            "text": "T=1.000 kN·m",
+            "side": "up"
+          }
+        ],
+        "convention": "T 右手螺旋 +x 为正　τ = T·ρ/Ip　Wp = πd³/16"
+      },
+      "frames": []
+    },
+    {
+      "id": "shear",
+      "role": "secondary",
+      "type": "shaft",
+      "nodes": [],
+      "edges": [],
+      "chart": {
+        "id": "shear",
+        "title": "切应力沿半径线性分布",
+        "unit": "MPa",
+        "xLabel": "ρ (mm)",
+        "yLabel": "τ (MPa)",
+        "xDomain": [
+          0,
+          20
+        ],
+        "yDomain": [
+          -6.366197723675813,
+          85.94366926962347
+        ],
+        "zeroLine": true,
+        "series": [
+          {
+            "kind": "line",
+            "points": [
+              [
+                0,
+                0
+              ],
+              [
+                20,
+                79.57747154594766
+              ]
+            ],
+            "label": "τ(ρ)",
+            "fill": true
+          }
+        ],
+        "marks": [
+          {
+            "x": 20,
+            "y": 79.57747154594766,
+            "text": "τmax=79.58 MPa",
+            "side": "left"
+          }
+        ],
+        "convention": "Ip = πd⁴/32，Wp = πd³/16，φ = TL/(GIp)（扭转角为解析补充）"
+      },
+      "frames": []
+    },
+    {
+      "id": "checks",
+      "role": "secondary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "校验项",
+          "期望",
+          "实际",
+          "相对误差",
+          "结论",
+          "说明",
+          "来源"
+        ],
+        "rows": [
+          [
+            "ΣFx=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "ΣFy=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "ΣM(对左端)=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "ΣMx=0(扭转)",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "轴类模型",
+            "库 checks[]"
+          ],
+          [
+            "dM/dx=Q（数值差分抽查 1 点）",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "最差样本 x=0.5（中心差分 h=0.000001）",
+            "库 checks[]"
+          ],
+          [
+            "∫σdA=N（线性正应力 σ=N/A+M·y/Iy）",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "截面 x=0（数值条带积分）",
+            "库 checks[]"
+          ],
+          [
+            "∫yσdA=M（同上）",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "截面 x=0（数值条带积分）",
+            "库 checks[]"
+          ],
+          [
+            "平衡方程求解残差 ||A·r-b||/||b||",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "未知量按 3/4 方程求解",
+            "库 checks[]"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 2.511265318566209e-15,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "M2 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "力学量统一换算为 m / kN / GPa / MPa 后求解，图与文字同单位"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "M2 库 vs 闭式 / 闭式 vs 分段积分：最大相对差 2.511e-15"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "已超限（结论位红字）"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "1 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=2.511265318566209e-15，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T13:48:28.678Z",
+  "contractVersion": "v2.2",
+  "warnings": [
+    "本工具不计算变形（挠度/转角/变形协调均无）：静定反力、内力与应力不需要 section.E；要挠度请另行积分 EI·v''=M 并代入边界条件"
+  ]
+}

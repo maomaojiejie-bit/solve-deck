@@ -1,0 +1,405 @@
+{
+  "templateId": "S5",
+  "subject": "statics",
+  "parsed_given": {
+    "L": 2,
+    "H": 1,
+    "P": 10
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "几何与自由度",
+      "formula_tex": "n=2j-3\\ (\\text{静定桁架})",
+      "substitution": "j=3 节点、m=3 杆：m=3=2×3−3",
+      "value": "A(0,0)、B(2,0)、C(1.00,1)",
+      "basis": "桁架静定判据 m=2j−3",
+      "highlight": [
+        "e-AB",
+        "e-AC",
+        "e-BC"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "整体平衡求反力",
+      "formula_tex": "\\sum M_A=0,\\ \\sum F_y=0",
+      "substitution": "P=10 kN 作用于 C（跨中）",
+      "value": "RA=5.000 kN，RB=5.000 kN",
+      "basis": "对称结构 + 跨中载荷 ⇒ 反力各半",
+      "highlight": [
+        "n-sup-A",
+        "n-sup-B"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "节点 C：两杆节点求斜杆内力",
+      "formula_tex": "\\sum F_x=0,\\ \\sum F_y=0",
+      "substitution": "N_AC·cosθ + N_BC·cosθ = 0，N_AC·sinθ + N_BC·sinθ = −P",
+      "value": "N_AC=N_BC=-7.071 kN（压）",
+      "basis": "θ 为斜杆与水平夹角",
+      "highlight": [
+        "n-C"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "节点 A：下弦杆",
+      "formula_tex": "\\sum F_x=0:\\ N_{AB}+N_{AC}\\cos\\theta=0",
+      "substitution": "-7.071×cosθ",
+      "value": "N_AB=5.000 kN（拉）",
+      "basis": "节点法逐点推进",
+      "highlight": [
+        "n-A"
+      ]
+    },
+    {
+      "i": 4,
+      "title": "截面法核验 + 零杆判别",
+      "formula_tex": "\\sum F_y=0,\\ \\sum M_C=0",
+      "substitution": "截面法：切 AC、AB，取左段（含 A 支座）",
+      "value": "截面法：N_AC=-7.071 kN，N_AB=5.000 kN",
+      "basis": "零杆：0 根（理由见校验表）",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "RA": 5,
+    "RB": 5,
+    "N_AB": 5,
+    "N_AC": -7.071068,
+    "N_BC": -7.071068,
+    "zeroMembers": 0,
+    "status": "ok",
+    "conclusion": "RA=RB=5.000 kN；N_AC=N_BC=-7.071 kN（压），N_AB=5.000 kN（拉）；零杆 0 根"
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "truss",
+      "nodes": [
+        {
+          "id": "n-A",
+          "x": 186,
+          "y": 242,
+          "kind": "dot",
+          "label": "A",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-B",
+          "x": 514,
+          "y": 242,
+          "kind": "dot",
+          "label": "B",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-C",
+          "x": 350,
+          "y": 78,
+          "kind": "dot",
+          "label": "C",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-sup-A",
+          "x": 186,
+          "y": 242,
+          "kind": "pinSupport",
+          "label": "固定铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-sup-B",
+          "x": 514,
+          "y": 242,
+          "kind": "rollerSupport",
+          "label": "可动铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-load",
+          "x": 350,
+          "y": 72,
+          "kind": "arrow",
+          "rot": 0,
+          "label": "P = 10 kN",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-RA",
+          "x": 156,
+          "y": 242,
+          "kind": "arrow",
+          "rot": 180,
+          "label": "R_A = 5.00 kN",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-RB",
+          "x": 544,
+          "y": 242,
+          "kind": "arrow",
+          "rot": 180,
+          "label": "R_B = 5.00 kN",
+          "labelSide": "right"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-AB",
+          "from": "n-A",
+          "to": "n-B",
+          "kind": "line",
+          "weight": 2,
+          "points": [
+            [
+              186,
+              242
+            ],
+            [
+              514,
+              242
+            ]
+          ],
+          "tag": "AB: +5.000 kN（拉）"
+        },
+        {
+          "id": "e-AC",
+          "from": "n-A",
+          "to": "n-C",
+          "kind": "line",
+          "weight": 2,
+          "points": [
+            [
+              186,
+              242
+            ],
+            [
+              350,
+              78
+            ]
+          ],
+          "tag": "AC: -7.071 kN（压）"
+        },
+        {
+          "id": "e-BC",
+          "from": "n-B",
+          "to": "n-C",
+          "kind": "line",
+          "weight": 2,
+          "points": [
+            [
+              514,
+              242
+            ],
+            [
+              350,
+              78
+            ]
+          ],
+          "tag": "BC: -7.071 kN（压）"
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [
+            "e-AB",
+            "e-AC",
+            "e-BC"
+          ],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [
+            "e-AB",
+            "e-AC",
+            "e-BC"
+          ],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-AC",
+            "e-BC"
+          ],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "e-AB",
+            "e-AC"
+          ],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "e-AB",
+            "e-AC",
+            "e-BC"
+          ],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "checks",
+      "role": "secondary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "校验项",
+          "期望",
+          "实际",
+          "相对误差",
+          "结论",
+          "说明",
+          "来源"
+        ],
+        "rows": [
+          [
+            "逐节点 ΣF=0 最大残差",
+            "0",
+            "8.882e-17",
+            "8.88e-17",
+            "通过",
+            "最差节点 C：ΣFx=-8.88e-16，ΣFy=0.00e+0",
+            "本页自算（节点法 / 截面法）"
+          ],
+          [
+            "N_AC：节点法 vs 截面法",
+            "-7.07107",
+            "-7.07107",
+            "0",
+            "通过",
+            "截面法：切 AC、AB，取左段（含 A 支座）",
+            "本页自算（节点法 / 截面法）"
+          ],
+          [
+            "N_AB：节点法 vs 截面法（对 C 取矩）",
+            "5",
+            "5",
+            "0",
+            "通过",
+            "截面法用 ΣM_C=0，不经过节点 C 的两个方程",
+            "本页自算（节点法 / 截面法）"
+          ],
+          [
+            "整体 ΣFy=0：RA+RB−P",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "RA=5.000 kN，RB=5.000 kN",
+            "本页自算（节点法 / 截面法）"
+          ],
+          [
+            "零杆数与判据一致",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "无零杆：C 是两杆节点但作用有外载 P（两杆零杆判据不成立）；A、B 是支座节点，不在判据范围",
+            "本页自算（节点法 / 截面法）"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 8.881784197001253e-17,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "S5 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "静力学量统一为 m / kN / N / 度；截面尺寸用 mm，换算处已标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "S5 节点法 / 截面法 / 逐节点回代：最大相对差 8.882e-17"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "静定结果，平衡残差与判据均已记录在校验表"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "2 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=8.881784197001253e-17，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T16:32:07.796Z",
+  "contractVersion": "v2.2",
+  "warnings": [
+    "S5 只做静定桁架（m=2j−3）；超静定桁架与刚架需要位移法，本工具拒绝"
+  ]
+}

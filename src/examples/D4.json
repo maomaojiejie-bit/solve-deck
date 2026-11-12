@@ -1,0 +1,281 @@
+{
+  "templateId": "D4",
+  "subject": "digital",
+  "parsed_given": {
+    "ff": "JK",
+    "q0": 0,
+    "ticks": 4,
+    "inputs": "J,K"
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "确认触发器类型与初态",
+      "formula_tex": "JK\\ \\text{触发器的特性方程}",
+      "substitution": "初态 Q0=0；激励长度 4 拍",
+      "value": "Q^{+}=JK 的特性函数",
+      "basis": "触发器分析先定类型、初态和时钟沿",
+      "highlight": []
+    },
+    {
+      "i": 1,
+      "title": "列出特性表",
+      "formula_tex": "Q^{+}=JQ'+K'Q",
+      "substitution": "8 行（J,K,Q）",
+      "value": "Q+ 由 J、K 与 Q 唯一确定",
+      "basis": "特性表穷举当前态与激励",
+      "highlight": []
+    },
+    {
+      "i": 2,
+      "title": "逐拍代入激励序列",
+      "formula_tex": "Q_{n+1}=f(J,K,Q_n)",
+      "substitution": "t1: J=1,K=0 → Q=1；t2: J=0,K=1 → Q=0；t3: J=1,K=0 → Q=1；t4: J=1,K=1 → Q=0",
+      "value": "Q 序列 1010",
+      "basis": "同步时序：每拍按特性表更新一次",
+      "highlight": []
+    },
+    {
+      "i": 3,
+      "title": "用次态方程复核",
+      "formula_tex": "Q^{+}=JQ'+K'Q",
+      "substitution": "初态 0，4 拍后 Q=0",
+      "value": "终态 Q=0",
+      "basis": "特性表与次态方程两条独立依据",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "ff": "JK",
+    "q0": 0,
+    "sequence": "1010",
+    "finalQ": 0,
+    "ticks": 4,
+    "invalidTicks": 0
+  },
+  "render_specs": [
+    {
+      "id": "wave",
+      "role": "primary",
+      "type": "timing",
+      "nodes": [],
+      "edges": [],
+      "signals": [
+        {
+          "name": "CLK",
+          "wave": "pppp"
+        },
+        {
+          "name": "J",
+          "wave": "1011"
+        },
+        {
+          "name": "K",
+          "wave": "0101"
+        },
+        {
+          "name": "Q",
+          "wave": "1010"
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "characteristic",
+      "role": "secondary",
+      "type": "table",
+      "nodes": [],
+      "edges": [],
+      "table": {
+        "inputs": [
+          "J",
+          "K",
+          "Q"
+        ],
+        "outputs": [
+          "Q+"
+        ],
+        "rows": [
+          {
+            "in": [
+              0,
+              0,
+              0
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              0,
+              0,
+              1
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              0
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              1
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              0
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              1
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              0
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              1
+            ],
+            "out": [
+              0
+            ]
+          }
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "D4 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "状态 0/1 与拍数无量纲"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "A/B/C 序列一致：1010"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "8 行输出均为 0/1/x，边界完整"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "1 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T10:12:19.632Z",
+  "contractVersion": "v2.2",
+  "warnings": []
+}

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40" width="100" height="40" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path id="lead-a" d="M0 20H32"/>
+  <path id="triangle" d="M32 8V32L56 20Z"/>
+  <path id="bar" d="M56 8V32"/>
+  <path id="lead-b" d="M56 20H100"/>
+  <path id="arrow-1" d="M62 14L70 6M70 6H65M70 6V11"/>
+  <path id="arrow-2" d="M70 18L78 10M78 10H73M78 10V15"/>
+</svg>

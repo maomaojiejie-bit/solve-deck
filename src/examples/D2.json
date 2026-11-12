@@ -1,0 +1,476 @@
+{
+  "templateId": "D2",
+  "subject": "digital",
+  "parsed_given": {
+    "inputs": "A, B, C",
+    "gates": "AND×1, NOT×1, OR×1",
+    "topology": "F = A·B + C'",
+    "gateCount": 3
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "识别电路结构",
+      "formula_tex": "F = A \\cdot B + C^{\\prime}",
+      "substitution": "inputs: A, B, C；gates: AND×1, NOT×1, OR×1",
+      "value": "组合逻辑，3 级",
+      "basis": "组合逻辑分析：先定级、再写式",
+      "highlight": [
+        "node-G1",
+        "node-G2",
+        "node-G3"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "写中间节点表达式",
+      "formula_tex": "w_1 = A \\cdot B,\\quad w_2 = C^{\\prime}",
+      "substitution": "G1: A·B；G2: C'",
+      "value": "w1 = A·B，w2 = C'",
+      "basis": "门的布尔功能定义",
+      "highlight": [
+        "edge-A-G1",
+        "edge-B-G1",
+        "edge-C-G2",
+        "node-G1",
+        "node-G2"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "合成输出表达式",
+      "formula_tex": "F = A \\cdot B + C^{\\prime}",
+      "substitution": "F = A·B + C'",
+      "value": "F = A·B + C'",
+      "basis": "逻辑门对中间节点做组合",
+      "highlight": [
+        "edge-G1-G3",
+        "edge-G2-G3",
+        "edge-G3-F",
+        "node-F"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "枚举真值表",
+      "formula_tex": "F(A,B,C)=\\sum m(0,2,4,6,7)",
+      "substitution": "8 种输入组合逐行代入 F = A·B + C'",
+      "value": "1 的个数：5；0 的个数：3",
+      "basis": "真值表穷举",
+      "highlight": [
+        "edge-A-G1",
+        "edge-B-G1",
+        "edge-C-G2",
+        "edge-G1-G3",
+        "edge-G2-G3",
+        "edge-G3-F",
+        "node-A",
+        "node-B",
+        "node-C",
+        "node-G1",
+        "node-G2",
+        "node-G3",
+        "node-F"
+      ]
+    },
+    {
+      "i": 4,
+      "title": "确认结论",
+      "formula_tex": "F = A \\cdot B + C^{\\prime}",
+      "substitution": "结构式回写：A·B + C'",
+      "value": "F = A·B + C'",
+      "basis": "结构式与真值表互检",
+      "highlight": [
+        "node-F"
+      ]
+    }
+  ],
+  "result": {
+    "expression": "F = A·B + C'",
+    "minterms": "Σm(0,2,4,6,7)",
+    "ones": 5,
+    "zeros": 3
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "schematic",
+      "nodes": [
+        {
+          "id": "node-A",
+          "x": 60,
+          "y": 90,
+          "kind": "input",
+          "label": "A"
+        },
+        {
+          "id": "node-B",
+          "x": 60,
+          "y": 200,
+          "kind": "input",
+          "label": "B"
+        },
+        {
+          "id": "node-C",
+          "x": 60,
+          "y": 310,
+          "kind": "input",
+          "label": "C"
+        },
+        {
+          "id": "node-G1",
+          "x": 280,
+          "y": 115,
+          "kind": "and",
+          "label": "G1"
+        },
+        {
+          "id": "node-G2",
+          "x": 280,
+          "y": 340,
+          "kind": "not",
+          "label": "G2"
+        },
+        {
+          "id": "node-G3",
+          "x": 500,
+          "y": 227.5,
+          "kind": "or",
+          "label": "G3"
+        },
+        {
+          "id": "node-F",
+          "x": 720,
+          "y": 227.5,
+          "kind": "output",
+          "label": "F"
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-A-G1",
+          "from": "node-A",
+          "to": "node-G1",
+          "kind": "wire",
+          "label": "A"
+        },
+        {
+          "id": "edge-B-G1",
+          "from": "node-B",
+          "to": "node-G1",
+          "kind": "wire",
+          "label": "B"
+        },
+        {
+          "id": "edge-C-G2",
+          "from": "node-C",
+          "to": "node-G2",
+          "kind": "wire",
+          "label": "C"
+        },
+        {
+          "id": "edge-G1-G3",
+          "from": "node-G1",
+          "to": "node-G3",
+          "kind": "wire",
+          "label": "w1"
+        },
+        {
+          "id": "edge-G2-G3",
+          "from": "node-G2",
+          "to": "node-G3",
+          "kind": "wire",
+          "label": "w2"
+        },
+        {
+          "id": "edge-G3-F",
+          "from": "node-G3",
+          "to": "node-F",
+          "kind": "wire",
+          "label": "w3"
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [
+            "edge-A-G1",
+            "edge-B-G1",
+            "edge-C-G2",
+            "edge-G1-G3",
+            "edge-G2-G3",
+            "edge-G3-F"
+          ],
+          "activeNodes": [
+            "node-A",
+            "node-B",
+            "node-C",
+            "node-G1",
+            "node-G2",
+            "node-G3",
+            "node-F"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [
+            "edge-A-G1",
+            "edge-B-G1",
+            "edge-C-G2"
+          ],
+          "activeNodes": [
+            "node-A",
+            "node-B",
+            "node-C",
+            "node-G1",
+            "node-G2"
+          ],
+          "labels": [
+            {
+              "id": "node-G1",
+              "text": "w1 = A·B"
+            },
+            {
+              "id": "node-G2",
+              "text": "w2 = C'"
+            }
+          ]
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "edge-G1-G3",
+            "edge-G2-G3",
+            "edge-G3-F"
+          ],
+          "activeNodes": [
+            "node-G3",
+            "node-F"
+          ],
+          "labels": [
+            {
+              "id": "node-F",
+              "text": "F = A·B + C'"
+            }
+          ]
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "edge-A-G1",
+            "edge-B-G1",
+            "edge-C-G2",
+            "edge-G1-G3",
+            "edge-G2-G3",
+            "edge-G3-F"
+          ],
+          "activeNodes": [
+            "node-A",
+            "node-B",
+            "node-C",
+            "node-G1",
+            "node-G2",
+            "node-G3",
+            "node-F"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "edge-G3-F"
+          ],
+          "activeNodes": [
+            "node-F"
+          ],
+          "labels": [
+            {
+              "id": "node-F",
+              "text": "F = A·B + C'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "truth",
+      "role": "secondary",
+      "type": "table",
+      "nodes": [],
+      "edges": [],
+      "table": {
+        "inputs": [
+          "A",
+          "B",
+          "C"
+        ],
+        "outputs": [
+          "F"
+        ],
+        "rows": [
+          {
+            "in": [
+              0,
+              0,
+              0
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              0,
+              0,
+              1
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              0
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              1
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              0
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              1
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              0
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              1
+            ],
+            "out": [
+              1
+            ]
+          }
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "D2 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "逻辑量 0/1 无量纲；gateCount 为计数，不参与量纲"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "A/B/C 全组合逐位一致"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "8 行输出均为 0/1/x，边界完整"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "3 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T10:12:19.069Z",
+  "contractVersion": "v2.2",
+  "warnings": []
+}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 100" width="60" height="100" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path id="cable" d="M30 0V70" stroke-dasharray="6 6"/>
+  <circle id="hook" cx="30" cy="79" r="9"/>
+  <path id="mount" d="M20 0H40"/>
+</svg>

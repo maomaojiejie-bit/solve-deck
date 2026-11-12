@@ -1,0 +1,306 @@
+{
+  "templateId": "A1",
+  "subject": "analog",
+  "parsed_given": {
+    "mode": "series",
+    "Vs": 5,
+    "R": 1000,
+    "Vf": 0.7,
+    "Vz": 5.1,
+    "Rz": 10
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "画负载线与二极管特性",
+      "formula_tex": "V_S=I R+V_D",
+      "substitution": "Vs=5V，R=1000Ω，Vf=0.7V",
+      "value": "负载线与分段特性交点即工作点",
+      "basis": "图解法",
+      "highlight": [
+        "n-d"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "假设导通/截止并回代",
+      "formula_tex": "I=(V_S-V_f)/(R+R_z)",
+      "substitution": "假设导通：电流为正、电压极性相符",
+      "value": "Vout=0.7426V，I=0.004257A",
+      "basis": "分段线性迭代",
+      "highlight": [
+        "n-d"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "理想模型上下界",
+      "formula_tex": "0\\le V_D\\le V_f",
+      "substitution": "理想二极管短路(Vd=0)与恒压降(Vd=Vf)给出上下界",
+      "value": "上界 5.000V，下界 0.000V",
+      "basis": "理想二极管/稳压管的极限模型",
+      "highlight": []
+    },
+    {
+      "i": 3,
+      "title": "确认工作点",
+      "formula_tex": "V_D=0.7426V,\\quad I=0.004257A",
+      "substitution": "真实解落在理想上下界内：true",
+      "value": "导通",
+      "basis": "区间校验",
+      "highlight": [
+        "n-d"
+      ]
+    }
+  ],
+  "result": {
+    "mode": "series",
+    "on": "是",
+    "Vout": 0.7425742574257426,
+    "I": 0.004257425742574257,
+    "lower": 0,
+    "upper": 5
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "schematic",
+      "nodes": [
+        {
+          "id": "n-src",
+          "x": 160,
+          "y": 300,
+          "kind": "vsrc",
+          "label": "Vs 5V",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-r",
+          "x": 320,
+          "y": 200,
+          "kind": "res",
+          "label": "R 1000Ω",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-d",
+          "x": 500,
+          "y": 200,
+          "kind": "diode",
+          "label": "D",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-gnd",
+          "x": 600,
+          "y": 400,
+          "kind": "gnd",
+          "label": "GND",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-corner",
+          "x": 600,
+          "y": 400,
+          "kind": "dot",
+          "label": ""
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-src-r",
+          "from": "160,256",
+          "to": "276,200",
+          "kind": "wire",
+          "points": [
+            [
+              160,
+              256
+            ],
+            [
+              160,
+              200
+            ],
+            [
+              276,
+              200
+            ]
+          ]
+        },
+        {
+          "id": "e-r-d",
+          "from": "364,200",
+          "to": "466,200",
+          "kind": "wire",
+          "points": [
+            [
+              364,
+              200
+            ],
+            [
+              466,
+              200
+            ]
+          ]
+        },
+        {
+          "id": "e-d-gnd",
+          "from": "534,200",
+          "to": "600,400",
+          "kind": "wire",
+          "points": [
+            [
+              534,
+              200
+            ],
+            [
+              600,
+              200
+            ],
+            [
+              600,
+              400
+            ]
+          ]
+        },
+        {
+          "id": "e-loop",
+          "from": "600,400",
+          "to": "160,344",
+          "kind": "wire",
+          "points": [
+            [
+              600,
+              400
+            ],
+            [
+              160,
+              400
+            ],
+            [
+              160,
+              344
+            ]
+          ]
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [
+            "e-src-r",
+            "e-r-d",
+            "e-d-gnd",
+            "e-loop"
+          ],
+          "activeNodes": [
+            "n-src",
+            "n-r",
+            "n-d",
+            "n-gnd",
+            "n-corner"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-src-r",
+            "e-r-d",
+            "e-d-gnd",
+            "e-loop"
+          ],
+          "activeNodes": [
+            "n-src",
+            "n-r",
+            "n-d",
+            "n-gnd",
+            "n-corner"
+          ],
+          "labels": [
+            {
+              "id": "n-d",
+              "text": "V=0.743V I=4.257mA"
+            }
+          ]
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "e-src-r",
+            "e-r-d",
+            "e-d-gnd",
+            "e-loop"
+          ],
+          "activeNodes": [
+            "n-src",
+            "n-r",
+            "n-d",
+            "n-gnd",
+            "n-corner"
+          ],
+          "labels": [
+            {
+              "id": "n-d",
+              "text": "V=0.743V I=4.257mA"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 9.269622106936888e-15,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "A1 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "模电参数均为 SI 量（V/A/Ω/F/H），无量纲增益单独标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "A/B 一致（Vout=0.7426V），C 理想上下界 [0.000, 5.000] 包含真值"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "工作点落在理想模型上下界内"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "1 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=9.269622106936888e-15，tolerance=0.001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T10:12:20.233Z",
+  "contractVersion": "v2.2",
+  "warnings": []
+}

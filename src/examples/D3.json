@@ -1,0 +1,480 @@
+{
+  "templateId": "D3",
+  "subject": "digital",
+  "parsed_given": {
+    "op": "mux2",
+    "inputs": "S, A, B",
+    "gateCount": 4,
+    "target": "2 选 1 MUX：F = S′A + S B"
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "明确目标函数",
+      "formula_tex": "F(S,A,B)=\\sum m(2,3,5,7)",
+      "substitution": "2 选 1 MUX：F = S′A + S B",
+      "value": "8 行目标真值表，4 个 1",
+      "basis": "组合逻辑设计：需求先落成真值表",
+      "highlight": [
+        "node-S",
+        "node-A",
+        "node-B"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "提取最小项",
+      "formula_tex": "\\sum m(2,3,5,7)",
+      "substitution": "001，010→1，011→1，101→1，111→1",
+      "value": "minterms = {2, 3, 5, 7}",
+      "basis": "最小项表示",
+      "highlight": []
+    },
+    {
+      "i": 2,
+      "title": "先用最小化器化简",
+      "formula_tex": "F=S^{\\prime} \\cdot A + S \\cdot B",
+      "substitution": "2 个乘积项",
+      "value": "F = S'·A + S·B",
+      "basis": "Quine-McCluskey 最小化",
+      "highlight": []
+    },
+    {
+      "i": 3,
+      "title": "综合成两级 AND-OR 网表",
+      "formula_tex": "\\text{AND 平面}\\rightarrow\\text{OR 平面}",
+      "substitution": "4 个门，8 条连线",
+      "value": "gateCount=4",
+      "basis": "SOP 直接映射：积项进 AND，和项进 OR",
+      "highlight": []
+    },
+    {
+      "i": 4,
+      "title": "回代生成的网表",
+      "formula_tex": "F_{net}=S^{\\prime} \\cdot A + S \\cdot B",
+      "substitution": "逐行比对 8 种输入组合",
+      "value": "生成网表与目标真值表逐位一致",
+      "basis": "结构回代检查",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "op": "mux2",
+    "expression": "F = S'·A + S·B",
+    "minterms": "Σm(2,3,5,7)",
+    "gateCount": 4,
+    "inputs": "SAB"
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "schematic",
+      "nodes": [
+        {
+          "id": "node-S",
+          "x": 60,
+          "y": 90,
+          "kind": "input",
+          "label": "S"
+        },
+        {
+          "id": "node-A",
+          "x": 60,
+          "y": 200,
+          "kind": "input",
+          "label": "A"
+        },
+        {
+          "id": "node-B",
+          "x": 60,
+          "y": 310,
+          "kind": "input",
+          "label": "B"
+        },
+        {
+          "id": "node-G1",
+          "x": 280,
+          "y": 60,
+          "kind": "not",
+          "label": "G1"
+        },
+        {
+          "id": "node-G2",
+          "x": 500,
+          "y": 130,
+          "kind": "and",
+          "label": "G2"
+        },
+        {
+          "id": "node-G3",
+          "x": 280,
+          "y": 230,
+          "kind": "and",
+          "label": "G3"
+        },
+        {
+          "id": "node-G4",
+          "x": 720,
+          "y": 180,
+          "kind": "or",
+          "label": "G4"
+        },
+        {
+          "id": "node-F",
+          "x": 940,
+          "y": 180,
+          "kind": "output",
+          "label": "F"
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-S-G1",
+          "from": "node-S",
+          "to": "node-G1",
+          "kind": "wire"
+        },
+        {
+          "id": "edge-G1-G2",
+          "from": "node-G1",
+          "to": "node-G2",
+          "kind": "wire"
+        },
+        {
+          "id": "edge-A-G2",
+          "from": "node-A",
+          "to": "node-G2",
+          "kind": "wire"
+        },
+        {
+          "id": "edge-S-G3",
+          "from": "node-S",
+          "to": "node-G3",
+          "kind": "wire"
+        },
+        {
+          "id": "edge-B-G3",
+          "from": "node-B",
+          "to": "node-G3",
+          "kind": "wire"
+        },
+        {
+          "id": "edge-G2-G4",
+          "from": "node-G2",
+          "to": "node-G4",
+          "kind": "wire"
+        },
+        {
+          "id": "edge-G3-G4",
+          "from": "node-G3",
+          "to": "node-G4",
+          "kind": "wire"
+        },
+        {
+          "id": "edge-G4-F",
+          "from": "node-G4",
+          "to": "node-F",
+          "kind": "wire"
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [
+            "node-S",
+            "node-A",
+            "node-B"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [
+            "edge-S-G1",
+            "edge-G1-G2",
+            "edge-A-G2",
+            "edge-S-G3",
+            "edge-B-G3",
+            "edge-G2-G4",
+            "edge-G3-G4",
+            "edge-G4-F"
+          ],
+          "activeNodes": [
+            "node-S",
+            "node-A",
+            "node-B",
+            "node-G1",
+            "node-G2",
+            "node-G3",
+            "node-G4",
+            "node-F"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "edge-S-G1",
+            "edge-S-G3",
+            "edge-B-G3"
+          ],
+          "activeNodes": [
+            "node-S",
+            "node-A",
+            "node-B",
+            "node-G1",
+            "node-G3"
+          ],
+          "labels": [
+            {
+              "id": "node-G1",
+              "text": "G1"
+            },
+            {
+              "id": "node-G3",
+              "text": "G3"
+            }
+          ]
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "edge-S-G1",
+            "edge-G1-G2",
+            "edge-A-G2",
+            "edge-S-G3",
+            "edge-B-G3",
+            "edge-G2-G4",
+            "edge-G3-G4",
+            "edge-G4-F"
+          ],
+          "activeNodes": [
+            "node-S",
+            "node-A",
+            "node-B",
+            "node-G1",
+            "node-G2",
+            "node-G3",
+            "node-G4",
+            "node-F"
+          ],
+          "labels": [
+            {
+              "id": "node-F",
+              "text": "F = S'·A + S·B"
+            }
+          ]
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "edge-S-G1",
+            "edge-G1-G2",
+            "edge-A-G2",
+            "edge-S-G3",
+            "edge-B-G3",
+            "edge-G2-G4",
+            "edge-G3-G4",
+            "edge-G4-F"
+          ],
+          "activeNodes": [
+            "node-S",
+            "node-A",
+            "node-B",
+            "node-G1",
+            "node-G2",
+            "node-G3",
+            "node-G4",
+            "node-F"
+          ],
+          "labels": [
+            {
+              "id": "node-F",
+              "text": "F = S'·A + S·B"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "truth",
+      "role": "secondary",
+      "type": "table",
+      "nodes": [],
+      "edges": [],
+      "table": {
+        "inputs": [
+          "S",
+          "A",
+          "B"
+        ],
+        "outputs": [
+          "F"
+        ],
+        "rows": [
+          {
+            "in": [
+              0,
+              0,
+              0
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              0,
+              0,
+              1
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              0
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              1
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              0
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              1
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              0
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              1
+            ],
+            "out": [
+              1
+            ]
+          }
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "D3 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "门数为计数；输入为逻辑量，无量纲"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "目标/生成网表/QMC 三路一致：00110101"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "8 行输出均为 0/1/x，边界完整"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "1 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T10:12:19.422Z",
+  "contractVersion": "v2.2",
+  "warnings": []
+}

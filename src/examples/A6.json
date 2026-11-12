@@ -1,0 +1,492 @@
+{
+  "templateId": "A6",
+  "subject": "analog",
+  "parsed_given": {
+    "topology": "inverting",
+    "Aol": 1000000,
+    "R1": 10000,
+    "R2": 100000,
+    "Rin": 10000000,
+    "Rout": 50,
+    "Vin": 0.1
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "虚短虚断列节点方程",
+      "formula_tex": "V_p=V_n,\\quad I_p=I_n=0",
+      "substitution": "反相端为虚地 Vn≈0",
+      "value": "理想增益 -10.0000",
+      "basis": "理想运放约束",
+      "highlight": [
+        "n-op"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "闭环增益解析式",
+      "formula_tex": "A_v=-\\frac{R_2}{R_1}",
+      "substitution": "R1=10000Ω，R2=100000Ω",
+      "value": "Av=-10.00000",
+      "basis": "虚短 + 分压",
+      "highlight": [
+        "n-r1",
+        "n-r2"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "有限开环增益 MNA",
+      "formula_tex": "V_o=A_{ol}(V_p-V_n)",
+      "substitution": "Aol=1.00e+6，Rout=50Ω",
+      "value": "Av=-9.999890",
+      "basis": "不假设虚短，直接解有限增益模型",
+      "highlight": [
+        "n-op"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "扫描 Aol 验证极限",
+      "formula_tex": "A_{ol}\\to\\infty\\Rightarrow A_v\\to-10.000",
+      "substitution": "1e+3:1.1e-2，1e+4:1.1e-3，1e+5:1.1e-4，1e+6:1.1e-5，1e+7:1.1e-6",
+      "value": "Aol=1e7 时误差 1.10e-6",
+      "basis": "极限验证：误差随 1/Aol 单调下降",
+      "highlight": []
+    },
+    {
+      "i": 4,
+      "title": "确认结论",
+      "formula_tex": "A_v=-9.99989",
+      "substitution": "理想 -10.00000，有限 -9.99989",
+      "value": "反相放大",
+      "basis": "极限一致性",
+      "highlight": [
+        "n-out"
+      ]
+    }
+  ],
+  "result": {
+    "topology": "inverting",
+    "AvIdeal": -10,
+    "AvFinite": -9.999889846163345,
+    "lastSweepError": 0.0000011015492866306432,
+    "Vout": -0.9999889846163346
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "schematic",
+      "nodes": [
+        {
+          "id": "n-op",
+          "x": 560,
+          "y": 265,
+          "kind": "opamp",
+          "label": "Aol 1e+6",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-r2",
+          "x": 530,
+          "y": 140,
+          "kind": "res",
+          "label": "R2 100k",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-vin",
+          "x": 200,
+          "y": 368,
+          "kind": "vsrc",
+          "label": "Vin 0.1V",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-r1",
+          "x": 300,
+          "y": 248,
+          "kind": "res",
+          "label": "R1 10.0k",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-vn",
+          "x": 400,
+          "y": 248,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "t-vn",
+          "x": 396,
+          "y": 226,
+          "kind": "text",
+          "label": "Vn",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-out",
+          "x": 660,
+          "y": 265,
+          "kind": "dot",
+          "label": ""
+        },
+        {
+          "id": "n-gnd",
+          "x": 517.5,
+          "y": 470,
+          "kind": "gnd",
+          "label": "",
+          "labelSide": "right"
+        },
+        {
+          "id": "d-gnd-op",
+          "x": 517.5,
+          "y": 470,
+          "kind": "dot",
+          "label": ""
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-in",
+          "from": "200,324",
+          "to": "256,248",
+          "kind": "wire",
+          "points": [
+            [
+              200,
+              324
+            ],
+            [
+              200,
+              248
+            ],
+            [
+              256,
+              248
+            ]
+          ]
+        },
+        {
+          "id": "e-r1-vn",
+          "from": "344,248",
+          "to": "400,248",
+          "kind": "wire",
+          "points": [
+            [
+              344,
+              248
+            ],
+            [
+              400,
+              248
+            ]
+          ]
+        },
+        {
+          "id": "e-n-op",
+          "from": "517.5,248",
+          "to": "400,248",
+          "kind": "wire",
+          "points": [
+            [
+              517.5,
+              248
+            ],
+            [
+              400,
+              248
+            ]
+          ]
+        },
+        {
+          "id": "e-vn-up",
+          "from": "400,248",
+          "to": "486,140",
+          "kind": "wire",
+          "points": [
+            [
+              400,
+              248
+            ],
+            [
+              400,
+              140
+            ],
+            [
+              486,
+              140
+            ]
+          ]
+        },
+        {
+          "id": "e-r2-out",
+          "from": "574,140",
+          "to": "602.5,265",
+          "kind": "wire",
+          "points": [
+            [
+              574,
+              140
+            ],
+            [
+              660,
+              140
+            ],
+            [
+              660,
+              265
+            ],
+            [
+              602.5,
+              265
+            ]
+          ]
+        },
+        {
+          "id": "e-vs-gnd",
+          "from": "200,412",
+          "to": "200,470",
+          "kind": "wire",
+          "points": [
+            [
+              200,
+              412
+            ],
+            [
+              200,
+              470
+            ]
+          ]
+        },
+        {
+          "id": "e-gnd-op",
+          "from": "517.5,282",
+          "to": "517.5,470",
+          "kind": "wire",
+          "points": [
+            [
+              517.5,
+              282
+            ],
+            [
+              517.5,
+              470
+            ]
+          ]
+        },
+        {
+          "id": "e-out",
+          "from": "660,265",
+          "to": "710,265",
+          "kind": "wire",
+          "points": [
+            [
+              660,
+              265
+            ],
+            [
+              710,
+              265
+            ]
+          ],
+          "tag": "Vo"
+        },
+        {
+          "id": "e-gnd-rail",
+          "from": "200,470",
+          "to": "710,470",
+          "kind": "wire",
+          "points": [
+            [
+              200,
+              470
+            ],
+            [
+              710,
+              470
+            ]
+          ],
+          "weight": 2
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [
+            "e-in",
+            "e-r1-vn",
+            "e-n-op",
+            "e-vn-up",
+            "e-r2-out",
+            "e-vs-gnd",
+            "e-gnd-op",
+            "e-out",
+            "e-gnd-rail"
+          ],
+          "activeNodes": [
+            "n-op",
+            "n-r2",
+            "n-vin",
+            "n-r1",
+            "n-vn",
+            "t-vn",
+            "n-out",
+            "n-gnd",
+            "d-gnd-op"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-in",
+            "e-r1-vn",
+            "e-n-op",
+            "e-vn-up",
+            "e-r2-out",
+            "e-vs-gnd",
+            "e-gnd-op",
+            "e-out",
+            "e-gnd-rail"
+          ],
+          "activeNodes": [
+            "n-op",
+            "n-r2",
+            "n-vin",
+            "n-r1",
+            "n-vn",
+            "t-vn",
+            "n-out",
+            "n-gnd",
+            "d-gnd-op"
+          ],
+          "labels": [
+            {
+              "id": "n-out",
+              "text": "Av=-9.9999"
+            }
+          ]
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "e-in",
+            "e-r1-vn",
+            "e-n-op",
+            "e-vn-up",
+            "e-r2-out",
+            "e-vs-gnd",
+            "e-gnd-op",
+            "e-out",
+            "e-gnd-rail"
+          ],
+          "activeNodes": [
+            "n-op",
+            "n-r2",
+            "n-vin",
+            "n-r1",
+            "n-vn",
+            "t-vn",
+            "n-out",
+            "n-gnd",
+            "d-gnd-op"
+          ],
+          "labels": [
+            {
+              "id": "n-out",
+              "text": "Av=-9.9999"
+            }
+          ]
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "e-in",
+            "e-r1-vn",
+            "e-n-op",
+            "e-vn-up",
+            "e-r2-out",
+            "e-vs-gnd",
+            "e-gnd-op",
+            "e-out",
+            "e-gnd-rail"
+          ],
+          "activeNodes": [
+            "n-op",
+            "n-r2",
+            "n-vin",
+            "n-r1",
+            "n-vn",
+            "t-vn",
+            "n-out",
+            "n-gnd",
+            "d-gnd-op"
+          ],
+          "labels": [
+            {
+              "id": "n-out",
+              "text": "Av=-9.9999"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0.000011015383665480271,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "A6 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "模电参数均为 SI 量（V/A/Ω/F/H），无量纲增益单独标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "虚短解 -10.00000，有限增益 -9.99989，Aol=1e7 误差 1.10e-6，单调下降"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "有限增益与极限误差均在界内"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "1 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0.000011015383665480271，tolerance=0.001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T10:12:21.325Z",
+  "contractVersion": "v2.2",
+  "warnings": []
+}

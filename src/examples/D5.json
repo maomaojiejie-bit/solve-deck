@@ -1,0 +1,512 @@
+{
+  "templateId": "D5",
+  "subject": "digital",
+  "parsed_given": {
+    "kind": "seq-detector",
+    "states": 4,
+    "ticks": 7,
+    "inputs": "0,1"
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "确定状态与输入字母表",
+      "formula_tex": "S=\\{P0,P1,P2,P3\\},\\quad \\Sigma=\\{0,1\\}",
+      "substitution": "序列检测器（模式 101，Moore 输出）",
+      "value": "4 个状态，7 拍",
+      "basis": "同步时序：状态在时钟沿统一更新",
+      "highlight": [
+        "state-P0",
+        "state-P1",
+        "state-P2",
+        "state-P3"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "列状态转移表",
+      "formula_tex": "\\delta:S\\times\\Sigma\\to S",
+      "substitution": "P0--0-->P0；P0--1-->P1；P1--0-->P2；P1--1-->P1；P2--0-->P0；P2--1-->P3；P3--0-->P2；P3--1-->P1",
+      "value": "4 状态 × 2 符号",
+      "basis": "状态转移表是时序逻辑的唯一语义来源",
+      "highlight": []
+    },
+    {
+      "i": 2,
+      "title": "逐拍推进状态",
+      "formula_tex": "S_{n+1}=\\delta(S_n,x_n)",
+      "substitution": "输入 1011010",
+      "value": "状态序列 P1→P2→P3→P1→P2→P3→P2",
+      "basis": "状态寄存器在每拍取次态",
+      "highlight": []
+    },
+    {
+      "i": 3,
+      "title": "读出 Moore 输出",
+      "formula_tex": "Z=\\lambda(S)",
+      "substitution": "输出序列 0010010",
+      "value": "1 的个数 2",
+      "basis": "Moore 输出只由当前状态决定",
+      "highlight": []
+    },
+    {
+      "i": 4,
+      "title": "编码后复核",
+      "formula_tex": "(Q_1,Q_0)\\to(D_1,D_0)",
+      "substitution": "8 行编码转移表",
+      "value": "终态 P2",
+      "basis": "状态编码后仍须满足同一转移表",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "kind": "seq-detector",
+    "stateSequence": "P1→P2→P3→P1→P2→P3→P2",
+    "outputs": "0010010",
+    "matches": 2,
+    "finalState": "P2"
+  },
+  "render_specs": [
+    {
+      "id": "states",
+      "role": "primary",
+      "type": "state",
+      "nodes": [
+        {
+          "id": "state-P0",
+          "x": 160,
+          "y": 160,
+          "kind": "state",
+          "label": "P0/0"
+        },
+        {
+          "id": "state-P1",
+          "x": 420,
+          "y": 160,
+          "kind": "state",
+          "label": "P1/0"
+        },
+        {
+          "id": "state-P2",
+          "x": 420,
+          "y": 380,
+          "kind": "state",
+          "label": "P2/0"
+        },
+        {
+          "id": "state-P3",
+          "x": 160,
+          "y": 380,
+          "kind": "state",
+          "label": "P3/1"
+        }
+      ],
+      "edges": [
+        {
+          "id": "edge-1",
+          "from": "state-P0",
+          "to": "state-P0",
+          "kind": "transition",
+          "label": "0"
+        },
+        {
+          "id": "edge-2",
+          "from": "state-P0",
+          "to": "state-P1",
+          "kind": "transition",
+          "label": "1"
+        },
+        {
+          "id": "edge-3",
+          "from": "state-P1",
+          "to": "state-P2",
+          "kind": "transition",
+          "label": "0"
+        },
+        {
+          "id": "edge-4",
+          "from": "state-P1",
+          "to": "state-P1",
+          "kind": "transition",
+          "label": "1"
+        },
+        {
+          "id": "edge-5",
+          "from": "state-P2",
+          "to": "state-P0",
+          "kind": "transition",
+          "label": "0"
+        },
+        {
+          "id": "edge-6",
+          "from": "state-P2",
+          "to": "state-P3",
+          "kind": "transition",
+          "label": "1"
+        },
+        {
+          "id": "edge-7",
+          "from": "state-P3",
+          "to": "state-P2",
+          "kind": "transition",
+          "label": "0"
+        },
+        {
+          "id": "edge-8",
+          "from": "state-P3",
+          "to": "state-P1",
+          "kind": "transition",
+          "label": "1"
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [
+            "edge-1",
+            "edge-2",
+            "edge-3",
+            "edge-4",
+            "edge-5",
+            "edge-6",
+            "edge-7",
+            "edge-8"
+          ],
+          "activeNodes": [
+            "state-P0",
+            "state-P1",
+            "state-P2",
+            "state-P3"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [
+            "state-P0",
+            "state-P1",
+            "state-P2",
+            "state-P3"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "edge-2",
+            "edge-3",
+            "edge-4",
+            "edge-5",
+            "edge-6",
+            "edge-7",
+            "edge-8"
+          ],
+          "activeNodes": [
+            "state-P1",
+            "state-P2",
+            "state-P3"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "edge-1",
+            "edge-2",
+            "edge-3",
+            "edge-4",
+            "edge-5",
+            "edge-6",
+            "edge-7",
+            "edge-8"
+          ],
+          "activeNodes": [
+            "state-P0",
+            "state-P1",
+            "state-P2",
+            "state-P3"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "edge-1",
+            "edge-2",
+            "edge-3",
+            "edge-4",
+            "edge-5",
+            "edge-6",
+            "edge-7",
+            "edge-8"
+          ],
+          "activeNodes": [
+            "state-P0",
+            "state-P1",
+            "state-P2",
+            "state-P3"
+          ],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "state-table",
+      "role": "secondary",
+      "type": "table",
+      "nodes": [],
+      "edges": [],
+      "table": {
+        "inputs": [
+          "X",
+          "Q1",
+          "Q0"
+        ],
+        "outputs": [
+          "D1",
+          "D0",
+          "Z"
+        ],
+        "rows": [
+          {
+            "in": [
+              0,
+              0,
+              0
+            ],
+            "out": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "in": [
+              0,
+              0,
+              1
+            ],
+            "out": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              0
+            ],
+            "out": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              1
+            ],
+            "out": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              0
+            ],
+            "out": [
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              1
+            ],
+            "out": [
+              0,
+              1,
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              0
+            ],
+            "out": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              1
+            ],
+            "out": [
+              0,
+              1,
+              0
+            ]
+          }
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "wave",
+      "role": "secondary",
+      "type": "timing",
+      "nodes": [],
+      "edges": [],
+      "signals": [
+        {
+          "name": "CLK",
+          "wave": "ppppppp"
+        },
+        {
+          "name": "X",
+          "wave": "1011010"
+        },
+        {
+          "name": "Q1",
+          "wave": "0110111"
+        },
+        {
+          "name": "Q0",
+          "wave": "1011010"
+        },
+        {
+          "name": "Z",
+          "wave": "0010010"
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "D5 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "状态数与拍数均为计数"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "A/B/C 状态与输出一致：P1→P2→P3→P1→P2→P3→P2；Z=0010010"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "8 行输出均为 0/1/x，边界完整"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "3 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T10:12:19.837Z",
+  "contractVersion": "v2.2",
+  "warnings": []
+}

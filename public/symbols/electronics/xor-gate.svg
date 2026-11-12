@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40" width="100" height="40" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path id="lead-in1" d="M0 13H16"/>
+  <path id="lead-in2" d="M0 27H16"/>
+  <path id="arc" d="M16 6Q26 20 16 34"/>
+  <path id="body" d="M24 6Q52 6 68 20Q52 34 24 34Q34 20 24 6Z"/>
+  <path id="lead-out" d="M68 20H100"/>
+</svg>

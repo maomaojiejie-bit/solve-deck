@@ -1,0 +1,179 @@
+{
+  "templateId": "D6",
+  "subject": "digital",
+  "parsed_given": {
+    "op": "convert",
+    "value": 172,
+    "bits": 8,
+    "base": 10
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "确定目标进制与位宽",
+      "formula_tex": "(172)_{10}",
+      "substitution": "value=172，bits=8；只做整数，不处理小数",
+      "value": "8 位无符号范围 [0, 255]",
+      "basis": "位置记数法：同一数值可写成不同基底的位权展开",
+      "highlight": []
+    },
+    {
+      "i": 1,
+      "title": "除基取余：十进制 → 二进制 / 八进制 / 十六进制",
+      "formula_tex": "N = q\\cdot b + r,\\quad r\\in[0,b)",
+      "substitution": "除 2 余数（低位→高位）：0, 0, 1, 1, 0, 1, 0, 1；除 8：4, 5, 2；除 16：12, 10",
+      "value": "0b10101100，0o254，0xAC",
+      "basis": "除基取余，余数反向拼接",
+      "highlight": []
+    },
+    {
+      "i": 2,
+      "title": "按位权展开回验",
+      "formula_tex": "N=\\sum_i a_i\\,b^i",
+      "substitution": "0b10101100 → 172；0o254 → 172；0xAC → 172",
+      "value": "三种表示回验均为 172",
+      "basis": "位置记数法；三种进制经十进制中转互验",
+      "highlight": []
+    },
+    {
+      "i": 3,
+      "title": "格雷码双向与 BCD",
+      "formula_tex": "g=b\\oplus(b\\gg1),\\quad b=g\\oplus(g\\gg1)\\oplus(g\\gg2)\\oplus\\cdots",
+      "substitution": "b=10101100，g=11111010，逆变换回 172",
+      "value": "格雷码 11111010；BCD 0001 0111 0010",
+      "basis": "格雷码相邻码仅一位变化；BCD 每十进制位固定 4 位",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "decimal": 172,
+    "binary": "0b10101100",
+    "octal": "0o254",
+    "hex": "0xAC",
+    "bcd": "0001 0111 0010",
+    "gray": "11111010",
+    "grayBack": "0b10101100",
+    "roundTrip": "172/172/172"
+  },
+  "render_specs": [
+    {
+      "id": "conversion",
+      "role": "primary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "进制",
+          "表示",
+          "回验值"
+        ],
+        "rows": [
+          [
+            "十进制",
+            "172",
+            "172"
+          ],
+          [
+            "二进制",
+            "0b10101100",
+            "172"
+          ],
+          [
+            "八进制",
+            "0o254",
+            "172"
+          ],
+          [
+            "十六进制",
+            "0xAC",
+            "172"
+          ],
+          [
+            "BCD（8421）",
+            "0001 0111 0010",
+            "172"
+          ],
+          [
+            "格雷码",
+            "11111010",
+            "172"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "D6 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "数值与码位无量纲；bits 为位宽计数"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "A/B/C 一致于 172；10 条码制恒等式通过"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "各进制前缀 / 回验值 / BCD 分组边界正确"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "3 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T10:12:20.021Z",
+  "contractVersion": "v2.2",
+  "warnings": []
+}

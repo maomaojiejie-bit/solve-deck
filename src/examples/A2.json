@@ -1,0 +1,506 @@
+{
+  "templateId": "A2",
+  "subject": "analog",
+  "parsed_given": {
+    "Vcc": 12,
+    "R1": 33000,
+    "R2": 10000,
+    "Rc": 3300,
+    "Re": 1000,
+    "beta": 100,
+    "VBE": 0.7,
+    "VCEsat": 0.2
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "求基极戴维南等效",
+      "formula_tex": "V_{BB}=\\frac{R_2}{R_1+R_2}V_{CC},\\quad R_B=R_1\\parallel R_2",
+      "substitution": "VBB=2.791V，RB=7674Ω",
+      "value": "把分压偏置化成 VBB 串联 RB",
+      "basis": "戴维南等效（直流）",
+      "highlight": [
+        "n-r1",
+        "n-r2"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "假设工作区并解直流",
+      "formula_tex": "I_B=\\frac{V_{BB}-V_{BE}}{R_B+(1+\\beta)R_E}",
+      "substitution": "β=100，VBE=0.7V，Re=1000Ω",
+      "value": "判定工作区：active",
+      "basis": "工作区假设 → 线性化模型 → 不等式回代",
+      "highlight": [
+        "n-q"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "读出工作点",
+      "formula_tex": "I_C=\\beta I_B,\\quad I_E=(\\beta+1)I_B",
+      "substitution": "IB=19.238μA，IC=1.924mA",
+      "value": "IC=0.001924A，IE=0.001943A",
+      "basis": "BJT 放大区电流关系",
+      "highlight": [
+        "n-q",
+        "n-rc"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "回代 VCE 与工作区判据",
+      "formula_tex": "V_{CE}=V_{CC}-I_CR_C-I_ER_E",
+      "substitution": "VCE=3.7083V，VCEsat=0.2V",
+      "value": "VCE>VCEsat，放大区成立",
+      "basis": "工作区不等式回代",
+      "highlight": [
+        "n-rc"
+      ]
+    },
+    {
+      "i": 4,
+      "title": "确认工作点",
+      "formula_tex": "Q=(I_B,\\;I_C,\\;V_{CE})",
+      "substitution": "19.24μA / 1.92mA / 3.708V",
+      "value": "active",
+      "basis": "三组不等式恰好一组成立",
+      "highlight": [
+        "n-q"
+      ]
+    }
+  ],
+  "result": {
+    "zone": "active",
+    "IB": 0.000019238176760111283,
+    "IC": 0.0019238176760111283,
+    "IE": 0.0019430558527712396,
+    "VBE": 0.7,
+    "VCE": 3.708345816392037
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "schematic",
+      "nodes": [
+        {
+          "id": "n-vcc",
+          "x": 522,
+          "y": 84,
+          "kind": "text",
+          "label": "VCC 12V",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-r1",
+          "x": 476,
+          "y": 160,
+          "kind": "res",
+          "label": "R1 33.0k",
+          "rot": 90,
+          "labelSide": "left"
+        },
+        {
+          "id": "n-r2",
+          "x": 476,
+          "y": 330,
+          "kind": "res",
+          "label": "R2 10.0k",
+          "rot": 90,
+          "labelSide": "left"
+        },
+        {
+          "id": "n-q",
+          "x": 560,
+          "y": 270,
+          "kind": "npn",
+          "label": "Q",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-rc",
+          "x": 568.8,
+          "y": 160,
+          "kind": "res",
+          "label": "Rc 3.3k",
+          "rot": 90,
+          "labelSide": "right"
+        },
+        {
+          "id": "n-re",
+          "x": 568.8,
+          "y": 370,
+          "kind": "res",
+          "label": "Re 1.0k",
+          "rot": 90,
+          "labelSide": "right"
+        },
+        {
+          "id": "n-gnd",
+          "x": 520,
+          "y": 440,
+          "kind": "gnd",
+          "label": "GND",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-b",
+          "x": 476,
+          "y": 270,
+          "kind": "dot",
+          "label": ""
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-vcc-rail",
+          "from": "476,100",
+          "to": "568.8,100",
+          "kind": "wire",
+          "points": [
+            [
+              476,
+              100
+            ],
+            [
+              568.8,
+              100
+            ]
+          ],
+          "weight": 2
+        },
+        {
+          "id": "e-vcc-r1",
+          "from": "476,100",
+          "to": "476,116",
+          "kind": "wire",
+          "points": [
+            [
+              476,
+              100
+            ],
+            [
+              476,
+              116
+            ]
+          ]
+        },
+        {
+          "id": "e-vcc-rc",
+          "from": "568.8,100",
+          "to": "568.8,116",
+          "kind": "wire",
+          "points": [
+            [
+              568.8,
+              100
+            ],
+            [
+              568.8,
+              116
+            ]
+          ]
+        },
+        {
+          "id": "e-r1-b",
+          "from": "476,204",
+          "to": "476,270",
+          "kind": "wire",
+          "points": [
+            [
+              476,
+              204
+            ],
+            [
+              476,
+              270
+            ]
+          ]
+        },
+        {
+          "id": "e-r2-b",
+          "from": "476,270",
+          "to": "476,286",
+          "kind": "wire",
+          "points": [
+            [
+              476,
+              270
+            ],
+            [
+              476,
+              286
+            ]
+          ]
+        },
+        {
+          "id": "e-b-q",
+          "from": "476,270",
+          "to": "516,270",
+          "kind": "wire",
+          "points": [
+            [
+              476,
+              270
+            ],
+            [
+              516,
+              270
+            ]
+          ]
+        },
+        {
+          "id": "e-rc-c",
+          "from": "568.8,204",
+          "to": "568.8,226",
+          "kind": "wire",
+          "points": [
+            [
+              568.8,
+              204
+            ],
+            [
+              568.8,
+              226
+            ]
+          ]
+        },
+        {
+          "id": "e-q-re",
+          "from": "568.8,314",
+          "to": "568.8,326",
+          "kind": "wire",
+          "points": [
+            [
+              568.8,
+              314
+            ],
+            [
+              568.8,
+              326
+            ]
+          ]
+        },
+        {
+          "id": "e-gnd-rail",
+          "from": "476,440",
+          "to": "568.8,440",
+          "kind": "wire",
+          "points": [
+            [
+              476,
+              440
+            ],
+            [
+              568.8,
+              440
+            ]
+          ],
+          "weight": 2
+        },
+        {
+          "id": "e-r2-gnd",
+          "from": "476,374",
+          "to": "476,440",
+          "kind": "wire",
+          "points": [
+            [
+              476,
+              374
+            ],
+            [
+              476,
+              440
+            ]
+          ]
+        },
+        {
+          "id": "e-re-gnd",
+          "from": "568.8,414",
+          "to": "568.8,440",
+          "kind": "wire",
+          "points": [
+            [
+              568.8,
+              414
+            ],
+            [
+              568.8,
+              440
+            ]
+          ]
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-vcc-rail",
+            "e-vcc-r1",
+            "e-vcc-rc",
+            "e-r1-b",
+            "e-r2-b",
+            "e-b-q",
+            "e-rc-c",
+            "e-q-re",
+            "e-gnd-rail",
+            "e-r2-gnd",
+            "e-re-gnd"
+          ],
+          "activeNodes": [
+            "n-vcc",
+            "n-r1",
+            "n-r2",
+            "n-q",
+            "n-rc",
+            "n-re",
+            "n-gnd",
+            "n-b"
+          ],
+          "labels": [
+            {
+              "id": "n-q",
+              "text": "Ib=19.24μA Ic=1.92mA"
+            },
+            {
+              "id": "n-rc",
+              "text": "VCE=3.708V"
+            }
+          ]
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "e-vcc-rail",
+            "e-vcc-r1",
+            "e-vcc-rc",
+            "e-r1-b",
+            "e-r2-b",
+            "e-b-q",
+            "e-rc-c",
+            "e-q-re",
+            "e-gnd-rail",
+            "e-r2-gnd",
+            "e-re-gnd"
+          ],
+          "activeNodes": [
+            "n-vcc",
+            "n-r1",
+            "n-r2",
+            "n-q",
+            "n-rc",
+            "n-re",
+            "n-gnd",
+            "n-b"
+          ],
+          "labels": [
+            {
+              "id": "n-q",
+              "text": "Ib=19.24μA Ic=1.92mA"
+            },
+            {
+              "id": "n-rc",
+              "text": "VCE=3.708V"
+            }
+          ]
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "e-vcc-rail",
+            "e-vcc-r1",
+            "e-vcc-rc",
+            "e-r1-b",
+            "e-r2-b",
+            "e-b-q",
+            "e-rc-c",
+            "e-q-re",
+            "e-gnd-rail",
+            "e-r2-gnd",
+            "e-re-gnd"
+          ],
+          "activeNodes": [
+            "n-vcc",
+            "n-r1",
+            "n-r2",
+            "n-q",
+            "n-rc",
+            "n-re",
+            "n-gnd",
+            "n-b"
+          ],
+          "labels": [
+            {
+              "id": "n-q",
+              "text": "Ib=19.24μA Ic=1.92mA"
+            },
+            {
+              "id": "n-rc",
+              "text": "VCE=3.708V"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 7.185239432963082e-16,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "A2 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "模电参数均为 SI 量（V/A/Ω/F/H），无量纲增益单独标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "A/B/C 工作点一致（active）；C 独立重判恰好一组不等式成立"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "工作区 active，电流非负且有限"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "3 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=7.185239432963082e-16，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T10:12:20.449Z",
+  "contractVersion": "v2.2",
+  "warnings": []
+}

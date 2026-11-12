@@ -1,0 +1,332 @@
+{
+  "templateId": "S1",
+  "subject": "statics",
+  "parsed_given": {
+    "L": 4,
+    "a": 2,
+    "P": 10,
+    "组态": "indeterminate"
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "取隔离体，画受力图",
+      "formula_tex": "\\text{隔离体} = \\text{梁} + \\text{支座反力} + \\text{外载}",
+      "substitution": "L=4 m，P=10 kN @ x=2 m，支承：A(pin) + B(pin)",
+      "value": "受力图：2 个支座图元 + 1 个载荷箭头",
+      "basis": "受力分析",
+      "highlight": [
+        "e-member",
+        "n-sup-0",
+        "n-sup-1"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "清点每个支座的未知量",
+      "formula_tex": "n = \\sum n_i",
+      "substitution": "A:pin→2（方向未知）；B:pin→2（方向未知）",
+      "value": "未知量总数 n = 4",
+      "basis": "支座约束类型决定未知量个数",
+      "highlight": []
+    },
+    {
+      "i": 2,
+      "title": "二力杆判别",
+      "formula_tex": "\\text{两端铰} + \\text{中间无载} \\Rightarrow \\vec R \\parallel \\text{连线}",
+      "substitution": "梁 AB：两端为铰，但跨中作用 P",
+      "value": "不是二力杆（反力方向未知）",
+      "basis": "二力杆判据",
+      "highlight": [
+        "e-member"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "静定判据：未知量数 vs 独立方程数",
+      "formula_tex": "n \\overset{?}{=} 3,\\ \\operatorname{rank}A \\overset{?}{=} 3",
+      "substitution": "n=4，rank A=3",
+      "value": "n>3 ⇒ 静不定，拒绝",
+      "basis": "约束矩阵秩 = 独立方程数",
+      "highlight": []
+    },
+    {
+      "i": 4,
+      "title": "拒绝作答",
+      "formula_tex": "\\sum F_x=0,\\ \\sum F_y=0,\\ \\sum M_A=0",
+      "substitution": "判据不过 ⇒ 不解",
+      "value": "不给反力数字（拒绝理由见结论位）",
+      "basis": "静不定 / 机构一律不给数字",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "config": "indeterminate",
+    "unknownCount": 4,
+    "equationCount": 3,
+    "rank": 3,
+    "status": "indeterminate",
+    "conclusion": "静不定：4 个未知反力 > 3 个独立平衡方程（多 1 个多余约束），需要变形协调，当前只解静定。",
+    "remedy": "把一端固定铰换成可动铰（去掉 1 个多余约束），或改用变形协调 / 力法求解。"
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "freebody",
+      "nodes": [
+        {
+          "id": "n-end-a",
+          "x": 140,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-end-b",
+          "x": 780,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-sup-0",
+          "x": 140,
+          "y": 250,
+          "kind": "pinSupport",
+          "label": "固定铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-sup-1",
+          "x": 780,
+          "y": 250,
+          "kind": "pinSupport",
+          "label": "固定铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-load-0",
+          "x": 460,
+          "y": 250,
+          "kind": "arrow",
+          "rot": 0,
+          "label": "P = 10 kN",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-span",
+          "x": 460,
+          "y": 336,
+          "kind": "text",
+          "label": "L = 4 m",
+          "labelSide": "up"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-member",
+          "from": "n-end-a",
+          "to": "n-end-b",
+          "kind": "beam",
+          "weight": 2,
+          "points": [
+            [
+              140,
+              250
+            ],
+            [
+              780,
+              250
+            ]
+          ]
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "checks",
+      "role": "secondary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "校验项",
+          "期望",
+          "实际",
+          "相对误差",
+          "结论",
+          "说明",
+          "来源"
+        ],
+        "rows": [
+          [
+            "未知量数 = 独立方程数（3）",
+            "3",
+            "4",
+            "3.33e-1",
+            "未通过",
+            "多 1 个未知量 ⇒ 静不定",
+            "本页自算（约束矩阵秩）"
+          ],
+          [
+            "约束矩阵秩 = 3（约束方向线性无关）",
+            "3",
+            "3",
+            "0",
+            "通过",
+            "秩 3 ⇒ 约束独立",
+            "本页自算（约束矩阵秩）"
+          ],
+          [
+            "二力杆判别：梁 AB 是否二力杆（跨中有载荷 ⇒ 0）",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "杆身（含跨中）作用有外载，不是二力杆 —— 反力方向不再沿两点连线，两端各 2/1 个未知量都要留着",
+            "本页自算（约束矩阵秩）"
+          ],
+          [
+            "载荷可平衡性：载荷到约束列空间的投影残差",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "机构：载荷落在未被约束的方向上就推得动",
+            "本页自算（约束矩阵秩）"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "fail",
+    "residualOk": "fail",
+    "boundaryOk": "fail",
+    "goldenOk": "pass",
+    "maxResidual": 1,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "S1 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "静力学量统一为 m / kN / N / 度；截面尺寸用 mm，换算处已标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "fail",
+        "detail": "静不定：4 个未知反力 > 3 个独立平衡方程（多 1 个多余约束），需要变形协调，当前只解静定。（判据不过，三路径不给数值）"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "fail",
+        "detail": "静不定：4 个未知反力 > 3 个独立平衡方程（多 1 个多余约束），需要变形协调，当前只解静定。"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "3 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "fail",
+        "detail": "maxResidual=1，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 3,
+    "skippedCount": 0,
+    "allPassed": false
+  },
+  "validatedAt": "2026-11-10T16:32:08.324Z",
+  "contractVersion": "v2.2",
+  "warnings": [
+    "S1 只做判据与静定反力，不做变形协调；静不定 / 机构一律拒绝并给出判据理由"
+  ]
+}

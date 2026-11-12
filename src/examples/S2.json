@@ -1,0 +1,335 @@
+{
+  "templateId": "S2",
+  "subject": "statics",
+  "parsed_given": {
+    "F1": 100,
+    "th1": 30,
+    "F2": 100,
+    "th2": 150
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "建立坐标系，把力写成矢量",
+      "formula_tex": "\\vec F_i = F_i(\\cos\\theta_i,\\ \\sin\\theta_i)",
+      "substitution": "F1=100 N @30°，F2=100 N @150°",
+      "value": "F1=(86.60, 50.00)，F2=(-86.60, 50.00)",
+      "basis": "平面汇交力系：各力作用线交于同一点",
+      "highlight": []
+    },
+    {
+      "i": 1,
+      "title": "投影相加求合力",
+      "formula_tex": "R_x=\\sum F_{ix},\\ R_y=\\sum F_{iy}",
+      "substitution": "86.60+-86.60，50.00+50.00",
+      "value": "Rx=0.000 N，Ry=100.000 N",
+      "basis": "力的平行四边形法则",
+      "highlight": []
+    },
+    {
+      "i": 2,
+      "title": "合力大小与方向",
+      "formula_tex": "R=\\sqrt{R_x^2+R_y^2},\\ \\theta_R=\\arctan\\frac{R_y}{R_x}",
+      "substitution": "√(0.000²+100.000²)",
+      "value": "R=100.000 N，θR=90.00°",
+      "basis": "余弦定理交叉验证",
+      "highlight": []
+    },
+    {
+      "i": 3,
+      "title": "平衡力",
+      "formula_tex": "\\vec F_{eq}=-\\vec R",
+      "substitution": "-(0.000, 100.000)",
+      "value": "Feq=100.000 N，方向 270.00°",
+      "basis": "平衡 ⇒ 合力为零",
+      "highlight": []
+    },
+    {
+      "i": 4,
+      "title": "结论",
+      "formula_tex": "\\sum\\vec F=0",
+      "substitution": "F1+F2+Feq",
+      "value": "三力闭合，最大闭合残差 0.00e+0",
+      "basis": "力多边形闭合",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "Rx": 0,
+    "Ry": 100,
+    "R": 100,
+    "thetaR": 90,
+    "Feq": 100,
+    "FeqAngle": 270,
+    "status": "ok",
+    "conclusion": "合力 R=100.00 N，方向 90.00°；平衡力 100.00 N @ 270.00°"
+  },
+  "render_specs": [
+    {
+      "id": "vectors",
+      "role": "primary",
+      "type": "freebody",
+      "nodes": [],
+      "edges": [],
+      "chart": {
+        "id": "vectors",
+        "title": "力的合成（平行四边形法则）",
+        "unit": "N",
+        "xLabel": "Fx (N)",
+        "yLabel": "N",
+        "xDomain": [
+          -110.85125168440817,
+          110.85125168440817
+        ],
+        "yDomain": [
+          -7.999999999999999,
+          107.99999999999999
+        ],
+        "zeroLine": true,
+        "series": [
+          {
+            "kind": "line",
+            "points": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                99.99999999999999
+              ]
+            ],
+            "label": "R",
+            "arrow": true
+          },
+          {
+            "kind": "line",
+            "points": [
+              [
+                0,
+                0
+              ],
+              [
+                86.60254037844388,
+                49.99999999999999
+              ]
+            ],
+            "label": "F1",
+            "arrow": true
+          },
+          {
+            "kind": "line",
+            "points": [
+              [
+                0,
+                0
+              ],
+              [
+                -86.60254037844388,
+                49.99999999999999
+              ]
+            ],
+            "label": "F2",
+            "arrow": true
+          },
+          {
+            "kind": "line",
+            "points": [
+              [
+                86.60254037844388,
+                49.99999999999999
+              ],
+              [
+                0,
+                99.99999999999999
+              ]
+            ],
+            "label": ""
+          },
+          {
+            "kind": "line",
+            "points": [
+              [
+                -86.60254037844388,
+                49.99999999999999
+              ],
+              [
+                0,
+                99.99999999999999
+              ]
+            ],
+            "label": ""
+          }
+        ],
+        "marks": [
+          {
+            "x": 0,
+            "y": 99.99999999999999,
+            "text": "R=100.0 N ∠90.0°",
+            "side": "right"
+          },
+          {
+            "x": 86.60254037844388,
+            "y": 49.99999999999999,
+            "text": "F1=100 N ∠30°",
+            "side": "down"
+          },
+          {
+            "x": -86.60254037844388,
+            "y": 49.99999999999999,
+            "text": "F2=100 N ∠150°",
+            "side": "down"
+          }
+        ],
+        "convention": "夹角 Δθ=120.0°　R=√(F1²+F2²+2F1F2cosΔθ)　角度自 +x 逆时针为正"
+      },
+      "frames": []
+    },
+    {
+      "id": "checks",
+      "role": "secondary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "校验项",
+          "期望",
+          "实际",
+          "相对误差",
+          "结论",
+          "说明",
+          "来源"
+        ],
+        "rows": [
+          [
+            "合力大小：分量合成 vs 余弦定理",
+            "100",
+            "100",
+            "2.84e-16",
+            "通过",
+            "路径 A 投影相加；路径 C 只用余弦定理，不碰 sin/cos 分量",
+            "本页自算"
+          ],
+          [
+            "合力矢量：分量投影 vs 旋转坐标系",
+            "0",
+            "4.766e-16",
+            "4.77e-16",
+            "通过",
+            "路径 B 先把 F1 转到 x 轴合成再整体转回，与直接投影是两套顺序",
+            "本页自算"
+          ],
+          [
+            "平衡力闭合：F1+F2+Feq=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "平衡力 Feq=100.0 N，方向 270.0°",
+            "本页自算"
+          ],
+          [
+            "∠(F1,R)：点积 vs 正弦定理",
+            "60",
+            "60",
+            "3.55e-16",
+            "通过",
+            "两个独立三角式子对拍：点积走矢量，正弦定理走边长",
+            "本页自算"
+          ],
+          [
+            "图上三条边闭合：F1+F2−R（用图形端点算）",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "把「画出来的」箭头端点回代，图形与数字绑在一起",
+            "本页自算"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 4.2632564145606e-16,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "S2 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "静力学量统一为 m / kN / N / 度；截面尺寸用 mm，换算处已标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "S2 分量投影 / 旋转坐标系 / 余弦定理：最大相对差 4.263e-16"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "静定结果，平衡残差与判据均已记录在校验表"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "2 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=4.2632564145606e-16，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T13:09:50.632Z",
+  "contractVersion": "v2.2",
+  "warnings": [
+    "S2 只做汇交力系的合成与平衡；力偶系与任意力系的简化在 S3"
+  ]
+}

@@ -1,0 +1,562 @@
+{
+  "templateId": "M3",
+  "subject": "mechanics",
+  "parsed_given": {
+    "L": 4,
+    "a": 2,
+    "P": 20,
+    "q": 0
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "取整体，求支座反力",
+      "formula_tex": "\\sum F_y=0,\\ \\sum M_A=0",
+      "substitution": "P=20 kN @x=2 m",
+      "value": "RA=10.000 kN，RB=10.000 kN",
+      "basis": "刚体平衡",
+      "highlight": [
+        "n-sup-0",
+        "n-sup-1"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "剪力图 Q(x)",
+      "formula_tex": "Q(x)=R_A-\\int_0^x q\\,dx-\\sum P_i",
+      "substitution": "按库的符号约定取左段，逐段累加",
+      "value": "Q: 10.000 / -10.000 kN",
+      "basis": "截面法（左段）",
+      "highlight": [
+        "n-load-0",
+        "e-member"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "弯矩图 M(x)",
+      "formula_tex": "M(x)=\\int_0^x Q\\,dx",
+      "substitution": "M 在集中力处折角、在铰端归零",
+      "value": "|M|max = 20.000 kN·m @ x=2.000 m",
+      "basis": "dM/dx=Q（库已用中心差分校核）",
+      "highlight": [
+        "e-member"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "极值定位",
+      "formula_tex": "dM/dx=0\\ \\Rightarrow\\ Q=0",
+      "substitution": "Q 变号处即 M 极值；本解 |M|max 在 x=2.000 m",
+      "value": "闭式与数值积分一致",
+      "basis": "极值判据 + 双路径互校",
+      "highlight": [
+        "e-member",
+        "n-span"
+      ]
+    },
+    {
+      "i": 4,
+      "title": "结论",
+      "formula_tex": "M_{max}=M(x^{*})",
+      "substitution": "闭式 20.0000 kN·m，库 20.0000 kN·m",
+      "value": "|M|max = 20.000 kN·m",
+      "basis": "库 diagrams.extrema",
+      "highlight": [
+        "e-member",
+        "n-span"
+      ]
+    }
+  ],
+  "result": {
+    "RA": 10,
+    "RB": 10,
+    "Qmax": 10,
+    "Qmin": -10,
+    "Mmax": 20,
+    "MmaxX": 2,
+    "status": "ok",
+    "conclusion": "|M|max = 20.000 kN·m @ x=2.000 m"
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "freebody",
+      "nodes": [
+        {
+          "id": "n-end-a",
+          "x": 140,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-end-b",
+          "x": 780,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-sup-0",
+          "x": 140,
+          "y": 250,
+          "kind": "pinSupport",
+          "label": "固定铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-sup-1",
+          "x": 780,
+          "y": 250,
+          "kind": "rollerSupport",
+          "label": "可动铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-load-0",
+          "x": 460,
+          "y": 250,
+          "kind": "arrow",
+          "rot": 0,
+          "label": "P = 20 kN",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-reaction-0",
+          "x": 140,
+          "y": 308,
+          "kind": "arrow",
+          "rot": 180,
+          "label": "R_A = 10.00 kN",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-reaction-1",
+          "x": 780,
+          "y": 308,
+          "kind": "arrow",
+          "rot": 180,
+          "label": "R_B = 10.00 kN",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-span",
+          "x": 460,
+          "y": 336,
+          "kind": "text",
+          "label": "L = 4 m",
+          "labelSide": "up"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-member",
+          "from": "n-end-a",
+          "to": "n-end-b",
+          "kind": "beam",
+          "weight": 2,
+          "points": [
+            [
+              140,
+              250
+            ],
+            [
+              780,
+              250
+            ]
+          ]
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-load-0"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-load-0"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-span"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-span"
+          ],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "internal",
+      "role": "secondary",
+      "type": "beam",
+      "nodes": [],
+      "edges": [],
+      "chart": {
+        "id": "internal",
+        "title": "内力图（双联，共享 x 轴）",
+        "unit": "",
+        "xLabel": "x (m)",
+        "yLabel": "",
+        "xDomain": [
+          0,
+          4
+        ],
+        "yDomain": [
+          -1.6,
+          21.6
+        ],
+        "series": [],
+        "panels": [
+          {
+            "id": "q",
+            "title": "剪力图",
+            "unit": "kN",
+            "xLabel": "x (m)",
+            "yLabel": "kN",
+            "xDomain": [
+              0,
+              4
+            ],
+            "yDomain": [
+              -11.6,
+              11.6
+            ],
+            "zeroLine": true,
+            "series": [
+              {
+                "kind": "step",
+                "points": [
+                  [
+                    0,
+                    10
+                  ],
+                  [
+                    0.6666666666666666,
+                    10
+                  ],
+                  [
+                    1.3333333333333333,
+                    10
+                  ],
+                  [
+                    2,
+                    10
+                  ],
+                  [
+                    2,
+                    -10
+                  ],
+                  [
+                    2.6666666666666665,
+                    -10
+                  ],
+                  [
+                    3.333333333333333,
+                    -10
+                  ],
+                  [
+                    4,
+                    -10
+                  ]
+                ],
+                "label": "Q(x)"
+              }
+            ],
+            "marks": [
+              {
+                "x": 0,
+                "y": 10,
+                "text": "Q=10.00 kN",
+                "side": "up"
+              },
+              {
+                "x": 2,
+                "y": -10,
+                "text": "Q=-10.00 kN",
+                "side": "down"
+              }
+            ],
+            "convention": "Q 使微段顺时针转为正　M 下侧受拉为正　dM/dx = Q（库 conventions）"
+          },
+          {
+            "id": "m",
+            "title": "弯矩图",
+            "unit": "kN·m",
+            "xLabel": "x (m)",
+            "yLabel": "kN·m",
+            "xDomain": [
+              0,
+              4
+            ],
+            "yDomain": [
+              -1.6,
+              21.6
+            ],
+            "zeroLine": true,
+            "series": [
+              {
+                "kind": "line",
+                "points": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    0.6666666666666666,
+                    6.666666666666666
+                  ],
+                  [
+                    1.3333333333333333,
+                    13.333333333333332
+                  ],
+                  [
+                    2,
+                    20
+                  ],
+                  [
+                    2,
+                    20
+                  ],
+                  [
+                    2.6666666666666665,
+                    13.333333333333334
+                  ],
+                  [
+                    3.333333333333333,
+                    6.666666666666668
+                  ],
+                  [
+                    4,
+                    0
+                  ]
+                ],
+                "label": "M(x)",
+                "fill": true
+              }
+            ],
+            "marks": [
+              {
+                "x": 2,
+                "y": 20,
+                "text": "|M|max=20.00 kN·m",
+                "side": "down"
+              }
+            ]
+          }
+        ]
+      },
+      "frames": []
+    },
+    {
+      "id": "checks",
+      "role": "secondary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "校验项",
+          "期望",
+          "实际",
+          "相对误差",
+          "结论",
+          "说明",
+          "来源"
+        ],
+        "rows": [
+          [
+            "ΣFx=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "ΣFy=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "ΣM(对左端)=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "dM/dx=Q（数值差分抽查 2 点）",
+            "-10",
+            "-10",
+            "5.10e-11",
+            "通过",
+            "最差样本 x=3（中心差分 h=0.000004）",
+            "库 checks[]"
+          ],
+          [
+            "简支端 M=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "铰/辊轴支座 x=0, 4",
+            "库 checks[]"
+          ],
+          [
+            "∫σdA=N（线性正应力 σ=N/A+M·y/Iy）",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "截面 x=2（数值条带积分）",
+            "库 checks[]"
+          ],
+          [
+            "∫yσdA=M（同上）",
+            "20",
+            "20",
+            "0",
+            "通过",
+            "截面 x=2（数值条带积分）",
+            "库 checks[]"
+          ],
+          [
+            "平衡方程求解残差 ||A·r-b||/||b||",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "未知量按 3/4 方程求解",
+            "库 checks[]"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 1.77635683940025e-16,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "M3 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "力学量统一换算为 m / kN / GPa / MPa 后求解，图与文字同单位"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "M3 库 diagrams vs 静力闭式 / 闭式 vs q 累积积分：最大相对差 1.776e-16"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "未超限，用量比 0.000"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "3 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=1.77635683940025e-16，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T14:00:28.952Z",
+  "contractVersion": "v2.2",
+  "warnings": [
+    "本工具不计算变形（挠度/转角/变形协调均无）：静定反力、内力与应力不需要 section.E；要挠度请另行积分 EI·v''=M 并代入边界条件"
+  ]
+}

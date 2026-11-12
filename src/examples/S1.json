@@ -1,0 +1,379 @@
+{
+  "templateId": "S1",
+  "subject": "statics",
+  "parsed_given": {
+    "L": 4,
+    "a": 2,
+    "P": 10,
+    "组态": "static"
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "取隔离体，画受力图",
+      "formula_tex": "\\text{隔离体} = \\text{梁} + \\text{支座反力} + \\text{外载}",
+      "substitution": "L=4 m，P=10 kN @ x=2 m，支承：A(pin) + B(roller)",
+      "value": "受力图：2 个支座图元 + 1 个载荷箭头",
+      "basis": "受力分析",
+      "highlight": [
+        "e-member",
+        "n-sup-0",
+        "n-sup-1"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "清点每个支座的未知量",
+      "formula_tex": "n = \\sum n_i",
+      "substitution": "A:pin→2（方向未知）；B:roller→1（方向已知）",
+      "value": "未知量总数 n = 3",
+      "basis": "支座约束类型决定未知量个数",
+      "highlight": []
+    },
+    {
+      "i": 2,
+      "title": "二力杆判别",
+      "formula_tex": "\\text{两端铰} + \\text{中间无载} \\Rightarrow \\vec R \\parallel \\text{连线}",
+      "substitution": "梁 AB：两端为铰，但跨中作用 P",
+      "value": "不是二力杆（反力方向未知）",
+      "basis": "二力杆判据",
+      "highlight": [
+        "e-member"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "静定判据：未知量数 vs 独立方程数",
+      "formula_tex": "n \\overset{?}{=} 3,\\ \\operatorname{rank}A \\overset{?}{=} 3",
+      "substitution": "n=3，rank A=3",
+      "value": "n=3 且 rank=3 ⇒ 静定",
+      "basis": "约束矩阵秩 = 独立方程数",
+      "highlight": []
+    },
+    {
+      "i": 4,
+      "title": "求支座反力",
+      "formula_tex": "\\sum F_x=0,\\ \\sum F_y=0,\\ \\sum M_A=0",
+      "substitution": "P=10 kN，L=4 m",
+      "value": "RA=5.000 kN，RB=5.000 kN",
+      "basis": "刚体平衡",
+      "highlight": []
+    }
+  ],
+  "result": {
+    "config": "static",
+    "unknownCount": 3,
+    "equationCount": 3,
+    "rank": 3,
+    "RA": 5,
+    "RB": 5,
+    "status": "ok",
+    "conclusion": "静定：RA=5.000 kN，RB=5.000 kN（3 未知量 = 3 方程）"
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "freebody",
+      "nodes": [
+        {
+          "id": "n-end-a",
+          "x": 140,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-end-b",
+          "x": 780,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-sup-0",
+          "x": 140,
+          "y": 250,
+          "kind": "pinSupport",
+          "label": "固定铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-sup-1",
+          "x": 780,
+          "y": 250,
+          "kind": "rollerSupport",
+          "label": "可动铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-load-0",
+          "x": 460,
+          "y": 250,
+          "kind": "arrow",
+          "rot": 0,
+          "label": "P = 10 kN",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-reaction-0",
+          "x": 140,
+          "y": 308,
+          "kind": "arrow",
+          "rot": 180,
+          "label": "R_A = 5.00 kN",
+          "labelSide": "right"
+        },
+        {
+          "id": "n-reaction-1",
+          "x": 780,
+          "y": 308,
+          "kind": "arrow",
+          "rot": 180,
+          "label": "R_B = 5.00 kN",
+          "labelSide": "left"
+        },
+        {
+          "id": "n-span",
+          "x": 460,
+          "y": 336,
+          "kind": "text",
+          "label": "L = 4 m",
+          "labelSide": "up"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-member",
+          "from": "n-end-a",
+          "to": "n-end-b",
+          "kind": "beam",
+          "weight": 2,
+          "points": [
+            [
+              140,
+              250
+            ],
+            [
+              780,
+              250
+            ]
+          ]
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1",
+            "n-load-0"
+          ],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "checks",
+      "role": "secondary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "校验项",
+          "期望",
+          "实际",
+          "相对误差",
+          "结论",
+          "说明",
+          "来源"
+        ],
+        "rows": [
+          [
+            "未知量数 = 独立方程数（3）",
+            "3",
+            "3",
+            "0",
+            "通过",
+            "未知量数恰好等于 3",
+            "本页自算（约束矩阵秩）"
+          ],
+          [
+            "约束矩阵秩 = 3（约束方向线性无关）",
+            "3",
+            "3",
+            "0",
+            "通过",
+            "秩 3 ⇒ 约束独立",
+            "本页自算（约束矩阵秩）"
+          ],
+          [
+            "二力杆判别：梁 AB 是否二力杆（跨中有载荷 ⇒ 0）",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "杆身（含跨中）作用有外载，不是二力杆 —— 反力方向不再沿两点连线，两端各 2/1 个未知量都要留着",
+            "本页自算（约束矩阵秩）"
+          ],
+          [
+            "载荷可平衡性：载荷到约束列空间的投影残差",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "静定体系里任何载荷都能被 3 个独立反力平衡",
+            "本页自算（约束矩阵秩）"
+          ],
+          [
+            "ΣFx=0 残差",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "x 向：A 铰提供水平反力，B 辊不提供",
+            "本页自算（约束矩阵秩）"
+          ],
+          [
+            "ΣFy=0 残差",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "y 向：两支座反力之和 = P",
+            "本页自算（约束矩阵秩）"
+          ],
+          [
+            "ΣM_A=0 残差",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "对 A 取矩：RB·L = P·a",
+            "本页自算（约束矩阵秩）"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "S1 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "静力学量统一为 m / kN / N / 度；截面尺寸用 mm，换算处已标注"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "S1 约束矩阵秩 vs 未知量计数：最大相对差 0.000e+0"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "静定结果，平衡残差与判据均已记录在校验表"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "3 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T16:32:06.872Z",
+  "contractVersion": "v2.2",
+  "warnings": [
+    "S1 只做判据与静定反力，不做变形协调；静不定 / 机构一律拒绝并给出判据理由"
+  ]
+}

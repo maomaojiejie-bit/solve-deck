@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40" width="100" height="40" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path id="lead-a" d="M0 20H36"/>
+  <circle id="shell" cx="50" cy="20" r="14"/>
+  <path id="plus" d="M45 14H55M50 9V19"/>
+  <path id="minus" d="M45 26H55"/>
+  <path id="lead-b" d="M64 20H100"/>
+</svg>

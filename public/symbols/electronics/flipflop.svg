@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 60" width="100" height="60" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect id="body" x="20" y="4" width="60" height="52"/>
+  <path id="lead-d" d="M0 20H20"/>
+  <path id="lead-clk" d="M0 44H20"/>
+  <path id="clock" d="M20 38L28 44L20 50"/>
+  <path id="lead-q" d="M80 20H100"/>
+  <circle id="bubble" cx="84" cy="44" r="4"/>
+  <path id="lead-qn" d="M88 44H100"/>
+</svg>

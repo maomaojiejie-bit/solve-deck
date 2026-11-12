@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle id="ball" cx="40" cy="28" r="12"/>
+  <path id="socket" d="M16 30A24 24 0 0 0 64 30"/>
+  <path id="stem" d="M40 54V70"/>
+  <path id="base" d="M24 70H56"/>
+</svg>

@@ -1,0 +1,194 @@
+{
+  "spec": {
+    "kind": "shaft",
+    "length": 1,
+    "supports": [
+      {
+        "x": 0,
+        "type": "fixed"
+      }
+    ],
+    "loads": [
+      {
+        "type": "point_torque",
+        "x": 1,
+        "value": 1
+      }
+    ],
+    "section": {
+      "shape": "circle",
+      "params": {
+        "d": 0.04
+      },
+      "E": 200000000000
+    }
+  },
+  "expected": {
+    "ok": true,
+    "kind": "shaft",
+    "determinate": true,
+    "conventions": {
+      "N": "拉为正",
+      "Q": "顺时针为正",
+      "M": "下侧受拉为正",
+      "T": "右手螺旋+x为正",
+      "x": "自构件左端量起，单位同 units.length",
+      "point_force": "沿 dir 的分量：transverse 向上为正，axial 沿 +x 为正",
+      "distributed": "q 为集度(力/长度)，向上为正，沿 x 线性",
+      "point_moment": "逆时针为正",
+      "point_torque": "右手螺旋沿 +x 为正",
+      "support": "Rx 沿+x，Ry 向上，Mz 逆时针，Mx 右手螺旋+x",
+      "sigma": "σ=N/A+M·y/Iy，y 自中性轴向上为正，拉应力为正",
+      "M_definition": "M=Σ_{a<x}[(x-a)·Fy-Mz]，满足 dM/dx=Q"
+    },
+    "units": {
+      "length": "m",
+      "force": "kN",
+      "moment": "kN*m",
+      "stress": "MPa"
+    },
+    "reactions": [
+      {
+        "x": 0,
+        "type": "fixed",
+        "Rx": 0,
+        "Ry": 0,
+        "Mz": 0,
+        "Mx": -1
+      }
+    ],
+    "section": {
+      "shape": "circle",
+      "params": {
+        "d": 0.04
+      },
+      "A": 0.0012566370614359172,
+      "Iy": 1.2566370614359172e-7,
+      "W": 0.000006283185307179586,
+      "Sy": 0.0000053333333333333345,
+      "Ip": 2.5132741228718345e-7,
+      "Wp": 0.000012566370614359175,
+      "ymax": 0.02,
+      "tau_max_coeff": 1.3333333333333335,
+      "E": 200000000000,
+      "material": null,
+      "units": {
+        "length": "m",
+        "force": "kN",
+        "moment": "kN*m",
+        "stress": "MPa"
+      }
+    },
+    "diagrams": {
+      "T": [
+        {
+          "x": 0,
+          "value": 1
+        },
+        {
+          "x": 0.3333333333333333,
+          "value": 1
+        },
+        {
+          "x": 0.6666666666666666,
+          "value": 1
+        },
+        {
+          "x": 1,
+          "value": 1
+        }
+      ]
+    },
+    "extrema": {
+      "T": {
+        "max": 1,
+        "max_x": 0,
+        "min": 1,
+        "min_x": 0
+      }
+    },
+    "stresses": {
+      "sigma_max": 0,
+      "sigma_max_x": 0,
+      "sigma_max_y": 0.02,
+      "sigma_bending": 0,
+      "sigma_axial": 0,
+      "sigma_N": 0,
+      "sigma_M": 0,
+      "tau_max": 0,
+      "tau_max_x": 0,
+      "tau_max_Q": 0,
+      "tau_max_coeff": 1.3333333333333335,
+      "tau_torsion_max": 79.57747154594766
+    },
+    "checks": [
+      {
+        "name": "ΣFx=0",
+        "expected": 0,
+        "actual": 0,
+        "rel_error": 0,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "name": "ΣFy=0",
+        "expected": 0,
+        "actual": 0,
+        "rel_error": 0,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "name": "ΣM(对左端)=0",
+        "expected": 0,
+        "actual": 0,
+        "rel_error": 0,
+        "pass": true,
+        "note": ""
+      },
+      {
+        "name": "ΣMx=0(扭转)",
+        "expected": 0,
+        "actual": 0,
+        "rel_error": 0,
+        "pass": true,
+        "note": "轴类模型"
+      },
+      {
+        "name": "dM/dx=Q（数值差分抽查 1 点）",
+        "expected": 0,
+        "actual": 0,
+        "rel_error": 0,
+        "pass": true,
+        "note": "最差样本 x=0.5（中心差分 h=1e-06）"
+      },
+      {
+        "name": "∫σdA=N（线性正应力 σ=N/A+M·y/Iy）",
+        "expected": 0,
+        "actual": 0,
+        "rel_error": 0,
+        "pass": true,
+        "note": "截面 x=0（数值条带积分）"
+      },
+      {
+        "name": "∫yσdA=M（同上）",
+        "expected": 0,
+        "actual": 0,
+        "rel_error": 0,
+        "pass": true,
+        "note": "截面 x=0（数值条带积分）"
+      },
+      {
+        "name": "平衡方程求解残差 ||A·r-b||/||b||",
+        "expected": 0,
+        "actual": 0,
+        "rel_error": 0,
+        "pass": true,
+        "note": "numpy lstsq，未知量 4 / 方程 4"
+      }
+    ],
+    "warnings": [
+      "已记录 section.E，但本工具不计算变形：它只出反力/内力/应力。挠度/转角请用 solve_math 积分 EI·v''=M 并代入边界条件"
+    ]
+  }
+}

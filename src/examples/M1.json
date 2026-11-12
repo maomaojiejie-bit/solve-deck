@@ -1,0 +1,450 @@
+{
+  "templateId": "M1",
+  "subject": "mechanics",
+  "parsed_given": {
+    "L": 1,
+    "A": 200,
+    "P": 40,
+    "E": 200,
+    "allow": 160,
+    "kind": "bar"
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "取整体，求支座反力",
+      "formula_tex": "\\sum F_x = 0",
+      "substitution": "P = 40 kN，两端 pin / roller 只提供轴向约束",
+      "value": "Rx = -40.000 kN",
+      "basis": "刚体平衡（ΣFx=0）",
+      "highlight": [
+        "n-sup-0",
+        "n-sup-1"
+      ]
+    },
+    {
+      "i": 1,
+      "title": "作轴力图：N(x) 全跨常量",
+      "formula_tex": "N(x) = -\\sum_{a<x} F_x",
+      "substitution": "外载荷只在 x=L 处，故 0<x<L 段 N 恒定",
+      "value": "N = 40.000 kN",
+      "basis": "库的符号约定（拉为正）",
+      "highlight": [
+        "e-member",
+        "n-load-0"
+      ]
+    },
+    {
+      "i": 2,
+      "title": "正应力 σ = N/A",
+      "formula_tex": "\\sigma = \\frac{N}{A}",
+      "substitution": "N=40.00 kN，A=200 mm²",
+      "value": "σmax = 200.000 MPa",
+      "basis": "轴向拉压正应力公式",
+      "highlight": [
+        "e-member",
+        "n-load-0"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "变形：胡克定律 ΔL = NL/(EA)",
+      "formula_tex": "\\Delta L = \\frac{NL}{EA}",
+      "substitution": "L=1 m，E=200 GPa，数值积分互校 1.000000 mm",
+      "value": "ΔL = 1.0000 mm（**变形不在库的能力内，这里为解析补充**）",
+      "basis": "胡克定律（库不计算变形）",
+      "highlight": [
+        "e-member",
+        "n-span"
+      ]
+    },
+    {
+      "i": 4,
+      "title": "强度校核",
+      "formula_tex": "\\sigma_{max} \\le [\\sigma]",
+      "substitution": "σmax=200.000 MPa，[σ]=160 MPa",
+      "value": "σmax = 200.000 MPa > 许用 160.000 MPa，超限 25.0%",
+      "basis": "强度条件 + 库 checks[]（平衡 / 应力积分）",
+      "highlight": [
+        "e-member",
+        "n-span"
+      ]
+    }
+  ],
+  "result": {
+    "N": 40,
+    "sigmaMax": 200,
+    "sigmaAllow": 160,
+    "ratio": 1.25,
+    "deltaL": 1,
+    "status": "over",
+    "conclusion": "σmax = 200.000 MPa > 许用 160.000 MPa，超限 25.0%"
+  },
+  "render_specs": [
+    {
+      "id": "main",
+      "role": "primary",
+      "type": "freebody",
+      "nodes": [
+        {
+          "id": "n-end-a",
+          "x": 140,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-end-b",
+          "x": 780,
+          "y": 250,
+          "kind": "pin",
+          "label": ""
+        },
+        {
+          "id": "n-sup-0",
+          "x": 140,
+          "y": 250,
+          "kind": "pinSupport",
+          "label": "固定铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-sup-1",
+          "x": 780,
+          "y": 250,
+          "kind": "rollerSupport",
+          "label": "可动铰",
+          "labelSide": "down"
+        },
+        {
+          "id": "n-load-0",
+          "x": 822,
+          "y": 250,
+          "kind": "arrow",
+          "rot": 270,
+          "label": "P = 40 kN",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-reaction-0",
+          "x": 98,
+          "y": 250,
+          "kind": "arrow",
+          "rot": 90,
+          "label": "R_A = -40.00 kN",
+          "labelSide": "up"
+        },
+        {
+          "id": "n-span",
+          "x": 460,
+          "y": 336,
+          "kind": "text",
+          "label": "L = 1 m",
+          "labelSide": "up"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-member",
+          "from": "n-end-a",
+          "to": "n-end-b",
+          "kind": "beam",
+          "weight": 2,
+          "points": [
+            [
+              140,
+              250
+            ],
+            [
+              780,
+              250
+            ]
+          ]
+        }
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-sup-0",
+            "n-sup-1"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-load-0"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-load-0"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-span"
+          ],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [
+            "e-member"
+          ],
+          "activeNodes": [
+            "n-span"
+          ],
+          "labels": []
+        }
+      ]
+    },
+    {
+      "id": "axial",
+      "role": "secondary",
+      "type": "beam",
+      "nodes": [],
+      "edges": [],
+      "chart": {
+        "id": "axial",
+        "title": "轴力图",
+        "unit": "kN",
+        "xLabel": "x (m)",
+        "yLabel": "kN",
+        "xDomain": [
+          0,
+          1
+        ],
+        "yDomain": [
+          -3.2,
+          43.2
+        ],
+        "zeroLine": true,
+        "series": [
+          {
+            "kind": "step",
+            "points": [
+              [
+                0,
+                40
+              ],
+              [
+                0.3333333333333333,
+                40
+              ],
+              [
+                0.6666666666666666,
+                40
+              ],
+              [
+                1,
+                40
+              ]
+            ],
+            "label": "N(x)"
+          }
+        ],
+        "marks": [
+          {
+            "x": 0,
+            "y": 40,
+            "text": "N=40.00 kN",
+            "side": "up"
+          }
+        ],
+        "convention": "N 拉为正　σ = N/A　ΔL = NL/(EA)（变形为解析补充，库不算）"
+      },
+      "frames": []
+    },
+    {
+      "id": "checks",
+      "role": "secondary",
+      "type": "matrix",
+      "nodes": [],
+      "edges": [],
+      "matrix": {
+        "columns": [
+          "校验项",
+          "期望",
+          "实际",
+          "相对误差",
+          "结论",
+          "说明",
+          "来源"
+        ],
+        "rows": [
+          [
+            "ΣFx=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "ΣFy=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "ΣM(对左端)=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "",
+            "库 checks[]"
+          ],
+          [
+            "dM/dx=Q（数值差分抽查 1 点）",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "最差样本 x=0.5（中心差分 h=0.000001）",
+            "库 checks[]"
+          ],
+          [
+            "简支端 M=0",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "铰/辊轴支座 x=0, 1",
+            "库 checks[]"
+          ],
+          [
+            "∫σdA=N（线性正应力 σ=N/A+M·y/Iy）",
+            "40",
+            "40",
+            "8.88e-16",
+            "通过",
+            "截面 x=0（数值条带积分）",
+            "库 checks[]"
+          ],
+          [
+            "∫yσdA=M（同上）",
+            "0",
+            "-1.075e-18",
+            "3.37e-18",
+            "通过",
+            "截面 x=0（数值条带积分）",
+            "库 checks[]"
+          ],
+          [
+            "平衡方程求解残差 ||A·r-b||/||b||",
+            "0",
+            "0",
+            "0",
+            "通过",
+            "未知量按 3/4 方程求解",
+            "库 checks[]"
+          ]
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 2.168404344971004e-15,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "M1 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "力学量统一换算为 m / kN / GPa / MPa 后求解，图与文字同单位"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "M1 库 vs 闭式 / 闭式 vs 数值积分：最大相对差 2.168e-15"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "已超限（结论位红字）"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "2 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=2.168404344971004e-15，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T13:50:36.088Z",
+  "contractVersion": "v2.2",
+  "warnings": [
+    "本工具不计算变形（挠度/转角/变形协调均无）：静定反力、内力与应力不需要 section.E；要挠度请另行积分 EI·v''=M 并代入边界条件"
+  ]
+}

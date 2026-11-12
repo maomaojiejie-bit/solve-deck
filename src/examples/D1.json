@@ -1,0 +1,611 @@
+{
+  "templateId": "D1",
+  "subject": "digital",
+  "parsed_given": {
+    "variables": "ABCD",
+    "minterms": "0,1,2,3,4,6",
+    "dontCares": "无",
+    "termCount": 2
+  },
+  "steps": [
+    {
+      "i": 0,
+      "title": "确定变量与最小项",
+      "formula_tex": "F(A,B,C,D)=\\sum m(0,1,2,3,4,6)",
+      "substitution": "变量 ABCD；最小项 0, 1, 2, 3, 4, 6；无关项 无",
+      "value": "16 行真值表，6 个 1，10 个 0",
+      "basis": "最小项使函数取 1；无关项可任取 0/1 以利化简",
+      "highlight": []
+    },
+    {
+      "i": 1,
+      "title": "按格雷码顺序排卡诺图",
+      "formula_tex": "\\text{rows}=AB,\\ \\text{cols}=CD",
+      "substitution": "行序 00→01→11→10；列序 00→01→11→10",
+      "value": "相邻格只差一位，首尾也相邻",
+      "basis": "卡诺图的几何相邻等价于布尔相邻",
+      "highlight": []
+    },
+    {
+      "i": 2,
+      "title": "圈出极大矩形（允许环绕）",
+      "formula_tex": "2^k\\times 2^l\\ \\text{矩形}",
+      "substitution": "A'·B'；A'·D'",
+      "value": "2 个素项覆盖全部 1",
+      "basis": "极大全 1 矩形 = 素蕴含项；每圈越大，乘积项越短",
+      "highlight": [
+        "group-0",
+        "group-1"
+      ]
+    },
+    {
+      "i": 3,
+      "title": "读出最简与或式",
+      "formula_tex": "F=A^{\\prime} \\cdot B^{\\prime} + A^{\\prime} \\cdot D^{\\prime}",
+      "substitution": "每个矩形读一个乘积项，再相或",
+      "value": "F = A'·B' + A'·D'（2 项）",
+      "basis": "卡诺图化简",
+      "highlight": [
+        "group-0",
+        "group-1"
+      ]
+    },
+    {
+      "i": 4,
+      "title": "回代全部最小项",
+      "formula_tex": "F(m_i)=1,\\quad F(\\text{零项})=0",
+      "substitution": "2 个乘积项覆盖 6 个 1，且不覆盖任何 0",
+      "value": "F = A'·B' + A'·D'",
+      "basis": "覆盖完备性与一致性检查",
+      "highlight": [
+        "group-0",
+        "group-1"
+      ]
+    }
+  ],
+  "result": {
+    "sop": "F = A'·B' + A'·D'",
+    "termCount": 2,
+    "minterms": "Σm(0,1,2,3,4,6)",
+    "dontCares": "无",
+    "ones": 6,
+    "zeros": 10
+  },
+  "render_specs": [
+    {
+      "id": "kmap",
+      "role": "primary",
+      "type": "karnaugh",
+      "nodes": [
+        {
+          "id": "cell-00",
+          "x": 0,
+          "y": 0,
+          "kind": "kmap-cell",
+          "label": "1"
+        },
+        {
+          "id": "cell-01",
+          "x": 1,
+          "y": 0,
+          "kind": "kmap-cell",
+          "label": "1"
+        },
+        {
+          "id": "cell-02",
+          "x": 2,
+          "y": 0,
+          "kind": "kmap-cell",
+          "label": "1"
+        },
+        {
+          "id": "cell-03",
+          "x": 3,
+          "y": 0,
+          "kind": "kmap-cell",
+          "label": "1"
+        },
+        {
+          "id": "cell-10",
+          "x": 0,
+          "y": 1,
+          "kind": "kmap-cell",
+          "label": "1"
+        },
+        {
+          "id": "cell-11",
+          "x": 1,
+          "y": 1,
+          "kind": "kmap-cell",
+          "label": "0"
+        },
+        {
+          "id": "cell-12",
+          "x": 2,
+          "y": 1,
+          "kind": "kmap-cell",
+          "label": "0"
+        },
+        {
+          "id": "cell-13",
+          "x": 3,
+          "y": 1,
+          "kind": "kmap-cell",
+          "label": "1"
+        },
+        {
+          "id": "cell-20",
+          "x": 0,
+          "y": 2,
+          "kind": "kmap-cell",
+          "label": "0"
+        },
+        {
+          "id": "cell-21",
+          "x": 1,
+          "y": 2,
+          "kind": "kmap-cell",
+          "label": "0"
+        },
+        {
+          "id": "cell-22",
+          "x": 2,
+          "y": 2,
+          "kind": "kmap-cell",
+          "label": "0"
+        },
+        {
+          "id": "cell-23",
+          "x": 3,
+          "y": 2,
+          "kind": "kmap-cell",
+          "label": "0"
+        },
+        {
+          "id": "cell-30",
+          "x": 0,
+          "y": 3,
+          "kind": "kmap-cell",
+          "label": "0"
+        },
+        {
+          "id": "cell-31",
+          "x": 1,
+          "y": 3,
+          "kind": "kmap-cell",
+          "label": "0"
+        },
+        {
+          "id": "cell-32",
+          "x": 2,
+          "y": 3,
+          "kind": "kmap-cell",
+          "label": "0"
+        },
+        {
+          "id": "cell-33",
+          "x": 3,
+          "y": 3,
+          "kind": "kmap-cell",
+          "label": "0"
+        }
+      ],
+      "edges": [],
+      "regions": [
+        {
+          "id": "group-0",
+          "cells": [
+            "00",
+            "01",
+            "02",
+            "03"
+          ],
+          "label": "A'·B'"
+        },
+        {
+          "id": "group-1",
+          "cells": [
+            "00",
+            "03",
+            "10",
+            "13"
+          ],
+          "label": "A'·D'"
+        }
+      ],
+      "rowVars": [
+        "A",
+        "B"
+      ],
+      "colVars": [
+        "C",
+        "D"
+      ],
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [
+            "cell-00",
+            "cell-01",
+            "cell-02",
+            "cell-03",
+            "cell-10",
+            "cell-11",
+            "cell-12",
+            "cell-13",
+            "cell-20",
+            "cell-21",
+            "cell-22",
+            "cell-23",
+            "cell-30",
+            "cell-31",
+            "cell-32",
+            "cell-33"
+          ],
+          "labels": [
+            {
+              "id": "group-0",
+              "text": "A'·B'"
+            },
+            {
+              "id": "group-1",
+              "text": "A'·D'"
+            }
+          ]
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [
+            "cell-00",
+            "cell-01",
+            "cell-02",
+            "cell-03",
+            "cell-10",
+            "cell-11",
+            "cell-12",
+            "cell-13",
+            "cell-20",
+            "cell-21",
+            "cell-22",
+            "cell-23",
+            "cell-30",
+            "cell-31",
+            "cell-32",
+            "cell-33"
+          ],
+          "labels": [
+            {
+              "id": "group-0",
+              "text": "A'·B'"
+            },
+            {
+              "id": "group-1",
+              "text": "A'·D'"
+            }
+          ]
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [
+            "cell-00",
+            "cell-01",
+            "cell-02",
+            "cell-03",
+            "cell-10",
+            "cell-11",
+            "cell-12",
+            "cell-13",
+            "cell-20",
+            "cell-21",
+            "cell-22",
+            "cell-23",
+            "cell-30",
+            "cell-31",
+            "cell-32",
+            "cell-33"
+          ],
+          "labels": [
+            {
+              "id": "group-0",
+              "text": "A'·B'"
+            },
+            {
+              "id": "group-1",
+              "text": "A'·D'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "truth",
+      "role": "secondary",
+      "type": "table",
+      "nodes": [],
+      "edges": [],
+      "table": {
+        "inputs": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "outputs": [
+          "F"
+        ],
+        "rows": [
+          {
+            "in": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              0,
+              0,
+              1,
+              0
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              0,
+              0,
+              1,
+              1
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              0,
+              0
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              0,
+              1
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              1,
+              0
+            ],
+            "out": [
+              1
+            ]
+          },
+          {
+            "in": [
+              0,
+              1,
+              1,
+              1
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              0,
+              0
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              0,
+              1
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              1,
+              0
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              0,
+              1,
+              1
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              0,
+              0
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              0,
+              1
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              1,
+              0
+            ],
+            "out": [
+              0
+            ]
+          },
+          {
+            "in": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "out": [
+              0
+            ]
+          }
+        ]
+      },
+      "frames": [
+        {
+          "stepIndex": 0,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 1,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 2,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 3,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        },
+        {
+          "stepIndex": 4,
+          "activeEdges": [],
+          "activeNodes": [],
+          "labels": []
+        }
+      ]
+    }
+  ],
+  "confidence": {
+    "scopeOk": "pass",
+    "inputOk": "pass",
+    "pathsConsistent": "pass",
+    "residualOk": "pass",
+    "boundaryOk": "pass",
+    "goldenOk": "pass",
+    "maxResidual": 0,
+    "checks": [
+      {
+        "name": "scopeOk",
+        "state": "pass",
+        "detail": "D1 ready，放行"
+      },
+      {
+        "name": "inputOk",
+        "state": "pass",
+        "detail": "布尔量无量纲；termCount 为计数"
+      },
+      {
+        "name": "pathsConsistent",
+        "state": "pass",
+        "detail": "A/B/C 覆盖的 1 集合一致"
+      },
+      {
+        "name": "boundaryOk",
+        "state": "pass",
+        "detail": "16 行输出均为 0/1/x，边界完整"
+      },
+      {
+        "name": "goldenOk",
+        "state": "pass",
+        "detail": "3 道夹具通过"
+      },
+      {
+        "name": "residualOk",
+        "state": "pass",
+        "detail": "maxResidual=0，tolerance=0.000001"
+      }
+    ],
+    "failedCount": 0,
+    "skippedCount": 0,
+    "allPassed": true
+  },
+  "validatedAt": "2026-11-10T10:12:18.709Z",
+  "contractVersion": "v2.2",
+  "warnings": []
+}
