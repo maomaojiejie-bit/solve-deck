@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <circle cx="170" cy="170" r="24"/>
+  <text x="163" y="177">Σ</text>
+  <text x="198" y="156" font-size="13">+</text>
+  <text x="198" y="192" font-size="13">−</text>
+  <line x1="60" y1="170" x2="146" y2="170"/><path d="M146 164 L158 170 L146 176 Z" fill="currentColor"/>
+  <text x="60" y="158" font-size="13">输入</text>
+  <rect x="240" y="130" width="120" height="80" rx="10"/><text x="282" y="177">A(s)</text>
+  <line x1="194" y1="170" x2="240" y2="170"/>
+  <line x1="360" y1="170" x2="560" y2="170"/><path d="M560 164 L572 170 L560 176 Z" fill="currentColor"/>
+  <text x="524" y="158" font-size="13">输出</text>
+  <rect x="240" y="250" width="120" height="50" rx="10"/><text x="282" y="282">F(s)</text>
+  <line x1="520" y1="170" x2="520" y2="275"/><line x1="520" y1="275" x2="360" y2="275"/>
+  <line x1="240" y1="275" x2="170" y2="275"/><line x1="170" y1="275" x2="170" y2="194"/>
+  <text x="178" y="300" font-size="13">反馈</text>
+  <text x="60" y="330">起振 |AF| ≥ 1 且 φA+φF = 2nπ；稳定后 |AF| 回落到 1</text>
+</svg>

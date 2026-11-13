@@ -349,9 +349,9 @@ ok('⑦ M3 有集中力：剪力面板照画，不是空轴', b1.shearAxisRender
 {
   const beamText = await evaluate(`document.querySelector('main')?.innerText ?? ''`);
   ok('⑧ 梁页（M3）不出现「等效电路」（F/N 档文案按 family 分支）', !beamText.includes('等效电路'), beamText.split('\n').filter((line) => line.includes('等效电路')).slice(0, 2).join(' / ') || '干净');
-  await gotoPage('#/', "document.querySelector('textarea') !== null");
+  await gotoPage('#/', "document.querySelector('textarea, input[data-testid=\"kb-search\"]') !== null");
   const homeText = await evaluate(`document.querySelector('main')?.innerText ?? document.body.innerText`);
-  const libHits = (homeText.match(/.{0,10}库.{0,10}/g) ?? []).filter((one) => !/题库|素材库|词库|数据库|仓库|样例库|求解内核/.test(one));
+  const libHits = (homeText.match(/.{0,10}库.{0,10}/g) ?? []).filter((one) => !/题库|素材库|词库|数据库|仓库|样例库|求解内核|知识库/.test(one));
 ok('⑧ 首页不出现裸「库」与 check:mech-parity', libHits.length === 0 && !homeText.includes('check:mech-parity'), JSON.stringify(libHits.slice(0, 5)));
   await gotoPage('#/about', "document.querySelector('[data-testid=about-prime]') !== null");
   const aboutText = await evaluate(`document.body.innerText`);
@@ -375,7 +375,7 @@ ok('⑧ 首页不出现裸「库」与 check:mech-parity', libHits.length === 0 
       return items;
     })()`);
   const pages = [
-    ['#/', "document.querySelector('textarea') !== null"],
+    ['#/', "document.querySelector('input[data-testid=kb-search]') !== null"],
     ['#/about', "document.querySelector('[data-testid=about-prime]') !== null"],
     ['#/lab/t/M3', "document.querySelectorAll('[data-testid=param-row]').length > 0"],
     ['#/lab/t/A6', "document.querySelectorAll('[data-testid=param-row]').length > 0"],

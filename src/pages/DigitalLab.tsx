@@ -64,6 +64,7 @@ export function DigitalLab({ onBack }: DigitalLabProps) {
             ← 返回
           </button>
           <span className="text-[13px] text-muted">数字求值</span>
+          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
           <a href="#/lab" className="focus-ring ml-auto text-[13px] text-muted transition-colors hover:text-ink">
             装配台
           </a>

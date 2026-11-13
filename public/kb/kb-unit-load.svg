@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <line x1="120" y1="90" x2="520" y2="90"/>
+  <path d="M110 90 L130 90 L120 112 Z"/>
+  <path d="M510 90 L530 90 L520 112 Z"/>
+  <line x1="100" y1="112" x2="140" y2="112"/>
+  <line x1="500" y1="112" x2="540" y2="112"/>
+  <line x1="320" y1="50" x2="320" y2="88"/>
+  <path d="M314 88 L320 100 L326 88 Z" fill="currentColor"/>
+  <text x="330" y="56" font-size="13">F</text>
+  <text x="60" y="80" font-size="13">实际状态 M(x)</text>
+  <line x1="120" y1="230" x2="520" y2="230"/>
+  <path d="M110 230 L130 230 L120 252 Z"/>
+  <path d="M510 230 L530 230 L520 252 Z"/>
+  <line x1="100" y1="252" x2="140" y2="252"/>
+  <line x1="500" y1="252" x2="540" y2="252"/>
+  <line x1="400" y1="190" x2="400" y2="228"/>
+  <path d="M394 228 L400 240 L406 228 Z" fill="currentColor"/>
+  <text x="410" y="196" font-size="13">1</text>
+  <text x="60" y="220" font-size="13">虚拟状态 M̄(x)</text>
+  <text x="60" y="320">Δ = ∫ M·M̄/(EI) dx（分段积分后求和；单位力方向即位移正方向）</text>
+</svg>

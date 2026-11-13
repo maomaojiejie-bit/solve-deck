@@ -117,6 +117,8 @@ export function Solve({ onBack, onStart, onToast }: SolveProps) {
   const [zoom, setZoom] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
   const [outcome, setOutcome] = useState<AIParseOutcome | null>(null);
+  /** 从知识条目/带 ?t= 进来时，横幅交代一句「题型已经替你选好」。 */
+  const [presetTitle, setPresetTitle] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   /** 从 #/scope 的「要先简化」带过来的简化 id，必须一路跟到结果页去留痕。 */
   const simp = boot.simp;
@@ -203,14 +205,16 @@ export function Solve({ onBack, onStart, onToast }: SolveProps) {
   };
 
   /**
-   * W21-B B3：首页贴题直达（URL 带 ?t=）→ 预选题型并立刻解析一次题面，
-   * 不再要求用户「先手选题型、再点读题」。规则解析仍是唯一真相：它若认出
-   * 别的型，下面的 runParse 会把题型改过去。
+   * W21-B B3：首页贴题直达（URL 带 ?t=）→ 预选题型，横幅交代一句「选好了哪型」。
+   * 有题面（?q= / sessionStorage 带来）就顺手解析一次；空手来的只选题型、不弹
+   * 「先把题面贴进来」——从知识条目点过来的人要看的是这道题长什么样。
+   * 规则解析仍是唯一真相：它若认出别的型，runParse 会把题型改过去。
    */
   useEffect(() => {
     if (!boot.t || !getTemplateRoute(boot.t)) return;
     pick(boot.t);
-    void runParse();
+    setPresetTitle(getTemplateRoute(boot.t)?.entry.title ?? null);
+    if (boot.text.trim() || boot.image) void runParse();
     // 只在首屏 boot 上跑一次；boot 由 useState 初始化器固定。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -347,6 +351,7 @@ export function Solve({ onBack, onStart, onToast }: SolveProps) {
             ← 返回
           </button>
           <span className="font-serif text-[13px] text-ink">我有道题</span>
+          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
           <a href="#/wizard" className="focus-ring ml-auto text-[11px] text-muted transition-colors hover:text-ink">
             不知道选哪个？走选型向导
           </a>
@@ -359,6 +364,26 @@ export function Solve({ onBack, onStart, onToast }: SolveProps) {
         <p className="mt-3 max-w-[620px] text-[15px] leading-[1.5] text-muted">
           题型决定用哪套求解器。参数默认值可以照抄，越界会当场标红、不夹取。读题走本地规则，不发任何请求。
         </p>
+
+        {presetTitle ? (
+          <div
+            data-testid="solve-preset"
+            className="mt-6 flex items-center gap-3 rounded-lg border border-cyan/40 bg-cyan/5 px-4 py-3 text-[13px] text-ink"
+          >
+            <span>
+              题型已经替你选好：<span className="font-medium text-cyan">{presetTitle}</span>
+              （参数用的默认值，改改数字就能出结构）。
+            </span>
+            <button
+              type="button"
+              onClick={() => setPresetTitle(null)}
+              aria-label="收起提示"
+              className="focus-ring ml-auto shrink-0 rounded px-1.5 text-[15px] text-faint transition-colors hover:text-ink"
+            >
+              ×
+            </button>
+          </div>
+        ) : null}
 
         <div className="mt-9 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(380px,0.6fr)] lg:items-start">
           {/* ① 题型 */}

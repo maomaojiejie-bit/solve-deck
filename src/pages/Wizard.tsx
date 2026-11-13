@@ -269,6 +269,7 @@ export function Wizard({ onBack }: WizardProps) {
             ← 返回
           </button>
           <span className="text-[13px] text-muted">选型向导</span>
+          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
           <span className="ml-auto text-[13px] text-faint">
             {step === 0 ? '先选课' : step === 1 ? '再选题型' : '确认后进入拆解'}
           </span>

@@ -151,11 +151,17 @@ await send('Runtime.enable');
     const links = [...document.querySelectorAll('header a')].map((a) => ({ text: a.innerText.trim(), href: a.getAttribute('href') }));
     return links;
   })()`);
-  ok('H-13：首页顶栏有装配台 / 数字求值 / 关于', ['装配台', '数字求值', '关于'].every((text) => homeLinks.some((item) => item.text === text)), JSON.stringify(homeLinks));
-  await evaluate("document.querySelector('header a[href=\"#/lab/digital\"]')?.click()");
+  // v2 顶栏：知识库 / 解题（二选一面板）/ 关于；数字求值入口走 #/lab 索引页（下半段照旧）。
+  const navSolveBtn = await evaluate("Boolean(document.querySelector('[data-testid=nav-solve]'))");
+  ok('H-13：首页顶栏有 知识库 / 解题 / 关于', ['知识库', '关于'].every((text) => homeLinks.some((item) => item.text === text)) && navSolveBtn === true, JSON.stringify({ links: homeLinks, navSolveBtn }));
+  await evaluate("document.querySelector('[data-testid=nav-solve]')?.click()");
+  await sleep(400);
+  const panelShown = await evaluate("Boolean(document.querySelector('[data-testid=solve-panel]'))");
+  ok('H-13：点「解题」就地展开二选一面板', panelShown === true, '面板没弹出');
+  await evaluate("document.querySelector('[data-testid=solve-panel-lab]')?.click()");
   await sleep(600);
   const afterHome = await evaluate('location.hash');
-  ok("H-13：首页顶栏点击 → location.hash === '#/lab/digital'", afterHome === '#/lab/digital', `实际 ${afterHome}`);
+  ok("H-13：面板「自己拼」→ location.hash === '#/lab'", afterHome === '#/lab', `实际 ${afterHome}`);
 
   await go('#/lab');
   const entry = await evaluate("Boolean(document.querySelector('[data-testid=lab-digital-entry]'))");
@@ -321,7 +327,7 @@ await send('Runtime.enable');
   ok('B4 源码：角色标签按选中态条件渲染且过滤 unknown', /selectedIds\.includes\(device\.id\)/.test(lab) && /option\.value !== 'unknown'/.test(lab), '条件 / 过滤被拆掉了');
   ok('B6：「全部恢复默认」不再与「参数实验场」小标题同排', /flex flex-col items-stretch/.test(panel) && /reset-all-params/.test(panel), 'ParamPanel header 仍是 flex-row');
   ok('B6：默认参数键独占一行', /param-badge-defaults[\s\S]{0,120}basis-full/.test(result) && /join\(' · '\)/.test(result), 'LaPq 又挤成一行了');
-  ok('B6：Hero 与 01/02/03 间距收成 64px、播放条有底部留白', /pt-16 pb-8 lg:pt-20/.test(home) && /pt-8 pb-16 sm:grid-cols-3/.test(home) && /result-page min-h-screen pb-24/.test(result), '间距 / 留白没落上');
+  ok('B6：首页搜索区留白、结果页有底部留白（v2 版式）', /pt-24 pb-8/.test(home) && /result-page min-h-screen pb-24/.test(result), '间距 / 留白没落上');
 }
 
 /* ── ⑩ W21-C C1-2：力学页不讲电路操作（真页面文本） ─────────────── */

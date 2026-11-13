@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <rect x="50" y="60" width="250" height="100" rx="10"/>
+  <text x="70" y="92">第一理论 · 最大拉应力</text>
+  <text x="70" y="124" font-size="13">σ1 ≤ [σ]（脆性拉断）</text>
+  <rect x="340" y="60" width="250" height="100" rx="10"/>
+  <text x="360" y="92">第二理论 · 最大拉应变</text>
+  <text x="360" y="124" font-size="13">σ1 − μ(σ2+σ3) ≤ [σ]</text>
+  <rect x="50" y="190" width="250" height="100" rx="10"/>
+  <text x="70" y="222">第三理论 · 最大切应力</text>
+  <text x="70" y="254" font-size="13">σ1 − σ3 ≤ [σ]（塑性屈服）</text>
+  <rect x="340" y="190" width="250" height="100" rx="10"/>
+  <text x="360" y="222">第四理论 · 形状改变比能</text>
+  <text x="360" y="254" font-size="13">√(½Σ(σi−σj)²) ≤ [σ]（塑性，更经济）</text>
+  <text x="60" y="330">脆性用一二、塑性用三四；第三偏保守，第四更接近试验值</text>
+</svg>

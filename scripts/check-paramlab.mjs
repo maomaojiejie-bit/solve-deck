@@ -260,6 +260,66 @@ await runCase('M3', 'L', '4', '6', '力学 M3');
 await runCase('M3', 'a', '2', '3', '力学 M3 改 a');
 await runCase('A3', 'Rc', '2000', '4700', '电路 A3');
 
+/* ── ⑦ W22-R P0：非法参数拒算 / URL 越界黄条 / 悬臂识别 ───────── */
+{
+  // 7a a≥L 非法组合 → 红条拒算，零结果零绿章（黄金快照不许顶上来）
+  await send('Page.navigate', { url: 'http://127.0.0.1:5196/#/t/M5?L=2&a=2&P=10' });
+  await waitFor(`document.querySelector('[data-testid=param-error-banner]') !== null`, '参数拒算红条');
+  const bad = await evaluate(`(() => ({
+    banner: document.querySelector('[data-testid=param-error-banner]')?.textContent ?? '',
+    steps: document.body.textContent.includes('过程 1/'),
+  }))()`);
+  ok(
+    '⑦a a≥L 拒算：红条指名 (0,L) 且无结果区',
+    bad.banner.includes('拒绝出结果') && bad.banner.includes('(0, L)') && !bad.steps,
+    JSON.stringify(bad.banner.slice(0, 60)),
+  );
+
+  // 7b URL 越界 → 黄条点名 + 面板默认值 + 结果照出（面板 = 结果同源）
+  await send('Page.navigate', { url: 'http://127.0.0.1:5196/#/t/M3?L=0' });
+  await waitFor(`document.querySelector('[data-testid=param-range-banner]') !== null`, 'URL 越界黄条');
+  const range = await evaluate(`(() => ({
+    banner: document.querySelector('[data-testid=param-range-banner]')?.textContent ?? '',
+    l: document.querySelector('input[data-param-input=L]')?.value ?? null,
+    result: document.body.textContent.includes('Mmax'),
+  }))()`);
+  ok(
+    '⑦b URL 越界黄条点名 + 面板默认值一致',
+    range.banner.includes('L=0') && range.l === '4' && range.result,
+    JSON.stringify(range).slice(0, 90),
+  );
+
+  // 7c 面板越界 → 不夹取，拒算红条点名区间
+  await send('Page.navigate', { url: 'http://127.0.0.1:5196/#/t/M3' });
+  await waitFor(`document.querySelector('input[data-param-input=L]') !== null`, 'M3 参数面板');
+  await evaluate(`(() => {
+    const input = document.querySelector('input[data-param-input=L]');
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    setter.call(input, '12');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    return 'ok';
+  })()`);
+  await waitFor(`document.querySelector('[data-testid=param-error-banner]') !== null`, '面板越界拒算红条');
+  const clamp = await evaluate(`document.querySelector('[data-testid=param-error-banner]')?.textContent?.slice(0, 80) ?? ''`);
+  ok('⑦c 面板越界不夹取拒算', clamp.includes('12') && clamp.includes('[1, 8]'), clamp.slice(0, 70));
+
+  // 7d 悬臂题 → M3-cantilever（支承条件优先于题型词）
+  await send('Page.navigate', { url: 'http://127.0.0.1:5196/#/solve' });
+  await waitFor(`document.querySelector('textarea') !== null`, 'solve 页');
+  await evaluate(`(() => {
+    const ta = document.querySelector('textarea');
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
+    setter.call(ta, '悬臂梁 L=2m，自由端受集中力 P=10kN，求固端弯矩与挠度');
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    return 'ok';
+  })()`);
+  await evaluate(`[...document.querySelectorAll('button')].find((b) => b.textContent.trim() === '读题')?.click()`);
+  await waitFor(`document.body.textContent.includes('M3-cantilever')`, '悬臂判型');
+  ok('⑦d 悬臂题判到 M3-cantilever', true);
+  console.log('⑦  P0：非法参数拒算 / URL 越界黄条 / 面板不夹取 / 悬臂判型');
+}
+
 /* ── 源码断言（重算通道不能被拆成空壳） ───────────────────────── */
 {
   const labSource = readFileSync(join(root, 'src', 'pages', 'Lab.tsx'), 'utf8');

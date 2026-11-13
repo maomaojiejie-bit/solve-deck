@@ -91,6 +91,10 @@ const CIRCUIT_ADDS: { kind: string; label: string; value?: number; params?: Reco
   { kind: 'diode', label: 'D' },
   { kind: 'npn', label: 'Q2', value: 1e-3, params: { beta: 100, lambda: 100 } },
   { kind: 'nmos', label: 'M2', params: { gm: 0.001, ro: 5e6 } },
+  // 引擎早就能 stamp 的三种，面板一直没给按钮：没有地符号 = 无参考点 = 整张图拒答。
+  { kind: 'gnd', label: '接地', note: '每张图必须有且只有一处' },
+  { kind: 'isrc', label: 'I', value: 1e-3 },
+  { kind: 'opamp', label: 'OP' },
 ];
 const BEAM_SUPPORTS: { type: 'pin' | 'roller' | 'fixed' }[] = [{ type: 'pin' }, { type: 'roller' }, { type: 'fixed' }];
 const BEAM_LOADS: { type: 'point' | 'udl' | 'moment'; value: number; label: string }[] = [
@@ -1075,6 +1079,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
           </button>
           <span className="font-serif text-[13px] text-ink">装配台</span>
           <span className="hidden text-[11px] text-faint sm:inline">改结构，不改求解器</span>
+          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
           <a
             href={`#/t/${pickId}`}
             onClick={(e) => { e.preventDefault(); if (pickId) onStart(`#/t/${pickId}`); }}
@@ -2604,6 +2609,11 @@ function ValueInput({ kind, value, onCommit }: { kind: string; value: number | u
     setText(value === undefined ? '' : String(value));
     setInvalid(false);
   }, [value]);
+  /** W22-R P0-E2：边打字边校验 —— 负电阻、0、超限当场红边，不等失焦。 */
+  const check = (raw: string) => {
+    const parsed = Number(raw);
+    setInvalid(raw.trim() !== '' && (!Number.isFinite(parsed) || parsed <= 0 || parsed > 1e12));
+  };
   const commit = () => {
     const parsed = Number(text);
     if (text.trim() === '' || !Number.isFinite(parsed) || parsed <= 0 || parsed > 1e12) {
@@ -2624,7 +2634,10 @@ function ValueInput({ kind, value, onCommit }: { kind: string; value: number | u
         value={text}
         step="any"
         min="0"
-        onChange={(event) => setText(event.target.value)}
+        onChange={(event) => {
+          setText(event.target.value);
+          check(event.target.value);
+        }}
         onBlur={commit}
         onKeyDown={(event) => {
           if (event.key === 'Enter') (event.target as HTMLInputElement).blur();

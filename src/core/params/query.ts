@@ -14,6 +14,8 @@ export interface ParsedParamQuery {
   values: Record<string, ParamValue>;
   normalized: string;
   corrected: boolean;
+  /** URL 里越界被拒的参数（key + 原始串），页面要红条点名，不许静默回默认。 */
+  outOfRange: { key: string; raw: string }[];
 }
 
 export function cloneDefault(value: ParamValue): ParamValue {
@@ -82,6 +84,8 @@ export function parseParamQuery(
   const values = defaultParamValues(params, baseline);
   const known = new Set(params.map((param) => param.key));
   let corrected = false;
+  /** W22-R P0：URL 里越界的参数（拒绝静默回默认不说话——红条要点名）。 */
+  const outOfRange: { key: string; raw: string }[] = [];
   for (const key of query.keys()) {
     if (!known.has(key)) corrected = true;
   }
@@ -104,13 +108,15 @@ export function parseParamQuery(
       (param.max !== undefined && value > param.max)
     ) {
       corrected = true;
+      // Number.isFinite 但越界 = 用户真的带了一个数来，点名；NaN/空串不算。
+      if (Number.isFinite(value)) outOfRange.push({ key: param.key, raw });
       continue;
     }
     values[param.key] = value;
   }
   const normalized = buildParamQuery(params, values, baseline);
   if (normalized !== (search.startsWith('?') ? search.slice(1) : search)) corrected = true;
-  return { values, normalized, corrected };
+  return { values, normalized, corrected, outOfRange };
 }
 
 /**

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <path d="M60 120 H160 V180 H260 V120 H360 V180 H460 V120 H560"/>
+  <text x="40" y="108">clk</text>
+  <path d="M60 250 H150 V220 H420 V250 H560" opacity="0.9"/>
+  <text x="40" y="240">data</text>
+  <rect x="340" y="60" width="40" height="120" fill="currentColor" opacity="0.14" stroke="none"/>
+  <rect x="420" y="60" width="30" height="120" fill="currentColor" opacity="0.14" stroke="none"/>
+  <text x="330" y="52">建立窗 Tsu</text><text x="416" y="52">保持窗 Th</text>
+  <text x="90" y="330">数据必须在窗口内稳定，采样点在时钟上升沿</text>
+</svg>

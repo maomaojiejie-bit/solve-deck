@@ -60,6 +60,7 @@ export function About({ onBack }: AboutProps) {
             ← 返回
           </button>
           <span className="text-[13px] text-muted">关于</span>
+          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
           <a href="#/" className="focus-ring ml-auto text-[13px] text-muted transition-colors hover:text-ink">
             返回首页
           </a>
@@ -68,21 +69,29 @@ export function About({ onBack }: AboutProps) {
       </header>
 
       <main className="mx-auto w-full max-w-[1120px] space-y-12 px-6 pb-16 pt-10">
-        {/* 第一屏先讲装配台，再讲 28 型样例 */}
+        {/* 第一屏：三步流程，与主页「先看懂，再算出来」呼应 */}
         <section data-testid="about-prime">
           <p className="id-mono text-[12px] tracking-[0.14em] text-faint">定位</p>
           <h1 className="mt-3 max-w-[640px] font-serif text-[32px] leading-[1.25] text-ink">
-            主角是装配台：先给你一张对的图，再让你改它
+            先看懂一道题，再把它算出来
           </h1>
           <p className="mt-4 max-w-[600px] text-[15px] leading-[1.85] text-muted">
-            打开就是一张结构正确的图 —— 支座挂在结点上、载荷有自己的位置与方向、器件连着该连的脚；
-            删器件会合并串联，删结点会连带清掉支座与载荷。改完结构，右侧逐项确认已知量，
-            再由同一个求解内核算出结果与六项校核；改到讲解稿装不下的程度，就按你改的那张图现算（电路现算按交流小信号口径：C 视为短路、L 视为开路）。
+            这个站子分三步走。不熟的知识点，去知识库搜一条，思路、公式、图、坑都给你摆好；
+            会做但想省时间，按模板解题——28 型每种都有自己的参数表；想自己动手改结构，
+            去装配台：打开就是一张结构正确的图，支座挂在结点上、载荷有自己的位置和方向、器件连着该连的脚。
+            删器件会合并串联，删结点会连带清掉支座与载荷。改到讲解稿装不下的程度，就按你改的那张图现算
+            （电路现算按交流小信号口径：C 视为短路、L 视为开路）。
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-5">
             <a
-              href="#/lab"
+              href="#/kb"
               className="focus-ring inline-flex h-11 items-center rounded-lg bg-cyan px-5 text-[14px] font-medium text-white transition-opacity hover:opacity-90"
+            >
+              去知识库
+            </a>
+            <a
+              href="#/lab"
+              className="focus-ring inline-flex h-11 items-center rounded-lg border border-line px-5 text-[14px] text-ink transition-colors hover:border-line-2"
             >
               打开装配台
             </a>
@@ -101,6 +110,18 @@ export function About({ onBack }: AboutProps) {
               装配台 · 左装配 / 中画布 / 右已知量；同一份解、同一套六项校核、同一张打印稿
             </figcaption>
           </figure>
+        </section>
+
+        <section data-testid="kb-section">
+          <h2 className="mb-2 text-[20px] font-medium text-ink">知识库</h2>
+          <p className="max-w-[620px] text-[15px] leading-7 text-muted">
+            59 条知识点，电路、数字、材力、理力四科。每条给四样东西：怎么下手（解题思路）、
+            哪几个公式够用、一张图、老师嘴上说过但书上不写的那种坑。能算的题型在条目页底部有按钮，
+            点过去题型已经替你选好。搜索支持打错字——搜「莫而圆」也找得到莫尔圆。
+          </p>
+          <p className="mt-2 text-[12px] text-muted">
+            <a href="#/kb" className="focus-ring text-cyan hover:underline">打开知识库 →</a>
+          </p>
         </section>
 
         <section data-testid="provenance-section">

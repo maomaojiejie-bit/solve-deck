@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "solve-deck",
   "private": true,
   "version": "0.1.0",
@@ -6,7 +6,7 @@
   "description": "拆解台 · SolveDeck — 工科解题拆解台（纯前端静态站）",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && npm run check:runtime && npm run check:license && npm run check:paths && npm run check:url && npm run check:kmap && npm run check:p3 && npm run check:schematic && npm run check:responsive && npm run check:mech-parity && npm run check:mech-self && npm run check:chart && npm run check:statics && npm run check:ai && npm run check:scope && npm run check:lab && npm run check:assemble && npm run check:pins && npm run check:composite && npm run check:undo && npm run check:netsolve && npm run check:framesolve && npm run check:gatesolve && npm run check:labresolve && npm run check:ids && npm run check:drag && npm run check:labimport && npm run check:attach && npm run check:pointer && npm run check:imgref && npm run check:measures && npm run check:section && npm run check:coherence && npm run check:vision && npm run check:paramlab && npm run check:labshell && npm run check:report && vite build",
+    "build": "tsc --noEmit && npm run check:runtime && npm run check:license && npm run check:paths && npm run check:url && npm run check:kmap && npm run check:p3 && npm run check:schematic && npm run check:responsive && npm run check:mech-parity && npm run check:mech-self && npm run check:chart && npm run check:statics && npm run check:ai && npm run check:scope && npm run check:lab && npm run check:assemble && npm run check:pins && npm run check:composite && npm run check:undo && npm run check:netsolve && npm run check:framesolve && npm run check:gatesolve && npm run check:labresolve && npm run check:ids && npm run check:drag && npm run check:labimport && npm run check:attach && npm run check:pointer && npm run check:imgref && npm run check:measures && npm run check:section && npm run check:coherence && npm run check:vision && npm run check:paramlab && npm run check:labshell && npm run check:report && npm run check:kb && npm run check:palette && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "check:p0": "node scripts/check-p0.mjs",
@@ -14,7 +14,7 @@
     "check:paths": "node scripts/check-paths.mjs",
     "check:url": "node scripts/check-url.mjs",
     "check:p3": "node scripts/check-p3.mjs",
-    "check": "npm run check:p0 && npm run check:runtime && npm run check:license && npm run check:paths && npm run check:url && npm run check:kmap && npm run check:p3 && npm run check:schematic && npm run check:responsive && npm run check:mech-parity && npm run check:mech-self && npm run check:chart && npm run check:statics && npm run check:ai && npm run check:scope && npm run check:lab && npm run check:assemble && npm run check:pins && npm run check:composite && npm run check:undo && npm run check:netsolve && npm run check:framesolve && npm run check:gatesolve && npm run check:labresolve && npm run check:ids && npm run check:drag && npm run check:labimport && npm run check:attach && npm run check:pointer && npm run check:imgref && npm run check:measures && npm run check:section && npm run check:coherence && npm run check:vision && npm run check:paramlab && npm run check:labshell && npm run check:report",
+    "check": "npm run check:p0 && npm run check:runtime && npm run check:license && npm run check:paths && npm run check:url && npm run check:kmap && npm run check:p3 && npm run check:schematic && npm run check:responsive && npm run check:mech-parity && npm run check:mech-self && npm run check:chart && npm run check:statics && npm run check:ai && npm run check:scope && npm run check:lab && npm run check:assemble && npm run check:pins && npm run check:composite && npm run check:undo && npm run check:netsolve && npm run check:framesolve && npm run check:gatesolve && npm run check:labresolve && npm run check:ids && npm run check:drag && npm run check:labimport && npm run check:attach && npm run check:pointer && npm run check:imgref && npm run check:measures && npm run check:section && npm run check:coherence && npm run check:vision && npm run check:paramlab && npm run check:labshell && npm run check:report && npm run check:kb && npm run check:palette",
     "check:composite": "node scripts/check-composite.mjs",
     "check:undo": "node scripts/check-undo.mjs",
     "verify": "npm run check:p0 && npm run build",
@@ -38,6 +38,8 @@
     "check:gatesolve": "node scripts/check-gatesolve.mjs",
     "check:labresolve": "node scripts/check-labresolve.mjs",
     "check:ids": "node scripts/check-ids.mjs",
+    "check:kb": "node scripts/check-kb.mjs",
+    "check:palette": "node scripts/check-palette.mjs",
     "check:drag": "node scripts/check-drag.mjs",
     "check:labimport": "node scripts/check-labimport.mjs",
     "check:attach": "node scripts/check-attach.mjs",

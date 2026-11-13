@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <line x1="60" y1="320" x2="600" y2="320"/><line x1="60" y1="60" x2="60" y2="320"/>
+  <path d="M70 280 C 160 260 240 180 340 140 C 420 110 500 90 590 80" opacity="0.6" stroke-dasharray="5 4"/>
+  <path d="M70 300 H140 V280 H210 V260 H280 V230 H350 V200 H420 V170 H490 V150 H560 V140 H600"/>
+  <line x1="140" y1="280" x2="140" y2="260" stroke-width="1"/>
+  <text x="150" y="252">1 LSB = VFS / 2ⁿ</text>
+  <text x="80" y="345">连续信号（虚线）与量化阶梯（实线）</text>
+</svg>

@@ -60,6 +60,7 @@ export function Scope({ onBack }: ScopeProps) {
             ← 返回
           </button>
           <span className="text-[13px] text-muted">范围判别 · 六问</span>
+          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
           <a href="#/about" className="focus-ring ml-auto text-[13px] text-muted transition-colors hover:text-ink">
             能力边界 →
           </a>

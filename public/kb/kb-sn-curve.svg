@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <line x1="70" y1="40" x2="70" y2="300"/><line x1="70" y1="300" x2="600" y2="300"/>
+  <text x="40" y="60">σr</text><text x="560" y="326">N（对数）</text>
+  <path d="M90 80 C 180 130 260 220 360 258"/>
+  <line x1="360" y1="258" x2="600" y2="258" stroke-dasharray="6 5"/>
+  <text x="380" y="246">持久极限 σ−1（钢）</text>
+  <text x="100" y="100">低周·高应力</text><text x="430" y="180">高周</text>
+  <text x="90" y="330">应力幅掉到水平段以下 → 无限寿命</text>
+</svg>

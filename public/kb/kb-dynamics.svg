@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <rect x="240" y="150" width="140" height="90" rx="6"/>
+  <circle cx="310" cy="195" r="4" fill="currentColor"/>
+  <text x="386" y="200" font-size="13">C</text>
+  <line x1="310" y1="195" x2="420" y2="195"/>
+  <path d="M420 189 L432 195 L420 201 Z" fill="currentColor"/>
+  <text x="424" y="186" font-size="13">a</text>
+  <line x1="310" y1="195" x2="200" y2="195"/>
+  <path d="M200 189 L188 195 L200 201 Z" fill="currentColor"/>
+  <text x="156" y="186" font-size="13">FI = −ma</text>
+  <path d="M310 120 A 75 75 0 0 1 385 195" stroke-dasharray="5 4"/>
+  <path d="M385 195 L375 190 L383 182 Z" fill="currentColor"/>
+  <text x="372" y="136" font-size="13">ε</text>
+  <path d="M310 270 A 75 75 0 0 0 235 195" stroke-dasharray="5 4"/>
+  <path d="M235 195 L245 200 L237 208 Z" fill="currentColor"/>
+  <text x="204" y="248" font-size="13">MI = −Jε</text>
+  <text x="60" y="320">达朗贝尔：F + FI = 0 化为平衡；惯性力系向质心简化为一力一偶</text>
+</svg>

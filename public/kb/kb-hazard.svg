@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <path d="M60 200 H240 L250 160 L260 200 H580"/>
+  <path d="M60 200 H240 L258 240 L268 200 H580" opacity="0.45" stroke-dasharray="5 4"/>
+  <line x1="255" y1="120" x2="255" y2="280" stroke-dasharray="4 4" opacity="0.6"/>
+  <text x="225" y="110">A 变化沿</text>
+  <text x="80" y="140">两条路径延迟不同 → 汇合处出毛刺</text>
+  <text x="80" y="330">代数判别：表达式可化成 A + A′（1 型冒险）</text>
+</svg>

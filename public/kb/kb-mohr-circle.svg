@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <line x1="60" y1="200" x2="600" y2="200"/><line x1="200" y1="40" x2="200" y2="320"/>
+  <text x="585" y="222">σ</text><text x="180" y="55">τ</text>
+  <circle cx="380" cy="200" r="120"/>
+  <line x1="260" y1="120" x2="500" y2="280" stroke-dasharray="6 5"/>
+  <circle cx="260" cy="120" r="4" fill="currentColor"/><circle cx="500" cy="280" r="4" fill="currentColor"/>
+  <circle cx="380" cy="80" r="4" fill="currentColor"/><circle cx="380" cy="320" r="4" fill="currentColor"/>
+  <text x="240" y="106">x 面 (σx, τxy)</text><text x="452" y="302">y 面 (σy, −τxy)</text>
+  <text x="392" y="72">σ₁</text><text x="392" y="338">σ₂</text>
+  <text x="196" y="84" font-size="13">τmax</text><text x="370" y="222" font-size="13">σm</text>
+</svg>

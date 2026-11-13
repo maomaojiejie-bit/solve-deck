@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <line x1="80" y1="80" x2="80" y2="280"/><line x1="80" y1="280" x2="320" y2="280"/><line x1="320" y1="280" x2="560" y2="280"/><line x1="320" y1="280" x2="320" y2="80"/>
+  <line x1="80" y1="80" x2="320" y2="280"/><line x1="560" y1="280" x2="320" y2="80"/>
+  <line x1="80" y1="80" x2="320" y2="80" stroke-dasharray="6 5" opacity="0.55"/>
+  <line x1="320" y1="280" x2="440" y2="180" stroke-dasharray="6 5" opacity="0.55"/><circle cx="440" cy="180" r="4"/>
+  <text x="150" y="66" opacity="0.75">零杆（共线两杆）</text>
+  <text x="380" y="164" opacity="0.75">零杆（T 形第三杆）</text>
+  <text x="60" y="310">两杆结点无载 → 两杆皆零</text><text x="360" y="310">三杆两共线无载 → 第三杆为零</text>
+</svg>

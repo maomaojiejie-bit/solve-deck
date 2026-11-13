@@ -13,6 +13,8 @@ const Lab = lazy(() => import('./pages/Lab').then((module) => ({ default: module
 const DigitalLab = lazy(() =>
   import('./pages/DigitalLab').then((module) => ({ default: module.DigitalLab })),
 );
+const KbIndex = lazy(() => import('./pages/KbIndex').then((module) => ({ default: module.KbIndex })));
+const KbEntry = lazy(() => import('./pages/KbEntry').then((module) => ({ default: module.KbEntry })));
 
 type Route =
   | { page: 'home' }
@@ -22,6 +24,8 @@ type Route =
   | { page: 'scope' }
   | { page: 'lab'; templateId?: string }
   | { page: 'digital' }
+  | { page: 'kb' }
+  | { page: 'kbEntry'; entryId: string }
   | { page: 'result'; templateId: string; search: string };
 
 function parseRoute(): Route {
@@ -33,6 +37,11 @@ function parseRoute(): Route {
   if (hash === 'scope') return { page: 'scope' };
   if (hash === 'lab') return { page: 'lab' };
   if (hash === 'lab/digital') return { page: 'digital' };
+  if (hash === 'kb') return { page: 'kb' };
+  if (hash.startsWith('kb/')) {
+    const entryId = decodeURIComponent(hash.slice(3));
+    return { page: 'kbEntry', entryId };
+  }
   if (hash.startsWith('lab/t/')) {
     const templateId = decodeURIComponent(hash.slice(6));
     return { page: 'lab', templateId };
@@ -72,8 +81,12 @@ export function App() {
                 ? '范围判别 · 拆解台'
                 : route.page === 'lab'
                   ? '装配台 · 拆解台'
-                  : route.page === 'digital'
-                    ? '数字求值 · 拆解台'
+              : route.page === 'digital'
+                ? '数字求值 · 拆解台'
+                : route.page === 'kb'
+                  ? '知识库 · 拆解台'
+                  : route.page === 'kbEntry'
+                    ? '知识条目 · 拆解台'
                     : `拆解台 · ${route.templateId}`;
   }, [route]);
 
@@ -85,10 +98,6 @@ export function App() {
 
   const showToast = useCallback((message: string) => {
     setToast({ key: Date.now(), message });
-  }, []);
-
-  const openTemplate = useCallback((templateId: string) => {
-    window.location.hash = `#/t/${templateId}`;
   }, []);
 
   const backHome = useCallback(() => {
@@ -109,7 +118,7 @@ export function App() {
   return (
     <>
       {route.page === 'home' ? (
-        <Home onOpen={openTemplate} onToast={showToast} />
+        <Home />
       ) : (
         <Suspense
           fallback={
@@ -128,6 +137,10 @@ export function App() {
             <Scope onBack={backHome} />
           ) : route.page === 'lab' ? (
             <Lab templateId={route.templateId} onBack={backHome} onStart={navigate} onToast={showToast} />
+          ) : route.page === 'kb' ? (
+            <KbIndex />
+          ) : route.page === 'kbEntry' ? (
+            <KbEntry id={route.entryId} />
           ) : route.page === 'digital' ? (
             <DigitalLab onBack={backHome} />
           ) : (

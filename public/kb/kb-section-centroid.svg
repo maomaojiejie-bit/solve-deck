@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <rect x="200" y="70" width="240" height="50"/>
+  <rect x="290" y="120" width="60" height="150"/>
+  <text x="296" y="102">① 翼缘</text>
+  <text x="304" y="165">②</text>
+  <line x1="170" y1="140" x2="470" y2="140" stroke-dasharray="6 5"/>
+  <circle cx="320" cy="140" r="4" fill="currentColor"/>
+  <text x="476" y="146">形心轴 C</text>
+  <line x1="320" y1="50" x2="320" y2="290" stroke-dasharray="4 4"/>
+  <text x="326" y="62" font-size="13">对称轴</text>
+  <text x="60" y="316">形心按面积加权；各块经平行轴定理 I = Σ(Ici + ai²Ai) 移轴后叠加</text>
+  <text x="60" y="344">挖孔用负面积法；惯性积为零的方向即主轴</text>
+</svg>

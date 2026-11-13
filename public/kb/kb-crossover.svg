@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <line x1="60" y1="180" x2="600" y2="180" opacity="0.5"/>
+  <path d="M80 180 Q140 40 200 180 T 320 180 T 440 180 T 560 180" opacity="0.45" stroke-dasharray="5 4"/>
+  <path d="M80 180 Q140 60 180 120 Q200 150 210 172 Q220 180 230 188 Q240 210 260 240 Q300 296 320 180 T 440 180 T 560 180"/>
+  <circle cx="220" cy="180" r="4" fill="currentColor" stroke="none"/><circle cx="240" cy="180" r="4" fill="currentColor" stroke="none"/>
+  <text x="196" y="150">交越区</text>
+  <text x="80" y="90">输入正弦（虚线）</text><text x="300" y="300">乙类推挽输出（实线）：过零附近两管都截止 → 交越失真</text>
+</svg>

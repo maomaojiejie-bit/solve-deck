@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <path d="M250 90 L250 270 L440 180 Z"/>
+  <line x1="180" y1="130" x2="250" y2="130"/>
+  <line x1="180" y1="230" x2="250" y2="230"/>
+  <text x="262" y="138">+</text>
+  <text x="262" y="238">−</text>
+  <circle cx="214" cy="130" r="12"/>
+  <text x="206" y="136" font-size="11">Vio</text>
+  <line x1="440" y1="180" x2="540" y2="180"/>
+  <path d="M540 174 L552 180 L540 186 Z" fill="currentColor"/>
+  <text x="514" y="166" font-size="13">vo</text>
+  <path d="M176 118 L180 106 L184 118 Z" fill="currentColor"/>
+  <text x="148" y="100" font-size="13">Ib+</text>
+  <path d="M176 242 L180 254 L184 242 Z" fill="currentColor"/>
+  <text x="148" y="274" font-size="13">Ib−</text>
+  <text x="60" y="312">失调按输入等效源 Vio 折算到输出；偏置电流流过外接电阻产生附加失调</text>
+  <text x="60" y="340">压摆率 SR ≥ 2πf·Vom 限制大信号满摆幅频率</text>
+</svg>

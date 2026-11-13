@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <line x1="70" y1="220" x2="570" y2="220"/>
+  <text x="52" y="246" font-size="13">总线</text>
+  <path d="M130 110 L130 170 L210 140 Z"/>
+  <text x="150" y="147" font-size="13">1</text>
+  <line x1="170" y1="170" x2="170" y2="220"/>
+  <line x1="60" y1="140" x2="130" y2="140"/>
+  <text x="62" y="132" font-size="13">EN1=1</text>
+  <path d="M400 110 L400 170 L480 140 Z"/>
+  <text x="420" y="147" font-size="13">2</text>
+  <line x1="440" y1="170" x2="440" y2="220"/>
+  <line x1="330" y1="140" x2="400" y2="140"/>
+  <text x="332" y="132" font-size="13">EN2=0</text>
+  <text x="466" y="196" font-size="13">高阻 Z</text>
+  <text x="60" y="290">任一时刻只允许一个驱动器有效，其余高阻；双推挽直连总线会烧器件</text>
+  <text x="60" y="322">开漏线与：Y = Y1·Y2，上拉电阻决定上升沿速度</text>
+</svg>

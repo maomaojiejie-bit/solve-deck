@@ -45,10 +45,12 @@ const RULES: Rule[] = [
   { templateId: 'M8', score: 16, keywords: /组合变形|弯扭|偏心压缩|拉弯|压弯/, reason: '题面出现组合变形 / 弯扭，属于 M8' },
   { templateId: 'M2', score: 18, keywords: /扭转|扭矩|圆轴/, reason: '题面出现扭转 / 圆轴，属于 M2' },
   { templateId: 'M1', score: 18, keywords: /轴向拉|拉压|拉杆|杆件伸长|轴向变形/, reason: '题面出现轴向拉压 / 伸长，属于 M1' },
-  { templateId: 'M4', score: 20, keywords: /弯曲正应力|抗弯截面系数|正应力.{0,6}(梁|截面)|矩形截面梁/, reason: '题面要求弯曲正应力 / 截面系数，属于 M4' },
-  { templateId: 'M5', score: 20, keywords: /挠度|挠曲线|转角.{0,4}挠度|弯曲变形/, reason: '题面要求挠度 / 挠曲线，属于 M5' },
-  { templateId: 'M3-cantilever', score: 24, keywords: /悬臂|固定端.{0,6}梁|自由端/, reason: '题面是悬臂（固定端 + 自由端），走 M3 的悬臂组态' },
-  { templateId: 'M3', score: 26, keywords: /简支|跨中|两支座.{0,6}梁|剪力图|弯矩图/, reason: '题面是简支梁 / 要求剪力弯矩图，属于 M3' },
+  { templateId: 'M4', score: 20, keywords: /弯曲正应力|抗弯截面系数|正应力.{0,6}(梁|截面)|矩形截面梁/, veto: /悬臂|固定端|一端固支/, reason: '题面要求弯曲正应力 / 截面系数，属于 M4' },
+  { templateId: 'M5', score: 20, keywords: /挠度|挠曲线|转角.{0,4}挠度|弯曲变形/, veto: /悬臂|固定端|一端固支/, reason: '题面要求挠度 / 挠曲线，属于 M5' },
+  // W22-R P0-B：支承条件优先于题型词 ——「悬臂梁…求挠度」是悬臂的内力题，
+  // 不是简支挠度题；简支假设的 M3/M4/M5 在悬臂词在场时一律让位。
+  { templateId: 'M3-cantilever', score: 14, keywords: /悬臂|固定端|一端固支|自由端/, veto: /扭转|扭矩|圆轴/, reason: '题面点明悬臂 / 固定端（支承条件优先于题型词），走 M3 的悬臂组态' },
+  { templateId: 'M3', score: 26, keywords: /简支|跨中|两支座.{0,6}梁|剪力图|弯矩图/, veto: /悬臂|固定端|一端固支/, reason: '题面是简支梁 / 要求剪力弯矩图，属于 M3' },
   { templateId: 'S3', score: 28, keywords: /支座反力|平面任意力系|主矢|主矩|固定铰|可动铰/, reason: '题面要求支座反力 / 力系简化，属于 S3' },
   { templateId: 'S1', score: 30, keywords: /静定|约束|二力杆|受力图/, reason: '题面问静定判据 / 约束，属于 S1' },
   { templateId: 'A5-CG', score: 34, keywords: /共栅/, reason: '题面出现共栅，走 A5 的共栅组态' },

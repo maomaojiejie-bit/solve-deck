@@ -124,6 +124,11 @@ export function ParamPanel({
             );
           }
           const value = typeof raw === 'number' ? raw : (param.defaultValue as number);
+          // W22-R P0-E3：越界不夹取 —— 框里如实显示用户的值并标红给区间，
+          // 拒绝计算交给结果区的红条（「面板参数 === 求解参数」不破）。
+          const outOfRange =
+            (param.min !== undefined && value < param.min) ||
+            (param.max !== undefined && value > param.max);
           return (
             <div key={param.key} className="flex items-center gap-1.5 py-0.5">
               <span className="w-12 shrink-0 text-[11px] text-muted" title={param.label}>
@@ -154,18 +159,25 @@ export function ParamPanel({
                 onChange={(event) => {
                   const next = Number(event.target.value);
                   if (!Number.isFinite(next)) return;
-                  const min = param.min ?? -Number.MAX_VALUE;
-                  const max = param.max ?? Number.MAX_VALUE;
-                  onChange(param.key, Math.max(min, Math.min(max, next)));
+                  // 不夹取：原值上交，越界由红边 + 结果区红条点名（承诺：越界标红、不夹取）。
+                  onChange(param.key, next);
                 }}
                 aria-label={`${param.label} 数值`}
+                aria-invalid={outOfRange || undefined}
                 data-param-input={param.key}
-                className="w-[76px] shrink-0 rounded border border-line bg-panel-2 px-1 py-0.5 text-right text-[11px] tabular-nums text-ink"
+                className={`w-[76px] shrink-0 rounded border bg-panel-2 px-1 py-0.5 text-right text-[11px] tabular-nums text-ink ${
+                  outOfRange ? 'border-danger text-danger' : 'border-line'
+                }`}
               />
               <span className="w-8 shrink-0 text-[9px] text-muted">{param.unit ?? ''}</span>
               <span className="w-14 shrink-0 text-right text-[9px] tabular-nums text-muted">
                 {formatValue(param, value)}
               </span>
+              {outOfRange ? (
+                <span className="w-[72px] shrink-0 text-[9px] leading-3 text-danger" data-testid="param-range-flag">
+                  合法 {param.min ?? '−∞'}~{param.max ?? '+∞'}
+                </span>
+              ) : null}
               <button
                 type="button"
                 onClick={() => onReset(param.key)}

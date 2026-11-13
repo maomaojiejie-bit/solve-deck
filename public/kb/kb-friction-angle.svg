@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <line x1="80" y1="300" x2="320" y2="120"/><text x="330" y="116">N</text>
+  <line x1="80" y1="300" x2="320" y2="300"/><text x="330" y="306">F = f·N</text>
+  <line x1="80" y1="300" x2="330" y2="196"/>
+  <path d="M200 300 A 120 120 0 0 0 191 262" /><text x="208" y="288">φf</text>
+  <text x="90" y="330">全反力 R 落在摩擦角内 → 自锁</text>
+  <rect x="420" y="170" width="120" height="90" rx="4"/><line x1="470" y1="120" x2="470" y2="162"/><path d="M470 170 L460 152 L480 152 Z" fill="currentColor" stroke="none"/>
+  <text x="440" y="286">物块 + 水平面</text>
+</svg>

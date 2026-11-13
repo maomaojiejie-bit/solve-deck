@@ -1,75 +1,88 @@
 /**
- * 首页（重设计 v3）：一屏只讲一件事 —— 贴一道题，看见它的结构。
+ * 首页（v2 重做）：搜索页 —— 唯一入口。
  *
- * 设计约束（来自 tokens.css / unslop 的九道 pass）：
- *  · 一个亮点：右侧那张 M3 真算例图（梁 + 支座 + 荷载 + 弯矩三角形 + 三个真读数）
- *  · chrome 安静：页头一条发丝线，导航只在 hover/当前页变亮，不做底色不做阴影
- *  · 一个主操作：「看结构」；次操作是文字链接，不给第二个按钮
- *  · 文字落在留白里：左列 44ch 上限，标题到正文到输入框到按钮的间距按 8px 阶
- *  · 样例库是第二屏的清单（行式），不是一墙等高卡片
+ * 设计稿 v2 §6：大搜索框 + 热门 + 四科入口 + 去解题；**不再有**示例清单、题型卡、贴题大输入框。
+ * 贴题判定保留（intent.ts 只做分流）：粘进题面 → 提示「这是一道题 → 去解题」。
+ * 解题是顶栏「解题」的二选一面板：按模板解 / 自己拼。
  */
 
-import { useRef, useState } from 'react';
-import type { TemplateEntry } from '../core/templates/registry';
-import { TEMPLATES } from '../core/templates/registry';
-import { READY_SUBJECTS } from '../core/subjects';
-import { prepareImages } from '../ui/imagePipeline';
-import { writeSolveSeed } from '../ui/solveSeed';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { searchKb, suggestAlias, type KbSearchHit } from '../kb/search.ts';
+import { detectIntent } from '../kb/intent.ts';
+import { KB } from '../kb/index.ts';
+import type { Subject } from '../kb/types.ts';
 import { homeSolveTarget, type HomeCandidate } from '../core/ai/homeRoute.ts';
 import { ThemeToggle } from '../ui/ThemeToggle';
 
-interface HomeProps {
-  onOpen: (templateId: string) => void;
-  onToast: (message: string) => void;
-}
-
 const SHELL = 'mx-auto w-full max-w-[1120px] px-6';
-const PRIMARY =
-  'focus-ring inline-flex h-11 items-center rounded-lg bg-cyan px-5 text-[14px] font-medium text-white transition-opacity hover:opacity-90';
-const QUIET = 'focus-ring text-[14px] text-muted transition-colors hover:text-ink';
 const NAV = 'focus-ring text-[13px] text-muted transition-colors hover:text-ink';
 const PRODUCT_SHOT = `${import.meta.env.BASE_URL}shots/r32-product.png`;
 
-export function Home({ onOpen, onToast }: HomeProps) {
-  const [seed, setSeed] = useState('');
-  const [busy, setBusy] = useState(false);
-  /** W21-B B3：多条命中时先给候选卡，不把用户丢去手动选题型。 */
+const SUBJECT_LABEL: Record<Subject, string> = {
+  circuit: '电路 · 模电',
+  digital: '数字逻辑',
+  mechanics: '材料力学',
+  statics: '理论力学',
+};
+const SUBJECT_ORDER: Subject[] = ['circuit', 'digital', 'mechanics', 'statics'];
+const HOT_TERMS = ['卡诺图化简', '共射增益', '莫尔圆', '零杆判别', '自锁'];
+
+export function Home() {
+  const [query, setQuery] = useState('');
   const [candidates, setCandidates] = useState<HomeCandidate[]>([]);
-  const textRef = useRef<HTMLTextAreaElement | null>(null);
+  const [solvePanelOpen, setSolvePanelOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
-  const readyEntries = TEMPLATES.filter((entry) => entry.status === 'ready');
-  const readyCount = readyEntries.length;
+  // ⌘K / Ctrl+K 唤起搜索框
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
-  const goSolve = (text = seed) => {
+  // 点外面收起「解题」二选一面板
+  useEffect(() => {
+    if (!solvePanelOpen) return;
+    const onDown = (event: PointerEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) setSolvePanelOpen(false);
+    };
+    window.addEventListener('pointerdown', onDown);
+    return () => window.removeEventListener('pointerdown', onDown);
+  }, [solvePanelOpen]);
+
+  const hits = useMemo(() => (query.trim() ? searchKb(query).slice(0, 6) : []), [query]);
+  const isProblem = query.trim().length > 0 && detectIntent(query) === 'problem';
+  const suggestions = useMemo(
+    () => (query.trim() && hits.length === 0 ? suggestAlias(query) : []),
+    [query, hits.length],
+  );
+
+  /** 题面分流：命中题型走 homeSolveTarget（含候选卡），否则进解题台手动选。 */
+  const goSolve = () => {
+    const text = query.trim();
+    if (!text) {
+      window.location.hash = '#/solve';
+      return;
+    }
     const target = homeSolveTarget(text);
     if (target.kind === 'multiple') {
       setCandidates(target.candidates);
       return;
     }
     setCandidates([]);
-    window.location.hash = target.hash;
-  };
-
-  const acceptImage = async (files: readonly File[]) => {
-    const picked = files.filter((file) => file.type.startsWith('image/'));
-    if (picked.length === 0) return;
-    setBusy(true);
-    try {
-      const { list, errors } = await prepareImages(picked.slice(0, 1), []);
-      const image = list[0];
-      if (image && writeSolveSeed({ text: seed, image })) {
-        window.location.hash = '#/solve';
-        return;
-      }
-      onToast(errors[0] ?? '这张图没接住（会话存储不可用）—— 到「看结构」页再贴一次');
-    } finally {
-      setBusy(false);
-    }
+    // 认不出唯一题型也把题面带过去：解题台拿到 ?q= 会预填题面，不用用户复制粘贴一遍。
+    window.location.hash = target.kind === 'unique' ? target.hash : `#/solve?q=${encodeURIComponent(text)}`;
   };
 
   return (
     <div className="min-h-screen overflow-x-hidden">
-      <header className="toolbar sticky top-0 z-20">
+      <header className="toolbar sticky top-0 z-30">
         <div className={`${SHELL} flex h-[52px] items-center gap-3`}>
           <span className="traffic shrink-0" aria-hidden="true">
             <i />
@@ -79,15 +92,49 @@ export function Home({ onOpen, onToast }: HomeProps) {
           <a href="#/" className="focus-ring ml-2 flex shrink-0 items-baseline gap-2 whitespace-nowrap">
             <span className="text-[15px] font-bold text-ink">拆解台</span>
             <span className="id-mono hidden text-faint sm:inline">SolveDeck</span>
-            <span className="id-mono hidden text-faint sm:inline">· {readyCount} 型</span>
           </a>
           <nav className="ml-auto flex shrink-0 items-center gap-5 whitespace-nowrap sm:gap-7">
-            <a href="#/lab" className={NAV}>
-              装配台
+            <a href="#/kb" className={NAV}>
+              知识库
             </a>
-            <a href="#/lab/digital" className={NAV}>
-              数字求值
-            </a>
+            {/* 解题：二选一面板（就地展开，不是新页面） */}
+            <span className="relative" ref={panelRef}>
+              <button
+                type="button"
+                data-testid="nav-solve"
+                aria-haspopup="true"
+                aria-expanded={solvePanelOpen}
+                onClick={() => setSolvePanelOpen((open) => !open)}
+                className={NAV}
+              >
+                解题
+              </button>
+              {solvePanelOpen ? (
+                <div
+                  data-testid="solve-panel"
+                  className="absolute right-0 top-8 z-40 w-[248px] rounded-lg border border-line-2 bg-panel p-2 shadow-lg"
+                >
+                  <a
+                    href="#/solve"
+                    data-testid="solve-panel-template"
+                    onClick={() => setSolvePanelOpen(false)}
+                    className="focus-ring block rounded-md px-3 py-2.5 transition-colors hover:bg-panel-2"
+                  >
+                    <span className="block text-[13px] text-ink">① 按模板解</span>
+                    <span className="mt-0.5 block text-[11px] text-faint">选一道熟悉的题型</span>
+                  </a>
+                  <a
+                    href="#/lab"
+                    data-testid="solve-panel-lab"
+                    onClick={() => setSolvePanelOpen(false)}
+                    className="focus-ring block rounded-md px-3 py-2.5 transition-colors hover:bg-panel-2"
+                  >
+                    <span className="block text-[13px] text-ink">② 自己拼</span>
+                    <span className="mt-0.5 block text-[11px] text-faint">在画布上搭结构</span>
+                  </a>
+                </div>
+              ) : null}
+            </span>
             <a href="#/about" className={NAV}>
               关于
             </a>
@@ -97,150 +144,164 @@ export function Home({ onOpen, onToast }: HomeProps) {
       </header>
 
       <main className="page-enter">
-        {/* 首屏：左列说的是什么，右列是它长什么样 */}
-        <section className={`${SHELL} pt-16 pb-8 lg:pt-20`}>
-          <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(440px,520px)] lg:gap-16">
-            <div>
-              <p className="kicker">工科题目 · 结构 → 图 → 数</p>
-              <h1 className="mt-4 text-[28px] font-bold leading-[1.15] tracking-[-0.02em] text-ink sm:text-[36px]">
-                把一道工科题，
-                <br className="hidden sm:block" />
-                拆开给你看
-              </h1>
-              <p className="mt-5 max-w-[44ch] text-[15px] leading-[1.5] text-muted">
-                贴一道题，先看清它的结构：受力、回路、门级。每处结构都配一张图，每个数字都由本机求解器算出，再过六道独立校核。
-              </p>
+        <section className={`${SHELL} pt-24 pb-8`}>
+          <p className="kicker">工科四科 · {KB.length} 条知识点</p>
+          <h1 className="mt-4 text-[32px] font-bold leading-[1.15] tracking-[-0.02em] text-ink sm:text-[40px]">
+            先看懂，再算出来。
+          </h1>
+          <p className="mt-4 text-[15px] text-muted">搜一个考点，或者直接去解题。</p>
 
-              <div className="mt-9 max-w-[520px]">
-                <textarea
-                  ref={textRef}
-                  value={seed}
-                  onChange={(event) => setSeed(event.target.value)}
-                  onPaste={(event) => {
-                    const files = [...event.clipboardData.files];
-                    if (files.length > 0) {
-                      event.preventDefault();
-                      void acceptImage(files);
-                    }
-                  }}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={(event) => {
+          <div className="mt-8 max-w-[640px]">
+            <div className="glass flex h-14 items-center gap-3 rounded-lg px-4" data-testid="kb-search-wrap">
+              <svg viewBox="0 0 20 20" className="h-5 w-5 shrink-0 text-faint" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                <circle cx="9" cy="9" r="5.5" />
+                <path d="M13.5 13.5 L17 17" strokeLinecap="round" />
+              </svg>
+              <input
+                ref={inputRef}
+                type="search"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setCandidates([]);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
                     event.preventDefault();
-                    void acceptImage([...event.dataTransfer.files]);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.shiftKey) {
-                      event.preventDefault();
-                      goSolve();
-                    }
-                  }}
-                  rows={1}
-                  placeholder={busy ? '正在预处理图片…' : '粘贴题面，或把题目截图拖进来'}
-                  aria-label="题面"
-                  className="focus-ring h-14 w-full resize-none rounded-lg border border-line-2 bg-panel px-4 py-4 text-[15px] leading-6 text-ink outline-none placeholder:text-faint focus:border-muted/50"
-                />
-                <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
-                  <button
-                    type="button"
-                    data-testid="home-see-structure"
-                    onClick={() => goSolve()}
-                    className={PRIMARY}
-                  >
-                    看结构
-                  </button>
-                  <a href="#/t/M3" className={QUIET}>
-                    看一个例子 →
-                  </a>
-                </div>
-                {/* W21-B B3：规则解析命中多型时，先在这里选一张，不跳去手动选题型。 */}
-                {candidates.length > 0 ? (
-                  <div data-testid="home-candidates" className="mt-4 rounded-lg border border-cyan/40 bg-panel-2 p-3">
-                    <p className="text-[12px] text-muted">这段题面像不止一型，点一个直接进去（题面会带过去）：</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {candidates.map((candidate) => (
-                        <button
-                          key={candidate.id}
-                          type="button"
-                          data-testid="home-candidate"
-                          data-candidate={candidate.id}
-                          title={candidate.reason}
-                          onClick={() => {
-                            window.location.hash = candidate.hash;
-                            setCandidates([]);
-                          }}
-                          className="focus-ring rounded-lg border border-line bg-panel px-2.5 py-1.5 text-left text-[12px] text-ink hover:border-cyan/60"
-                        >
-                          <span className="id-mono text-cyan">{candidate.id}</span>
-                          <span className="ml-2 text-muted">{candidate.title}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                <p className="mt-5 flex items-center gap-2 text-[13px] leading-6 text-faint">
-                  <span className="tick" aria-hidden />
-                  不需要配置，也不需要联网。求解器在本机跑。
-                </p>
-              </div>
+                    if (isProblem) goSolve();
+                    else if (hits.length > 0) window.location.hash = `#/kb/${hits[0].entry.id}`;
+                  }
+                }}
+                placeholder="搜知识点：卡诺图 / 共射增益 / 莫尔圆…"
+                aria-label="搜索知识点"
+                data-testid="kb-search"
+                className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-faint"
+              />
+              <kbd className="id-mono hidden shrink-0 rounded border border-line px-1.5 py-0.5 text-[11px] text-faint sm:block">
+                ⌘K
+              </kbd>
             </div>
 
-            <SampleCard />
-          </div>
-        </section>
+            {/* 题面分流提示：≥2 个数值+单位或祈使动词 → 这是一道题 */}
+            {isProblem ? (
+              <button
+                type="button"
+                data-testid="home-problem-hint"
+                onClick={goSolve}
+                className="focus-ring mt-3 flex w-full items-center gap-2 rounded-lg border border-cyan/40 bg-cyan/5 px-4 py-2.5 text-left text-[13px] text-ink transition-colors hover:border-cyan/70"
+              >
+                这是一道题 → <span className="text-cyan">去解题</span>
+              </button>
+            ) : null}
 
-        {/* 指标先行（design.md KPI 卡）：只放名称、数字、状态芯片三件事 */}
-        <section className={`${SHELL} pb-2`} data-testid="home-kpi-row">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              ['可解题型', String(readyCount), '就绪', 'ok', '覆盖数电 · 模电 · 材料力学 · 理论力学'],
-              ['独立校核', '6', '全过', 'ok', '任一项不过就是红牌，不给数'],
-              ['快照基线', '35', '钉住', 'cyan', '模板输出逐字节比对'],
-              ['联网依赖', '0', '本机', 'muted', '求解器跑在你的浏览器里'],
-            ].map(([name, value, chip, tone, note]) => (
-              <div key={name} className="card px-5 py-5">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-[13px] text-muted">{name}</p>
-                  <span
-                    className={`rounded-lg px-2 py-0.5 text-[11px] font-medium ${
-                      tone === 'ok'
-                        ? 'bg-ok/10 text-ok'
-                        : tone === 'cyan'
-                          ? 'bg-cyan/10 text-cyan'
-                          : 'bg-ink/5 text-muted'
-                    }`}
-                  >
-                    {chip}
-                  </span>
+            {/* 多题型命中候选卡（题面分流复用 W21-B B3） */}
+            {candidates.length > 0 ? (
+              <div data-testid="home-candidates" className="mt-3 rounded-lg border border-cyan/40 bg-panel-2 p-3">
+                <p className="text-[12px] text-muted">这段题面像不止一型，点一个直接进去（题面会带过去）：</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {candidates.map((candidate) => (
+                    <button
+                      key={candidate.id}
+                      type="button"
+                      data-testid="home-candidate"
+                      data-candidate={candidate.id}
+                      title={candidate.reason}
+                      onClick={() => {
+                        window.location.hash = candidate.hash;
+                        setCandidates([]);
+                      }}
+                      className="focus-ring rounded-lg border border-line bg-panel px-2.5 py-1.5 text-left text-[12px] text-ink hover:border-cyan/60"
+                    >
+                      <span className="id-mono text-cyan">{candidate.id}</span>
+                      <span className="ml-2 text-muted">{candidate.title}</span>
+                    </button>
+                  ))}
                 </div>
-                <p className="mt-2 text-[36px] font-bold leading-[1.15] tracking-[-0.02em] text-ink">
-                  {value}
-                </p>
-                <p className="mt-1.5 text-[11px] text-faint">{note}</p>
               </div>
-            ))}
+            ) : null}
+
+            {/* 搜索结果：标题 + 一句话 + 科目 · 章节 + 右端标签 */}
+            {hits.length > 0 ? (
+              <ul className="mt-3 overflow-hidden rounded-lg border border-line" data-testid="kb-results">
+                {hits.map((hit) => (
+                  <ResultRow key={hit.entry.id} hit={hit} />
+                ))}
+              </ul>
+            ) : null}
+
+            {/* 无结果三件套：换个说法（编辑距离 ≤2 的别名）/ 四科入口 / 去解题台 */}
+            {suggestions.length > 0 ? (
+              <div className="mt-3 rounded-lg border border-line bg-panel px-4 py-3" data-testid="kb-suggest">
+                <p className="text-[12px] text-faint">没有直接命中，换个说法：</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {suggestions.map((alias) => (
+                    <button
+                      key={alias}
+                      type="button"
+                      onClick={() => setQuery(alias)}
+                      className="focus-ring rounded border border-line px-2 py-1 text-[12px] text-muted hover:border-cyan/50 hover:text-ink"
+                    >
+                      {alias}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {/* 热门 */}
+            <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px]">
+              <span className="text-faint">热门：</span>
+              {HOT_TERMS.map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => setQuery(term)}
+                  className="focus-ring text-muted transition-colors hover:text-cyan"
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* 三条能力：编号 + 一段话，不做卡片不做图标 */}
-        <section className={`${SHELL} border-t border-line`}>
-          <div className="grid gap-x-12 gap-y-10 pt-8 pb-16 sm:grid-cols-3">
-            {[
-              ['01', '能解什么', '28 型，覆盖数电、模电、材料力学、理论力学。超出范围的当场拒答，并说清该用哪种方法。'],
-              ['02', '怎么算的', '求解器是本仓库的代码：MNA、框架刚度法、门级求值。图上的数字不经过任何模型。'],
-              ['03', '凭什么可信', '六道独立校核 + 35 份快照基线。任一项不过就是红牌，不给数。'],
-            ].map(([index, title, body]) => (
-              <div key={index}>
-                <p className="kicker">{index}</p>
-                <h2 className="mt-3 font-sans text-[17px] font-semibold text-ink">{title}</h2>
-                <p className="mt-2.5 max-w-[34ch] text-[13px] leading-[1.5] text-muted">{body}</p>
+        {/* 四科入口 + 去解题 */}
+        <section className={`${SHELL} pb-16 pt-6`}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="card px-5 py-5">
+              <h2 className="text-[15px] font-semibold text-ink">知识库 · {KB.length} 条</h2>
+              <ul className="mt-3 space-y-2">
+                {SUBJECT_ORDER.map((subject) => {
+                  const count = KB.filter((entry) => entry.subject === subject).length;
+                  return (
+                    <li key={subject}>
+                      <a href="#/kb" className="focus-ring flex items-baseline gap-2 text-[13px] text-muted transition-colors hover:text-ink">
+                        <span className="text-ink">{SUBJECT_LABEL[subject]}</span>
+                        <span className="id-mono text-faint">{count}</span>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+            <div className="card px-5 py-5">
+              <h2 className="text-[15px] font-semibold text-ink">去解题</h2>
+              <div className="mt-3 space-y-2">
+                <a href="#/solve" className="focus-ring flex items-baseline gap-2 text-[13px] text-muted transition-colors hover:text-ink">
+                  按模板解 <span className="ml-auto text-cyan">→</span>
+                </a>
+                <a href="#/lab" className="focus-ring flex items-baseline gap-2 text-[13px] text-muted transition-colors hover:text-ink">
+                  自己拼（装配台） <span className="ml-auto text-cyan">→</span>
+                </a>
               </div>
-            ))}
+              <p className="mt-3 text-[11px] leading-5 text-faint">不需要配置，也不需要联网。求解器在本机跑。</p>
+            </div>
           </div>
         </section>
 
-        {/* 真产品图：一张，带框，不加阴影不加光 */}
+        {/* 产品图：一张，带框，不加阴影不加光 */}
         <section className={`${SHELL} border-t border-line`}>
-          <figure className="py-16" data-testid="home-product">
+          <figure className="py-14" data-testid="home-product">
             <img
               src={PRODUCT_SHOT}
               alt="装配台：左边装配、中间画布、右边已知量"
@@ -253,40 +314,9 @@ export function Home({ onOpen, onToast }: HomeProps) {
           </figure>
         </section>
 
-        {/* 样例库：行式清单（第二屏），不再是一墙等高卡片 */}
-        <section className={`${SHELL} border-t border-line`}>
-          <div className="py-16">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-              <h2 className="text-[17px] font-medium text-ink">样例库 · {readyCount} 型</h2>
-              <p className="text-[13px] text-faint">每型都有独立快照与六项校核；点开看五步推导。</p>
-            </div>
-
-            {READY_SUBJECTS.map((subject) => {
-              const entries = readyEntries.filter((entry) => entry.subject === subject.key);
-              if (entries.length === 0) return null;
-              return (
-                <div key={subject.key} className="mt-10">
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <h3 className="id-mono text-faint">{subject.code}</h3>
-                    <span className="text-[13px] font-medium text-ink">{subject.label}</span>
-                    <span className="text-[13px] text-faint">{subject.hint}</span>
-                  </div>
-                  <ul className="mt-3 border-t border-line">
-                    {entries.map((entry) => (
-                      <TemplateRow key={entry.id} entry={entry} onOpen={onOpen} />
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
         <footer className="border-t border-line">
           <div className={`${SHELL} flex flex-wrap items-center gap-x-6 gap-y-2 py-8`}>
-            <p className="id-mono text-faint">
-              拆解台 SolveDeck · {readyCount} 型 · 6 项校核 · 本地求解器
-            </p>
+            <p className="id-mono text-faint">拆解台 SolveDeck · 知识库 {KB.length} 条 · 6 项校核 · 本地求解器</p>
             <div className="ml-auto flex items-center gap-6">
               <a href="#/about" className={NAV}>
                 关于本工具
@@ -302,113 +332,36 @@ export function Home({ onOpen, onToast }: HomeProps) {
   );
 }
 
-/**
- * 右侧那张「真算例」：M3 简支梁跨中集中力，L=4 / P=20。
- * 图是内联 SVG（和 app 里同一套几何），数字是快照里的真值，不是占位。
- */
-function SampleCard() {
-  return (
-    <div className="rounded-lg border border-line bg-panel">
-      <div className="flex items-baseline justify-between gap-3 border-b border-line px-4 py-3">
-        <p className="id-mono text-muted">M3 · 简支梁跨中集中力 · 默认算例</p>
-        <p className="flex items-center gap-1.5 text-[12px] text-ok">
-          <span className="tick" aria-hidden />
-          已校验 6/6
-        </p>
-      </div>
-
-      <svg viewBox="0 0 520 232" className="block w-full" role="img" aria-label="简支梁受力图与弯矩图">
-        {/* 梁 */}
-        <line x1="60" y1="64" x2="460" y2="64" stroke="var(--color-muted)" strokeWidth="2" />
-        {/* 左固定铰 */}
-        <path d="M60 64 L46 90 L74 90 Z" fill="none" stroke="var(--color-muted)" strokeWidth="1.6" />
-        <line x1="38" y1="90" x2="82" y2="90" stroke="var(--color-muted)" strokeWidth="1.6" />
-        {/* 右可动铰 */}
-        <path d="M460 64 L446 90 L474 90 Z" fill="none" stroke="var(--color-muted)" strokeWidth="1.6" />
-        <circle cx="453" cy="96" r="3" fill="none" stroke="var(--color-muted)" strokeWidth="1.4" />
-        <circle cx="467" cy="96" r="3" fill="none" stroke="var(--color-muted)" strokeWidth="1.4" />
-        <line x1="434" y1="102" x2="486" y2="102" stroke="var(--color-muted)" strokeWidth="1.6" />
-        {/* 跨中集中力 */}
-        <line x1="260" y1="12" x2="260" y2="52" stroke="var(--color-ink)" strokeWidth="1.8" />
-        <path d="M260 64 L252 48 L268 48 Z" fill="var(--color-ink)" />
-        <text x="270" y="24" fill="var(--color-faint)" fontSize="12" fontFamily="var(--font-mono)">
-          P = 20 kN
-        </text>
-        <text x="236" y="88" fill="var(--color-faint)" fontSize="12" fontFamily="var(--font-mono)">
-          L = 4 m
-        </text>
-
-        {/* 弯矩图：跨中 20 kN·m 的三角形 */}
-        <line x1="60" y1="212" x2="460" y2="212" stroke="var(--color-line-2)" strokeWidth="1" />
-        <path
-          d="M60 212 L260 136 L460 212 Z"
-          fill="var(--chart-area-fill)"
-          stroke="var(--color-cyan)"
-          strokeWidth="1.6"
-        />
-        <text x="270" y="132" fill="var(--color-cyan)" fontSize="11" fontFamily="var(--font-mono)">
-          Mmax 20.00
-        </text>
-      </svg>
-
-      <dl className="grid grid-cols-1 gap-px border-t border-line bg-line sm:grid-cols-3">
-        {[
-          ['R_A', '10.00', 'kN'],
-          ['R_B', '10.00', 'kN'],
-          ['Mmax', '20.00', 'kN·m'],
-        ].map(([label, value, unit]) => (
-          <div key={label} className="bg-panel px-4 py-3">
-            <dt className="id-mono text-faint">{label}</dt>
-            <dd className="mt-1 flex items-baseline gap-1">
-              <span className="text-[15px] text-ink">{value}</span>
-              <span className="text-[11px] text-faint">{unit}</span>
-            </dd>
-          </div>
-        ))}
-      </dl>
-
-      <p className="border-t border-line px-4 py-3 text-[12px] leading-6 text-faint">
-        六项校核全过：ΣF=0、ΣM=0、dM/dx=Q、端部条件、连续性、量级
-      </p>
-    </div>
-  );
+interface HomeProps {
+  onOpen: (templateId: string) => void;
+  onToast: (message: string) => void;
 }
+void ({} as HomeProps);
 
-/** 样例行：id · 标题 · 路径，一行看完；hover 只换底色。 */
-function TemplateRow({ entry, onOpen }: { entry: TemplateEntry; onOpen: (templateId: string) => void }) {
+/** 结果行：标题 + 一句话 + 科目 · 章节 + 右端标签（有图 / 可解题）。 */
+function ResultRow({ hit }: { hit: KbSearchHit }) {
+  const { entry } = hit;
   return (
-    <li className="border-b border-line">
-      <div className="group flex items-start gap-4 py-3 transition-colors hover:bg-panel">
-        <button
-          type="button"
-          onClick={() => onOpen(entry.id)}
-          aria-label={`${entry.id} ${entry.title}`}
-          className="focus-ring flex min-w-0 flex-1 cursor-pointer items-baseline gap-4 px-1 text-left"
-        >
-          <span className="id-mono w-14 shrink-0 text-faint transition-colors group-hover:text-cyan">
-            {entry.id}
+    <li className="border-b border-line last:border-b-0">
+      <a href={`#/kb/${entry.id}`} className="group flex items-start gap-4 px-4 py-2.5 transition-colors hover:bg-panel">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14px] leading-6 text-ink transition-colors group-hover:text-cyan">{entry.title}</span>
+          <span className="mt-0.5 block truncate text-[12px] text-faint">{entry.oneLine}</span>
+          <span className="mt-0.5 block text-[11px] text-faint">
+            {SUBJECT_LABEL[entry.subject]} · {entry.chapter}
           </span>
-          <span className="min-w-0 flex-1 text-[14px] leading-6 text-ink">{entry.title}</span>
-          <span className="hidden min-w-0 shrink-0 basis-[40%] truncate text-[12px] text-faint lg:block">
-            {entry.paths.map((path) => path.label).join(' / ')}
-          </span>
-        </button>
-        {(entry.variants ?? []).length > 0 ? (
-          <div className="flex shrink-0 flex-wrap justify-end gap-1.5 pt-0.5" aria-label={`${entry.id} 组态变体`}>
-            {(entry.variants ?? []).map((variant) => (
-              <button
-                key={variant.id}
-                type="button"
-                onClick={() => onOpen(variant.id)}
-                aria-label={`${variant.id} ${variant.title}`}
-                className="focus-ring cursor-pointer rounded border border-line px-1.5 text-[12px] text-muted transition-colors hover:border-line-2 hover:text-ink"
-              >
-                {variant.short}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
+        </span>
+        <span className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 pt-1">
+          {(entry.figures?.length ?? 0) > 0 ? (
+            <span className="rounded border border-line px-1.5 text-[11px] text-muted">有图</span>
+          ) : null}
+          {entry.solvable ? (
+            <span className="rounded border border-cyan/40 bg-cyan/10 px-1.5 text-[11px] text-cyan">可解题</span>
+          ) : (
+            <span className="rounded border border-line px-1.5 text-[11px] text-faint">只讲</span>
+          )}
+        </span>
+      </a>
     </li>
   );
 }

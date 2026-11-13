@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <line x1="60" y1="320" x2="600" y2="320"/><line x1="60" y1="40" x2="60" y2="320"/>
+  <text x="30" y="60">|A|dB</text><text x="560" y="346">f（对数）</text>
+  <path d="M80 80 H240 Q260 80 275 105 L340 200 H580"/>
+  <line x1="340" y1="200" x2="340" y2="320" stroke-dasharray="4 4" opacity="0.6"/>
+  <line x1="60" y1="200" x2="340" y2="200" stroke-dasharray="4 4" opacity="0.6"/>
+  <text x="312" y="342">fH</text><text x="26" y="204">0dB</text>
+  <text x="100" y="64">中频平直段</text><text x="400" y="180">−20dB/dec</text>
+  <text x="80" y="130">波特图：增益带宽积 GBW = Au0·fH 近似恒定</text>
+</svg>

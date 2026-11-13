@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <line x1="170" y1="270" x2="540" y2="270"/>
+  <line x1="170" y1="270" x2="300" y2="120"/>
+  <line x1="170" y1="270" x2="170" y2="70"/>
+  <text x="548" y="276">x</text><text x="306" y="116">y</text><text x="164" y="62">z</text>
+  <text x="150" y="292">O</text>
+  <line x1="170" y1="270" x2="450" y2="150"/>
+  <path d="M450 144 L462 150 L450 156 Z" fill="currentColor"/>
+  <text x="466" y="154">F</text>
+  <line x1="450" y1="150" x2="450" y2="270" stroke-dasharray="5 4"/>
+  <line x1="450" y1="270" x2="492" y2="270" stroke-dasharray="5 4"/>
+  <path d="M206 248 A 40 30 0 1 1 214 246"/>
+  <path d="M214 246 L204 244 L210 236 Z" fill="currentColor"/>
+  <text x="232" y="302" font-size="13">Mz</text>
+  <text x="60" y="334">Mz = x·Fy − y·Fx；力与轴平行或相交时，对该轴之矩为零</text>
+</svg>

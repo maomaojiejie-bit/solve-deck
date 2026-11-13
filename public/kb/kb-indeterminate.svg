@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <line x1="110" y1="60" x2="110" y2="150"/>
+  <line x1="110" y1="70" x2="94" y2="58"/>
+  <line x1="110" y1="90" x2="94" y2="78"/>
+  <line x1="110" y1="110" x2="94" y2="98"/>
+  <line x1="110" y1="130" x2="94" y2="118"/>
+  <line x1="110" y1="90" x2="500" y2="90"/>
+  <line x1="150" y1="50" x2="490" y2="50"/>
+  <line x1="150" y1="54" x2="150" y2="86"/><path d="M144 86 L150 96 L156 86 Z" fill="currentColor"/>
+  <line x1="225" y1="54" x2="225" y2="86"/><path d="M219 86 L225 96 L231 86 Z" fill="currentColor"/>
+  <line x1="300" y1="54" x2="300" y2="86"/><path d="M294 86 L300 96 L306 86 Z" fill="currentColor"/>
+  <line x1="375" y1="54" x2="375" y2="86"/><path d="M369 86 L375 96 L381 86 Z" fill="currentColor"/>
+  <line x1="450" y1="54" x2="450" y2="86"/><path d="M444 86 L450 96 L456 86 Z" fill="currentColor"/>
+  <path d="M490 90 L510 90 L500 112 Z"/>
+  <circle cx="492" cy="118" r="4"/><circle cx="508" cy="118" r="4"/>
+  <text x="60" y="40" font-size="13">原结构：一次超静定</text>
+  <line x1="110" y1="220" x2="110" y2="310"/>
+  <line x1="110" y1="230" x2="94" y2="218"/>
+  <line x1="110" y1="250" x2="94" y2="238"/>
+  <line x1="110" y1="270" x2="94" y2="258"/>
+  <line x1="110" y1="290" x2="94" y2="278"/>
+  <line x1="110" y1="240" x2="500" y2="240"/>
+  <line x1="500" y1="240" x2="500" y2="285"/>
+  <path d="M494 285 L500 297 L506 285 Z" fill="currentColor"/>
+  <text x="512" y="282" font-size="13">多余未知力 RB</text>
+  <text x="60" y="200" font-size="13">基本静定系：解除支座，代以 RB</text>
+  <text x="60" y="332">变形协调 δB = 0（RB 使 B 点位移回零），与平衡方程联立解出全部未知力</text>
+</svg>

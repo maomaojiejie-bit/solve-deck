@@ -346,6 +346,8 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
   const [solveMs, setSolveMs] = useState<number | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
   const [liveNotes, setLiveNotes] = useState<string[]>([]);
+  /** W22-R P0-A：URL 里越界被拒的参数，红条点名（不许静默回默认不说话）。 */
+  const [urlOutOfRange, setUrlOutOfRange] = useState<{ key: string; raw: string }[]>([]);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -384,6 +386,7 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
     setMenuOpen(false);
     setLiveError(null);
     setLiveNotes([]);
+    setUrlOutOfRange([]);
     setSolveMs(null);
     solverRef.current = null;
     valuesRef.current = {};
@@ -400,12 +403,14 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
           const parsed = parseParamQuery(entry.params ?? [], search, paramBaseline);
           valuesRef.current = { ...parsed.values, ...override.parsed_given };
           setValues(valuesRef.current);
+          setUrlOutOfRange(parsed.outOfRange);
           setSolution(override);
           return;
         }
         const parsed = parseParamQuery(entry.params ?? [], search, paramBaseline);
         valuesRef.current = parsed.values;
         setValues(parsed.values);
+        setUrlOutOfRange(parsed.outOfRange);
         if (parsed.corrected) {
           const simpQuery = simpRaw ? `simp=${encodeURIComponent(simpRaw)}` : '';
           const parts = [parsed.normalized, simpQuery].filter(Boolean).join('&');
@@ -442,7 +447,11 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
             return;
           } catch (error) {
             if (!active) return;
+            // W22-R P0-A：live 求解失败 = 这组参数算不出来。宁可不出结果，
+            // 也绝不把默认参数的黄金快照顶上来盖「已校验」的章。
             setLiveError(error instanceof Error ? error.message : String(error));
+            setSolution(null);
+            return;
           }
         }
         setSolution(loaded ?? null);
@@ -463,6 +472,23 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
       setSolveMs(null);
       return;
     }
+    // W22-R P0-E3：越界不夹取、不静默回退 —— 点名拒绝，红条给区间。
+    const spec = entry.params ?? [];
+    const bad = spec.find((param) => {
+      if (param.kind === 'bits') return false;
+      const value = Number(next[param.key]);
+      if (!Number.isFinite(value)) return false;
+      return (param.min !== undefined && value < param.min) || (param.max !== undefined && value > param.max);
+    });
+    if (bad) {
+      const min = bad.min ?? '−∞';
+      const max = bad.max ?? '+∞';
+      setLiveError(`「${bad.label ?? bad.key}」= ${next[bad.key]} 超出合法区间 [${min}, ${max}]${bad.unit ? ` ${bad.unit}` : ''}，拒绝计算。改回区间内再看结果。`);
+      setSolution(null);
+      setSolveMs(null);
+      return;
+    }
+    setLiveError(null);
     timerRef.current = window.setTimeout(async () => {
       const started = performance.now();
       try {
@@ -482,7 +508,10 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
         setLiveError(null);
         setSolveMs(elapsed);
       } catch (error) {
+        // W22-R P0-A：实时重算失败同样清结果 —— 旧图残留在屏上等于用旧参数回答新题。
         setLiveError(error instanceof Error ? error.message : String(error));
+        setSolution(null);
+        setSolveMs(null);
       }
     }, 80);
   };
@@ -569,6 +598,51 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
   }
 
   if (!solution) {
+    if (liveError) {
+      // W22-R P0-A：参数被拒（区间外 / 求解器不收），绝不拿默认参数的答案顶上来。
+      return (
+        <div className="flex min-h-screen flex-col">
+          <header className="border-b border-line bg-panel/60">
+            <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-4 py-3">
+              <button type="button" onClick={onBack} className="text-xs text-muted hover:text-cyan">
+                ← 题库
+              </button>
+              <span className="text-sm text-cyan">{displayId}</span>
+              <span className="truncate text-sm text-ink">{displayTitle}</span>
+            </div>
+          </header>
+          <main className="mx-auto w-full max-w-3xl px-4 py-16">
+            <div
+              data-testid="param-error-banner"
+              className="rounded-xl border border-danger/50 bg-danger/10 p-6"
+            >
+              <h2 className="text-lg text-danger">这组参数算不出来 —— 已拒绝出结果</h2>
+              <p className="mt-2 text-sm leading-6 text-ink">{liveError}</p>
+              <p className="mt-2 text-[12px] leading-5 text-muted">
+                面板上的参数就是参与计算的参数；两边对不上时，这里宁可空白，也不会拿默认题的答案盖「已校验」的章。
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  data-testid="param-error-reset"
+                  onClick={resetAll}
+                  className="rounded-md bg-cyan px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                >
+                  恢复默认参数重算
+                </button>
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="rounded-md border border-line px-4 py-2 text-xs text-ink hover:border-cyan/50 hover:text-cyan"
+                >
+                  返回题库
+                </button>
+              </div>
+            </div>
+          </main>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-screen flex-col">
         <header className="border-b border-line bg-panel/60">
@@ -789,6 +863,16 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
             点这里换组态
           </a>
           。
+        </div>
+      ) : null}
+
+      {urlOutOfRange.length > 0 ? (
+        <div
+          data-testid="param-range-banner"
+          className="no-print border-b border-amber/50 bg-amber/10 px-4 py-2 text-center text-[11px] leading-5 text-amber"
+        >
+          链接里的 {urlOutOfRange.map((item) => `${item.key}=${item.raw}`).join('、')} 超出合法区间，已改用默认值计算；
+          左侧参数面板显示的就是参与计算的值。
         </div>
       ) : null}
 

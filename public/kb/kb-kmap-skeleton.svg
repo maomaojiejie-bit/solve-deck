@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="14">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <rect x="170" y="90" width="300" height="200"/>
+  <line x1="245" y1="90" x2="245" y2="290"/><line x1="320" y1="90" x2="320" y2="290"/><line x1="395" y1="90" x2="395" y2="290"/>
+  <line x1="170" y1="140" x2="470" y2="140"/><line x1="170" y1="190" x2="470" y2="190"/><line x1="170" y1="240" x2="470" y2="240"/>
+  <text x="120" y="86">AB\CD</text>
+  <text x="200" y="122">m0</text><text x="275" y="122">m1</text><text x="350" y="122">m3</text><text x="425" y="122">m2</text>
+  <text x="200" y="172">m4</text><text x="275" y="172">m5</text><text x="350" y="172">m7</text><text x="425" y="172">m6</text>
+  <text x="200" y="222">m12</text><text x="272" y="222">m13</text><text x="347" y="222">m15</text><text x="422" y="222">m14</text>
+  <text x="200" y="272">m8</text><text x="275" y="272">m9</text><text x="350" y="272">m11</text><text x="425" y="272">m10</text>
+  <rect x="172" y="167" width="146" height="46" rx="6" stroke-dasharray="6 5" opacity="0.8"/>
+  <text x="180" y="335">行列按格雷码排：相邻格只差一个变量；虚线圈 = 化简结果</text>
+</svg>

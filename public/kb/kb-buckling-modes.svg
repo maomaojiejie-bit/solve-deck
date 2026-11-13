@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" fill="none" stroke="currentColor" stroke-width="1.6" font-family="'Noto Sans SC',sans-serif" font-size="15">
+  <style>:root{color:#52606d}@media (prefers-color-scheme:dark){:root{color:#9fb0c0}}</style>
+  <g stroke-dasharray="4 4" opacity="0.5"><line x1="90" y1="60" x2="90" y2="300"/><line x1="320" y1="60" x2="320" y2="300"/><line x1="550" y1="60" x2="550" y2="300"/></g>
+  <path d="M90 300 Q50 180 90 60"/><path d="M320 300 Q262 180 320 60 Q378 180 320 300"/><path d="M550 300 Q512 220 550 140 Q588 220 550 300"/>
+  <line x1="76" y1="60" x2="104" y2="60"/><line x1="306" y1="60" x2="334" y2="60"/><line x1="536" y1="60" x2="564" y2="60"/>
+  <text x="60" y="330">一阶 n=1</text><text x="290" y="330">二阶 n=2</text><text x="520" y="330">三阶 n=3</text>
+  <text x="60" y="42">P₁ 最大</text><text x="290" y="42">P₂ = 4P₁</text><text x="520" y="42">P₃ = 9P₁</text>
+</svg>
