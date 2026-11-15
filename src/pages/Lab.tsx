@@ -1439,6 +1439,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
      强制 remount，不给「reconciliation 收敛不干净留旧行」任何机会。 */
   const resetKey = `${pickId}:${graph?.meta.resetAt ?? 0}`;
   const isBeam = pickId ? PICKS[pickId]?.family === 'beam' : false;
+  /** P0-1：力学构件的真实种类。family 只管「力学 / 电路」两套机器，元素种类是另一根轴：
+   *  轴向拉压（M1）与压杆稳定（M7）是 bar，扭转（M2）是 shaft，梁 / 框架才是 beam。 */
+  const mechElement = (pickId && PICKS[pickId]?.element) ?? 'beam';
+  const axialElement = mechElement === 'bar';
+  const shaftElement = mechElement === 'shaft';
   /** ㊱⑦：只有真在可装配清单里的题型才有「看原题」；空 id / 未知 id 不给死链。 */
   const peekTemplateId = pickId && PICKS[pickId] ? pickId : null;
   /** W17-C：力学「物件」组含结点（dot 是自由度载体，可删、连带杆先确认）；
@@ -1485,7 +1490,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
               {row.name}
             </button>
             <span className="shrink-0 whitespace-nowrap text-muted">{row.kindLabel}</span>
-            {(['A', 'I', 'E'] as const).map((key) => (
+            {(mechElement === 'beam' ? (['A', 'I', 'E'] as const) : (['A', 'E'] as const)).map((key) => (
               <label key={`${edge.id}-${key}`} className="flex shrink-0 items-center gap-0.5">
                 {/* 三个框原来只有 title，屏幕上就是一排光秃秃的数字（P0：看不出哪个是 A/I/E）。 */}
                 <span className="text-[9px] leading-none text-muted" aria-hidden="true">
@@ -2380,6 +2385,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   ) : null}
 
                   <h3 className="mt-3 text-[11px] text-muted">加入器件</h3>
+                  {axialElement ? (
+                    <p data-testid="element-note" className="mt-1 text-[10px] leading-4 text-muted">
+                      轴向拉压：载荷沿杆轴（→ 拉 / ← 压），轴力 N(x) 全跨恒定。图上的铰支座 / 滚支座只用来把轴向反力画出来，不是梁的支承 —— 所以这里不给你「+ 支座」和横向载荷。
+                    </p>
+                  ) : null}
                   {isBeam ? (
                     // R3-1 A2：目标 = 当前选中的结点；没选就 disabled 并说明原因（不替你猜是哪个点）。
                     <p data-testid="add-target-hint" className="mt-1 text-[10px] leading-4 text-muted">
@@ -2403,7 +2413,36 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                             + {item.label}
                           </button>
                         ))
-                      : BEAM_SUPPORTS.map((item) => (
+                      : axialElement || shaftElement ? (
+                        /* P0-1：轴向杆 / 圆轴不摆梁的「支座 + 横向载荷」。
+                           支座在这里只是把轴向反力画出来的载体（M1 要求恰好 铰+滚、M2 要求恰好一个固定端），
+                           多摆一个反而会让题被拒；横向集中力 / 均布 / 力偶对杆轴题也没有意义。 */
+                        <div className="flex flex-wrap items-center gap-1" data-testid="element-adds" data-element={mechElement}>
+                          {axialElement
+                            ? ([
+                                { label: '轴向拉力 P →', dir: 90 },
+                                { label: '轴向压力 P ←', dir: 270 },
+                              ] as const).map((item) => (
+                                <button
+                                  key={item.dir}
+                                  type="button"
+                                  data-testid={`add-load-axial-${item.dir}`}
+                                  disabled={!addTarget.nodeId}
+                                  title={addTarget.nodeId ? `在选中的结点上加${item.label}（沿杆轴，进轴力 N(x)）` : addTarget.reason}
+                                  onClick={() => addTarget.nodeId && mutate({ op: 'addLoad', atNodeId: addTarget.nodeId, type: 'point', value: 10, dir: item.dir })}
+                                  className="focus-ring rounded border border-line px-2 py-0.5 text-[10px] text-ink hover:border-cyan/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line"
+                                >
+                                  + {item.label}
+                                </button>
+                              ))
+                            : null}
+                          {shaftElement ? (
+                            <span data-testid="element-adds-note" className="text-[10px] leading-4 text-muted">
+                              扭矩 T 取自骨架里的扭矩标注（右栏参数表可改）；这里只加轴段，加横向载荷对扭转题没有意义。
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : BEAM_SUPPORTS.map((item) => (
                           <button
                             key={item.type}
                             type="button"
@@ -2416,7 +2455,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                             + {SUPPORT_KIND_LABEL[`${item.type}Support`]}
                           </button>
                         ))}
-                    {isBeam
+                    {isBeam && !axialElement && !shaftElement
                       ? BEAM_LOADS.map((item) => {
                           // 选中杆 = 跨内载荷（默认 t=0.5，可在选中条里改）；选中结点 = 结点载荷。
                           const span = graph ? mainSpanOf(graph) : null;
@@ -2670,7 +2709,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                       className="mt-2 flex items-center gap-2 rounded-lg border border-cyan/50 bg-panel px-2 py-1 text-[11px] text-cyan"
                     >
                       已选：构件 {memberLabel(selectedMember)}
-                      {(['A', 'I', 'E'] as const).map((key) => {
+                      {(mechElement === 'beam' ? (['A', 'I', 'E'] as const) : (['A', 'E'] as const)).map((key) => {
                         const edge = graph.edges.find((one) => one.id === selectedMember);
                         return (
                           <input
