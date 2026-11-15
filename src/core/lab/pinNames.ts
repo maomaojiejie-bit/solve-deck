@@ -197,7 +197,11 @@ export function anchorOptionText(graph: CanvasGraph, templateId: string, key: st
     owner &&
     (owner.id.startsWith('n-add-') || (owner.kind === 'dot' && /^[A-Z]$/.test((owner.label ?? '').trim())));
   const prefix = selfBuilt && owner ? deviceName(owner) : templateId;
-  return `${prefix} · ${anchorDisplay(graph, anchor).short}`;
+  const short = anchorDisplay(graph, anchor).short;
+  /** P1：自建结点的短名本身就以结点名开头（`A 结点`），再加前缀会印成
+   *  「+ 构件 → A · A 结点」这种占位符既视感。前缀与短名同源时只留短名。 */
+  if (short.split(' ')[0] === prefix) return short;
+  return `${prefix} · ${short}`;
 }
 
 /** 选中态一行：`已选：Q · 基极 b` / `Q · 基极 b → Rc · 端 A`。 */

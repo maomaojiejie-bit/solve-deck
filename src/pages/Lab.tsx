@@ -2962,7 +2962,12 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                             onChange={(event) => setConfirmed((current) => ({ ...current, [param.key]: event.target.checked }))}
                             className="accent-[var(--color-cyan,#6366f1)]"
                           />
-                          <span className="id-mono text-muted">{param.key}</span>
+                          {/* P1：这里以前印的是内部参数键（M1 的 `allow`、A3 的 `beta`），
+                              同一行的 aria-label 却已经写「许用应力 [σ]」「β」—— 屏幕上是英文、
+                              读屏是中文。改用 registry 的 label，键名挪到 title 里备查。 */}
+                          <span className="text-muted" title={param.key}>
+                            {param.label ?? param.key}
+                          </span>
                           <input
                             type="number"
                             aria-label={`${param.label ?? param.key}（确认框输入值）`}

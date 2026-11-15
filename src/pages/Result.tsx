@@ -260,6 +260,38 @@ const RESULT_ZONE_LABELS: Record<string, string> = {
   ok: '通过',
 };
 
+/** P1：校核项以前把内部标识符直接摆给用户（`scopeOk` / `pathsConsistent` / `goldenOk`），
+ *  同一张卡里的状态又写英文 `pass` / `skipped`。名字与状态都翻成人话，
+ *  认不出的名字原样保留（新增闸门不至于变成空白）。 */
+const CHECK_NAME_LABELS: Record<string, string> = {
+  scopeOk: '题型范围',
+  inputOk: '输入合法性',
+  pathsConsistent: '两条路径互核（闭式 vs 节点法）',
+  boundaryOk: '边界条件',
+  goldenOk: '黄金样例',
+  residualOk: '方程残差',
+  structure: '结构改动',
+  semantic: '关键语义',
+};
+
+const CHECK_STATE_LABELS: Record<string, string> = {
+  pass: '通过',
+  fail: '未通过',
+  skipped: '跳过',
+  warn: '注意',
+};
+
+/** 校核详情里常有 16 位裸浮点（`maxResidual=5.24708481792074e-16`）。
+ *  只动显示：绝对值很小的走两位科学计数，其余留四位小数。 */
+function tidyCheckText(text: string): string {
+  return text.replace(/-?\d+\.\d{5,}(?:e[+-]?\d+)?/gi, (raw) => {
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return raw;
+    if (value !== 0 && Math.abs(value) < 1e-3) return value.toExponential(2);
+    return String(Number(value.toFixed(4)));
+  });
+}
+
 /**
  * 第二轮：以前只有 `subject === 'analog'` 才走单位表，力学族的结果表一直裸着数字
  * （`RA 10`、`Mmax 20`、`σcr 148`）。现在按题型查表；「R 开头就是电阻」这条启发式
@@ -972,8 +1004,17 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
   /* 读数头：设计稿的 h1 就是「答案本身」。所以把登记的答案键提到页首当主读数，
      其余给定值排成参数胶囊 —— 先看到结论，再往下看推导。 */
   const primaryAnswer = pickPrimaryAnswer(templateId, solution.result);
+  /* P1：大字以前直接拼 `solution.result` 的键名和裸数字 —— A7 印出 `AfAnswer = 99.9`，
+     M3 印出 `Mmax = 20`（没有 kN·m）。这里跟结果表用同一套键名表与量纲表。 */
+  const primaryUnit = primaryAnswer
+    ? unitsFor(templateId, entry.subject === 'analog' ? 'analog' : 'other')?.[primaryAnswer.key]
+    : undefined;
   const primaryReading = primaryAnswer
-    ? { key: primaryAnswer.key, text: formatScalar(primaryAnswer.value) }
+    ? {
+        key: primaryAnswer.key,
+        label: RESULT_KEY_LABELS[primaryAnswer.key] ?? primaryAnswer.key,
+        text: formatScalar(primaryAnswer.value, primaryUnit),
+      }
     : null;
   /* P3：胶囊以前直接印 parsed_given 的原始键与 SI 值（`beta 100` / `Rc 2000`），
      同一页的读数区却写「Rc 2kΩ」—— 同一张纸两套口径。这里按 registry 的
@@ -1450,7 +1491,7 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
           <span className="text-[17px] font-normal text-muted">{displayTitle.split(/[:：]/)[0]}：</span>
           {primaryReading ? (
             <span className="text-amber">
-              {primaryReading.key} = {primaryReading.text}
+              {primaryReading.label} = {primaryReading.text}
             </span>
           ) : null}
         </h2>
@@ -1678,14 +1719,16 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
                   {solution.confidence.checks.map((item) => (
                     <div key={item.name} className="rounded border border-line p-2">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-ink">{item.name}</span>
+                        <span className="text-ink" title={item.name}>
+                          {CHECK_NAME_LABELS[item.name] ?? item.name}
+                        </span>
                         <span className={`rounded border px-1.5 py-0.5 text-[10px] ${STATE_CLASS[item.state]}`}>
-                          {item.state}
+                          {CHECK_STATE_LABELS[item.state] ?? item.state}
                         </span>
                       </div>
-                      <p className="mt-1 text-muted">{item.detail}</p>
+                      <p className="mt-1 text-muted">{tidyCheckText(item.detail)}</p>
                       {item.skipReason ? (
-                        <p className="mt-0.5 text-muted">skipReason: {item.skipReason}</p>
+                        <p className="mt-0.5 text-muted">跳过原因：{tidyCheckText(item.skipReason)}</p>
                       ) : null}
                     </div>
                   ))}
@@ -1705,14 +1748,16 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
                 {solution.confidence.checks.map((item) => (
                   <div key={`print-${item.name}`} className="rounded border border-line p-2">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-ink">{item.name}</span>
+                      <span className="text-ink" title={item.name}>
+                        {CHECK_NAME_LABELS[item.name] ?? item.name}
+                      </span>
                       <span className={`rounded border px-1.5 py-0.5 text-[10px] ${STATE_CLASS[item.state]}`}>
-                        {item.state}
+                        {CHECK_STATE_LABELS[item.state] ?? item.state}
                       </span>
                     </div>
-                    <p className="mt-1 text-muted">{item.detail}</p>
+                    <p className="mt-1 text-muted">{tidyCheckText(item.detail)}</p>
                     {item.skipReason ? (
-                      <p className="mt-0.5 text-muted">skipReason: {item.skipReason}</p>
+                      <p className="mt-0.5 text-muted">跳过原因：{tidyCheckText(item.skipReason)}</p>
                     ) : null}
                   </div>
                 ))}
