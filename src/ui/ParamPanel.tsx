@@ -10,6 +10,10 @@ interface ParamPanelProps {
   onChange: (key: string, value: ParamValue) => void;
   onReset: (key: string) => void;
   onResetAll: () => void;
+  /** 实时档：拖动即重算（改值算作「你确认过这一项」，确认闸门不撤）。
+   *  只有装配台右栏那份提供开关；/t/ 题面页那份不传，行为不变。 */
+  live?: boolean;
+  onLiveChange?: (live: boolean) => void;
   /** R-36 A9：同页可能有两份参数实验场（装配台右栏 + 嵌入讲解稿各一份），
    *  标题与读屏名必须能区分开，不然学生改错面板、读屏两条同名播报。 */
   title?: string;
@@ -53,6 +57,8 @@ export function ParamPanel({
   onChange,
   onReset,
   onResetAll,
+  live,
+  onLiveChange,
   title = '参数实验场',
   ariaPrefix = '',
 }: ParamPanelProps) {
@@ -90,6 +96,20 @@ export function ParamPanel({
       <header className="flex flex-col items-stretch gap-1 border-b border-line px-3 py-2 text-[11px]">
         <span className="text-ink">{title}</span>
         <span className="flex items-center justify-end gap-2">
+          <label
+            className="flex items-center gap-1 text-[10px] text-muted"
+            title="实时：拖动/改值就跟着重算，并把这一项当作你已确认（闸门不撤）。关掉则改值回到未确认，需要重新确认后才重算。"
+            hidden={!onLiveChange}
+          >
+            <input
+              type="checkbox"
+              data-testid="param-live"
+              checked={live === true}
+              onChange={(event) => onLiveChange?.(event.target.checked)}
+              className="h-3 w-3 accent-cyan"
+            />
+            实时
+          </label>
           {typeof solveMs === 'number' ? (
             <span className="text-muted">{solveMs.toFixed(1)} ms</span>
           ) : null}
@@ -105,7 +125,8 @@ export function ParamPanel({
       </header>
       <div className="space-y-1 p-2">
         <p className="px-1 pb-1 text-[10px] leading-4 text-muted">
-          拖动松手后生效（120 ms 节流，避免连续触发归约预览）；改值会让该项回到未确认 —— 重新确认后自动重算（当前步骤不重置）。
+          拖动即时重算（120 ms 节流，松手前就在跟着变）；「实时」开着时改值算你确认过这一项，确认闸门不撤 ——
+          关掉「实时」则改值回到未确认，重新确认后才重算（当前步骤不重置）。
         </p>
         {params.map((param) => {
           const raw = values[param.key];

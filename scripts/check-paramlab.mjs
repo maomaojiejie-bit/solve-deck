@@ -143,6 +143,15 @@ const setParam = (key, value) =>
     return input.value;
   })()`);
 
+/** 参数实验场的「实时」开关：开 = 拖动即重算（改值算已确认），关 = 改值回到未确认。 */
+const setLive = (on) =>
+  evaluate(`(() => {
+    const box = document.querySelector('[data-testid=param-live]');
+    if (!box) return 'no-live';
+    if (box.checked !== ${on ? 'true' : 'false'}) box.click();
+    return box.checked;
+  })()`);
+
 /** 逐个点确认（首次求解 / 改动后重算都要过这道闸）。 */
 const confirmAll = () =>
   evaluate(`(() => {
@@ -211,6 +220,10 @@ async function runCase(id, paramKey, from, to, label) {
   const before = await readOutcome();
   ok(`${label}：求解前归约预览含 ${paramKey}=${from}`, before.preview.includes(`${paramKey}=${from}`), `实际「${before.preview.slice(0, 60)}」`);
 
+  // 严格档（实时关）：改值必须回到未确认、结果撤下 —— 这是「确认闸门」的承诺，不能被实时档顺手废掉。
+  await setLive(false);
+  await sleep(200);
+
   const applied = await setParam(paramKey, to);
   await sleep(900);
   const mid = await triState();
@@ -250,6 +263,25 @@ async function runCase(id, paramKey, from, to, label) {
     ok('M3：改 L → 结论卡上的 |M|max 跟着变', mOf(before.mmax) !== mOf(after.mmax), `|M|max 改前 ${mOf(before.mmax)}、改后 ${mOf(after.mmax)}（没跟着 L 变）`);
     console.log(`M3：结论卡 |M|max ${mOf(before.mmax)} → ${mOf(after.mmax)}（L ${from}→${to}，按图现算）`);
   }
+
+  /* 实时档（默认开）：改值算「你确认过这一项」→ 结果不撤、按钮不禁、数值当场跟着变。 */
+  await setLive(true);
+  await sleep(200);
+  const liveApplied = await setParam(paramKey, from);
+  await sleep(900);
+  const live = await triState();
+  ok(`${label}：实时档改回 ${from} 时值同步`, live.rows[paramKey] === Number(from), `确认栏 ${live.rows[paramKey]}（setParam=${liveApplied}）`);
+  ok(
+    `${label}：实时档改值不撤结果、不禁按钮`,
+    live.hasResult === true && live.disabled === false,
+    `hasResult=${live.hasResult} disabled=${live.disabled} note=${live.note}`,
+  );
+  const liveOutcome = await readOutcome();
+  ok(
+    `${label}：实时档结果跟着滑杆变回去`,
+    live.preview.includes(`${paramKey}=${from}`) && liveOutcome.numbers !== after.numbers,
+    `预览「${live.preview.slice(0, 46)}」· 读数 ${liveOutcome.numbers.slice(0, 40)}`,
+  );
 
   console.log(
     `${label}：${paramKey} ${from}→${to} · 预览「${before.preview.slice(0, 34)}」→「${after.preview.slice(0, 34)}」· 读数变化 ${after.numbers.length} 位`,

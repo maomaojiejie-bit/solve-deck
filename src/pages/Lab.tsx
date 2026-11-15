@@ -393,6 +393,8 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   const [shareFallback, setShareFallback] = useState<string | null>(null);
   /** ㉟⑦：刚补完模型参数 → 立刻用新数重算一次（否则屏幕上还挂着旧增益）。 */
   const [pendingParamSolve, setPendingParamSolve] = useState<string | null>(null);
+  /** 参数实验场实时档：拖动即重算（改值算「你确认过这一项」，确认闸门不撤）。 */
+  const [liveExperiment, setLiveExperiment] = useState(true);
   const [clearArmed, setClearArmed] = useState(false);
   const [showZeroMembers, setShowZeroMembers] = useState(false);
   const [candidatesOpen, setCandidatesOpen] = useState(false);
@@ -1022,11 +1024,13 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     if (pickId) step({ type: 'peekCandidate', candidateId: candidate.id });
   };
 
-  const onParamChange = (key: string, value: ParamValue) => {
+  const onParamChange = (key: string, value: ParamValue, opts?: { confirmed?: boolean }) => {
     if (!pickId) return;
     const next = { ...displayValues, [key]: value };
     setValues(next);
-    setConfirmed((current) => ({ ...current, [key]: false }));
+    // 实时档（参数实验场）：改值算「你已经确认过这一项」，闸门不撤 —— 否则每拖一下
+    // 都要重新确认一次，看起来就像「不实时」。
+    setConfirmed((current) => ({ ...current, [key]: opts?.confirmed === true }));
     setDerivedKeys((current) => current.filter((one) => one !== key));
     mutate({ op: 'applyParams', values: next });
   };
@@ -1296,13 +1300,14 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
 
   /** 参数实验场：改一个值 → 归约预览与结果同时变（H-11）。 */
   const experimentChange = (key: string, value: ParamValue) => {
-    onParamChange(key, value);
+    // 实时档：这次改值当作「已确认」，所以 solve 的确认闸门不撤，结果区跟着滑杆变。
+    onParamChange(key, value, liveExperiment ? { confirmed: true } : undefined);
     if (stage === 'solved') recomputeArmed.current = true;
   };
   const experimentReset = (key: string) => {
     const param = params.find((one) => one.key === key);
     if (!param) return;
-    onParamChange(key, param.defaultValue as ParamValue);
+    onParamChange(key, param.defaultValue as ParamValue, liveExperiment ? { confirmed: true } : undefined);
     if (stage === 'solved') recomputeArmed.current = true;
   };
   const experimentResetAll = () => {
@@ -3169,6 +3174,8 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                       onChange={experimentChange}
                       onReset={experimentReset}
                       onResetAll={experimentResetAll}
+                      live={liveExperiment}
+                      onLiveChange={setLiveExperiment}
                     />
                   ) : null}
 
