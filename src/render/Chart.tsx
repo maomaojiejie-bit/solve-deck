@@ -455,7 +455,7 @@ export function Chart({ spec }: { spec: ChartSpec }) {
           fill={TEXT}
           fillOpacity={0.55}
         >
-          本图该内力恒为 0：{panel.title}（不渲染零信息轴）
+          本图该内力恒为 0（{panel.title.replace(/（[^）]*）/g, '')}）· 不画空轴
         </text>
       ))}
 

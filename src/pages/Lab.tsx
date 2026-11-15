@@ -1656,6 +1656,15 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
               {verdict ? (
                 <span
                   data-testid="tier-badge"
+                  /* P1：徽标只印一个字母（N / F / U），屏幕上没人知道 N 是什么。
+                     补一句 title：字母的意思是「这张图被验到什么程度」。 */
+                  title={
+                    verdict.tier === 'F'
+                      ? 'F 档 · 等效图也验过了：数值与等效电路两条路径互核一致，可以拿等效图讲'
+                      : verdict.tier === 'N'
+                        ? 'N 档 · 只验了数值：反力 / 内力 / 增益等算得过校验，但等效图还没法核（关键语义没标全或本题不给等效图）'
+                        : 'U 档 · 还没验成：这张图当前按求解器判据不适用，请看下面的拒答理由与改法'
+                  }
                   className={`rounded border px-2 py-0.5 text-[10px] ${
                     verdict.tier === 'F' ? 'border-ok/40 bg-ok/10 text-ok' : verdict.tier === 'N' ? 'border-amber/40 bg-amber/10 text-amber' : 'border-danger/40 bg-danger/10 text-danger'
                   }`}
