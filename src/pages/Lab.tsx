@@ -2334,12 +2334,14 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     </>
                   ) : null}
 
-                  {/* R3-4 U1：放置器 —— 先选一个，再在图上指一下；不用「先选东西再点按钮」。 */}
+                  {/* R3-4 U1：放置器 —— 先选一个，再在图上指一下；不用「先选东西再点按钮」。
+                      P1：轴向拉压 / 扭转的放置器只留「结点」—— 上面那条 element-note 刚说完
+                      「这里不给你支座和横向载荷」，下面还挂着「集中力 / 均布 / 支座」就自相矛盾。 */}
                   {isBeam ? (
                     <>
                       <h3 className="mt-3 text-[11px] text-muted">放置器（选一个，再在图上指）</h3>
                       <div data-testid="place-tools" className="mt-1 flex flex-wrap gap-1">
-                        {PLACE_TOOLS.filter((item) => item.tool !== 'off').map((item) => (
+                        {PLACE_TOOLS.filter((item) => item.tool !== 'off' && (!axialElement && !shaftElement || item.tool === 'node')).map((item) => (
                           <button
                             key={item.tool}
                             type="button"
