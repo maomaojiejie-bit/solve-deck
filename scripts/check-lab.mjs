@@ -182,6 +182,25 @@ ok('④', SUPPORTED_IDS.length === 16, `支持题型应为 16 个装配入口，
   console.log('⑤  复位确认条 testid ×3 + role=alertdialog + 链接载入徽标：源码断言全过');
 }
 
+/* ── R-36 P2 防回归：均布整跨语义 / 支座判据文案 / 复位按钮可访问名 ── */
+{
+  const labSource = readFileSync(join(root, 'src', 'pages', 'Lab.tsx'), 'utf8');
+  const opsSource = readFileSync(join(root, 'src', 'core', 'lab', 'ops.ts'), 'utf8');
+  const picksSource = readFileSync(join(root, 'src', 'core', 'lab', 'picks.ts'), 'utf8');
+  // ① 均布是整跨：标签不许再挂 t=，选中条不许给 t 输入框，setLoadT 要拒答
+  ok('⑥', opsSource.includes('· 整跨'), '⑥ 均布载荷标签丢了「整跨」标注');
+  ok('⑥', labSource.includes("selectedLoadNode.kind === 'udl'") && labSource.includes('整跨均布 · 铺满该段'), '⑥ 选中条没给均布换成整跨说明');
+  ok('⑥', /if \(load\.kind === 'udl'\)[\s\S]{0,200}refused: '均布载荷是整跨的/.test(opsSource), '⑥ setLoadT 没拦住给整跨均布设 t');
+  // ② 支座判据：类型组合错不能再说「数量不对」
+  ok('⑥', !picksSource.includes('支座数量不对') && picksSource.includes('支座配置不对（类型或个数）'), '⑥ 支座判据文案又退回「数量不对」');
+  // ③ 复位按钮 armed 态不与确认条里的「确认恢复」撞可访问名
+  // 只查 JSX 表达式（注释里会引用旧文案做说明，不能用裸 includes 反向断言）
+  ok('⑥', labSource.includes("resetArmed ? '恢复骨架 · 待确认'") && !labSource.includes("{resetArmed ? '确认恢复？'"), '⑥ 复位按钮 armed 态又和确认按钮撞名');
+  // ④ 顺手补的两个 a11y 标签
+  ok('⑥', labSource.includes('aria-label="支座类型"') && labSource.includes('aria-label="跨内相对位置 t"'), '⑥ 支座类型 / 跨内 t 输入缺 aria-label');
+  console.log('⑥  R-36 P2 哨兵：整跨语义 ×3 / 支座判据文案 / 复位按钮不撞名 / a11y ×2');
+}
+
 /* ── 汇总 ─────────────────────────────────────────────────────── */
 
 if (problems.length > 0) {

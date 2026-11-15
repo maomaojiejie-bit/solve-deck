@@ -359,13 +359,16 @@ console.log(JSON.stringify({ collided: ids.length === 2 && ids[0] === ids[1], re
         ok('⑧', typeof railHit === 'string' && railHit.includes(':'), `⑧ F7 接地轨端点点击没命中引脚：${railHit}`);
       }
 
-      // F11：参数滑杆 aria-valuenow = 工程真值（与旁边数字输入框一致），valuetext 带单位非空。
+      // F11：参数滑杆 aria-valuenow = 工程真值（与同一参数的数字输入框一致），valuetext 带单位非空。
+      // R-36b：ParamPanel 数值行拆成两行（滑杆行 / 数值行），改用 data-param-input 按
+      // 参数键配对，不再假设滑杆和数字框在同一行 div 里。
       const sliders = await evaluate(`[...document.querySelectorAll('input[data-role="slider"]')].map((slider) => {
-        const row = slider.closest('div');
-        const num = row?.querySelector('input[type="number"]');
-        const unit = row?.querySelector('span.w-8')?.textContent?.trim() ?? '';
+        const panel = slider.closest('[data-testid="param-panel"]');
+        const param = slider.getAttribute('data-param');
+        const num = panel?.querySelector('input[data-param-input="' + param + '"]');
+        const unit = slider.closest('div')?.parentElement?.querySelector('span.w-8')?.textContent?.trim() ?? '';
         return {
-          param: slider.getAttribute('data-param'),
+          param,
           now: Number(slider.getAttribute('aria-valuenow')),
           text: slider.getAttribute('aria-valuetext') ?? '',
           num: num ? Number(num.value) : null,

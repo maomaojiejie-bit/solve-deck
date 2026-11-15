@@ -8,13 +8,15 @@
  *  ④ A3 删 gnd → 仍 U 拒答（noGround），不给任何数值
  *  ⑤ 档位语义：骨架不符但拓扑合法 → N（无讲解稿，已用通用求解）；拓扑非法 → U
  *  ⑥ 变异：把「骨架不符也走模板（一律拒答）」写回去 → 第 ② 条红
+ *  ⑦ A1 删 gnd → U 拒答 noGround（A1 归约表不含 gnd，以前走模板照常出数）
+ *  ⑧ 变异：GROUND_GATE_CONFIG.enforce=false → ⑦ 回退成 template（判据空转即红）
  */
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { freshSkeleton } from '../src/core/lab/skeleton.ts';
 import { labUiStep, createUiState } from '../src/core/lab/ui.ts';
-import { resolveLabSolve, RESOLVE_CONFIG, netSolveOptionsFor } from '../src/core/lab/resolve.ts';
+import { resolveLabSolve, RESOLVE_CONFIG, GROUND_GATE_CONFIG, noGroundProblems, netSolveOptionsFor } from '../src/core/lab/resolve.ts';
 import { netSolve } from '../src/core/lab/netSolve.ts';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -131,6 +133,32 @@ const direct = (graph) => netSolve(graph, netSolveOptionsFor(graph).options);
   ok('⑥', mutated.kind === 'refused', `⑥ 变异（写回一律拒答）后删 Rs 应不再出 generic-solution，实际 ${mutated.kind}（门禁空转）`);
   ok('⑥', restored.kind === 'generic', '⑥ 还原后没回绿');
   console.log('⑥  变异：genericOnMismatch=false（骨架不符一律拒答）→ ② 红；还原回绿');
+}
+
+/* ── ⑦⑧ 接地判据先于模板早退：A1 的归约表不读 gnd ─────────────────── */
+{
+  const a1 = skeleton('A1');
+  const stNoGnd = step('A1', createUiState('A1', a1), { op: 'deleteDevice', nodeId: 'n-gnd' });
+  const problemsA1 = noGroundProblems(stNoGnd.graph);
+  ok('⑦', problemsA1.length === 1 && problemsA1[0].includes('接地'), `⑦ A1 删 gnd 应报「没有接地符号」，实际 ${JSON.stringify(problemsA1)}`);
+  const r7 = resolveLabSolve('A1', stNoGnd.graph, stNoGnd.rules);
+  ok('⑦', r7.kind === 'refused' && r7.code === 'noGround', `⑦ A1 删 gnd 应拒 noGround，实际 ${r7.kind}${r7.kind === 'refused' ? r7.code : ''}`);
+  ok('⑦', !('circuit' in r7) && !('result' in r7), '⑦ 拒答还带了数值（页面会给数字）');
+  ok('⑦', stNoGnd.preview.tier === 'U', `⑦ 删 gnd 的档位应 U，实际 ${stNoGnd.preview.tier}`);
+  // 有地时不许误伤：A1 原骨架仍走模板
+  ok('⑦', resolveLabSolve('A1', a1, []).kind === 'template', '⑦ A1 原骨架被接地判据误伤（应为 template）');
+  // 力学族不受这条判据管
+  const m3 = skeleton('M3');
+  ok('⑦', noGroundProblems(m3).length === 0, '⑦ 力学骨架不该被判「没有接地」');
+
+  // ⑧ 变异：关掉判据 → 回到「模板照常出数」的旧行为，证明这条门禁真有牙齿
+  GROUND_GATE_CONFIG.enforce = false;
+  const mutated = resolveLabSolve('A1', stNoGnd.graph, stNoGnd.rules);
+  GROUND_GATE_CONFIG.enforce = true;
+  const restored = resolveLabSolve('A1', stNoGnd.graph, stNoGnd.rules);
+  ok('⑧', mutated.kind === 'template', `⑧ 变异（enforce=false）后删 gnd 应回退成 template，实际 ${mutated.kind}（判据空转）`);
+  ok('⑧', restored.kind === 'refused' && restored.code === 'noGround', '⑧ 还原后没回绿');
+  console.log(`⑦  A1 删 gnd → U noGround「${r7.kind === 'refused' ? r7.reason.slice(0, 30) : ''}…」（以前走模板照常出数）；⑧ 变异回退成 template 再还原回绿`);
 }
 
 /* ── 汇总 ───────────────────────────────────────────────────────── */

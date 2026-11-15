@@ -53,7 +53,7 @@ export function DigitalLab({ onBack }: DigitalLabProps) {
   const excitationMode = solution !== null && solution.inputs.length > 6;
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen">
       <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center gap-4 px-6">
           <button
@@ -126,7 +126,7 @@ export function DigitalLab({ onBack }: DigitalLabProps) {
               <ul className="mt-4 flex flex-col gap-1.5 text-[12px] leading-5 text-faint">
                 <li>· 组合环会拒答并指出回路（code=cycle）</li>
                 <li>· 输出没被驱动会拒答（code=undrivenOutput）</li>
-                <li>· 超过 6 个输入改成按激励串逐条求值，不假装枚举过</li>
+                <li>· 超过 6 个输入改为按激励串求值</li>
               </ul>
             </div>
           )}

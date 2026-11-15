@@ -198,7 +198,7 @@ await send('Emulation.setDeviceMetricsOverride', {
 try {
   /* ── 01 骨架：#/lab/t/A3 打开就是一张对的图 ── */
   await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/#/lab/t/A3` });
-  await waitFor(`document.body.innerText.includes('画布（骨架 + 装配结果）')`, '画布');
+  await waitFor(`document.body.innerText.includes('画布')`, '画布');
   await waitFor(`document.querySelectorAll('svg').length > 0`, '骨架 SVG');
   await sleep(500);
   await capture('lab-01-skeleton');
@@ -241,7 +241,7 @@ try {
   await evaluate(`window.location.hash = '/lab'`);
   await sleep(400);
   await evaluate(`window.location.hash = '/lab/t/A3'`);
-  await waitFor(`document.body.innerText.includes('画布（骨架 + 装配结果）')`, '骨架重载');
+  await waitFor(`document.body.innerText.includes('画布')`, '骨架重载');
   await sleep(600);
   await evaluate(`(() => { document.querySelectorAll('input[type=checkbox]').forEach((c) => { if (!c.checked) c.click(); }); return true; })()`);
   await waitFor(
@@ -364,7 +364,7 @@ try {
   await evaluate(`window.location.hash = '/lab'`);
   await sleep(300);
   await evaluate(`window.location.hash = '/lab/t/A2'`);
-  await waitFor(`document.body.innerText.includes('画布（骨架 + 装配结果）')`, 'A2 画布');
+  await waitFor(`document.body.innerText.includes('画布')`, 'A2 画布');
   await waitFor(`document.querySelectorAll('[data-testid=device-row]').length >= 6`, 'A2 器件列表');
   await evaluate(`(() => { document.querySelectorAll('input[type=checkbox]').forEach((c) => { if (!c.checked) c.click(); }); return true; })()`);
   await waitFor(`document.body.innerText.includes('Vcc=12') && document.body.innerText.includes('Rc=3300')`, 'A2 归约预览');
@@ -376,7 +376,7 @@ try {
   await evaluate(`window.location.hash = '/lab'`);
   await sleep(300);
   await evaluate(`window.location.hash = '/lab/t/M1'`);
-  await waitFor(`document.body.innerText.includes('画布（骨架 + 装配结果）')`, 'M1 画布');
+  await waitFor(`document.body.innerText.includes('画布')`, 'M1 画布');
   await waitFor(`document.querySelectorAll('[data-testid=member-row]').length === 1`, 'M1 一段主跨');
   await waitFor(`document.querySelectorAll('[data-testid=param-row]').length === 5`, 'M1 五个已知量');
   await evaluate(`(() => { document.querySelectorAll('input[type=checkbox]').forEach((c) => { if (!c.checked) c.click(); }); return true; })()`);
@@ -489,7 +489,7 @@ try {
   /* ── 20/21 P0：删 Rc / 删 Rl 连带删专属导线（画布对照） ── */
   const paramsText = `(() => (document.body.innerText.match(/params：[^\\n]*/) ?? [''])[0])()`;
   await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/#/lab/t/A3` });
-  await waitFor(`document.body.innerText.includes('画布（骨架 + 装配结果）')`, '20 前置重载');
+  await waitFor(`document.body.innerText.includes('画布')`, '20 前置重载');
   await waitFor(`document.querySelectorAll('svg').length > 0`, '骨架 SVG');
   await sleep(400);
   await evaluate(`(() => {
@@ -617,7 +617,7 @@ try {
   await send('Page.navigate', { url: 'about:blank' });
   await sleep(300);
   await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/#/lab/t/A3` });
-  await waitFor(`document.body.innerText.includes('画布（骨架 + 装配结果）')`, '重载画布');
+  await waitFor(`document.body.innerText.includes('画布')`, '重载画布');
   await waitFor(`[...document.querySelectorAll('[data-testid=composite-add]')].some((b) => b.innerText.includes('缺声明模块'))`, '自定义模块按钮');
   await evaluate(`(() => {
     const btn = [...document.querySelectorAll('[data-testid=composite-add]')].find((b) => b.innerText.includes('缺声明模块'));
@@ -659,7 +659,7 @@ try {
     await send('Input.dispatchKeyEvent', { type: 'keyUp', modifiers, key, code, windowsVirtualKeyCode: vk });
   };
   await gotoLab('/lab/t/A3');
-  await waitFor(`document.body.innerText.includes('画布（骨架 + 装配结果）')`, '画布（26 前置）');
+  await waitFor(`document.body.innerText.includes('画布')`, '画布（26 前置）');
   await evaluate(`(() => {
     const row = document.querySelector('li[data-node="n-rc"]');
     const button = [...row.querySelectorAll('button')].find((b) => b.textContent.trim() === '删');

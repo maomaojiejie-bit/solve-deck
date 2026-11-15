@@ -3,6 +3,13 @@
  *
  * 内部数值一律 SI（A / S / Ω / V），输入框按 mA / mS / kΩ / MΩ 显示；
  * 换算与手改保护全在 `quickFill.ts`，这里只管交互与展示。
+ *
+ * 体验口径（W23 难题巡检后）：
+ *  - 默认展开、收起态不渲染任何控件（读屏 / 自动化都不会看到隐藏输入框）；
+ *  - 「填一侧另一侧自动算出」要兑现：推得项的输入框直接显示 quickDerive 的结果，
+ *    而不是等点了写入才变；打字中间态用本地草稿，不把空串 / NaN 写进图；
+ *  - 按钮按模式分流：fromQ 推的是 π 模型内部量，参数表没有对应项，不给「写入参数表」，
+ *    改成直达「从小信号倒推」的入口；只有 fromSmall 才真的写表。
  */
 
 import { useEffect, useState } from 'react';
@@ -57,11 +64,16 @@ export function QuickFill({ templateId, values, writableKeys, testId = 'quickfil
   const readOnly = templateId === 'A7';
   const [state, setState] = useState<QuickState>(() => build(values));
   const [mode, setMode] = useState<QuickMode>(() => defaultMode(templateId));
+  /** 默认展开：难题里这块是主输入区，藏起来会多一次点击；收起时不渲染控件。 */
+  const [open, setOpen] = useState(true);
+  /** 打字草稿：清空 / 输「-」「0.」期间别让受控输入框回弹，也别把 0 写进图。 */
+  const [draft, setDraft] = useState<Record<string, string>>({});
 
   /** 换题型要重建（A3 的 Ic 与 A5 的 gm 不是同一组输入）。 */
   useEffect(() => {
     setState(build(values));
     setMode(defaultMode(templateId));
+    setDraft({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId]);
 
@@ -71,7 +83,7 @@ export function QuickFill({ templateId, values, writableKeys, testId = 'quickfil
     const patch: Record<string, number> = {};
     const keys: string[] = [];
     for (const key of computed.derivedKeys) {
-      if (writableKeys.includes(key)) {
+      if (writableKeys.includes(key) && Number.isFinite(computed.values[key as keyof QuickValues])) {
         patch[key] = computed.values[key as keyof QuickValues];
         keys.push(key);
       }
@@ -94,7 +106,8 @@ export function QuickFill({ templateId, values, writableKeys, testId = 'quickfil
   };
 
   const change = (key: keyof QuickValues, raw: string) => {
-    const { factor } = displayUnit(key, state.values[key]);
+    if (raw.trim() === '') return;
+    const { factor } = displayUnit(key, result.values[key]);
     const value = Number(raw);
     if (!Number.isFinite(value)) return;
     setState((current) => ({
@@ -104,8 +117,16 @@ export function QuickFill({ templateId, values, writableKeys, testId = 'quickfil
   };
 
   return (
-    <details data-testid={testId} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5">
+    <details
+      data-testid={testId}
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+      className="rounded-lg border border-line bg-panel-2 px-2 py-1.5"
+    >
       <summary className="cursor-pointer text-[11px] text-cyan">小信号快速输入（填一侧，另一侧自动算出）</summary>
+      {/* 收起态只留一句结果摘要，不渲染任何可聚焦控件。 */}
+      {!open ? <p className="mt-1 text-[10px] leading-4 text-muted">{result.summary} · 展开可改</p> : null}
+      {open ? (
       <div className="mt-2 space-y-2">
         <div className="flex flex-wrap gap-1">
           {([
@@ -129,22 +150,36 @@ export function QuickFill({ templateId, values, writableKeys, testId = 'quickfil
           ))}
         </div>
 
-        <div className="grid gap-1.5 sm:grid-cols-2">
+        {/* R-36：两列网格把输入框压到 ~30px，β=100 / gm=38.461538 全部截断看不全 ——
+            改单列，右栏 294px 里每个框能拿到 ~180px。 */}
+        <div className="grid gap-1.5">
           {QUICK_KEYS.map((key) => {
-            const { unit, factor } = displayUnit(key, state.values[key]);
+            const shown = result.values[key];
+            const { unit, factor } = displayUnit(key, shown);
             const provenance = result.provenance[key];
+            const text = draft[key] ?? (Number.isFinite(shown) ? String(Number((shown * factor).toPrecision(8))) : '0');
             return (
               <label key={key} data-testid="quick-row" data-quick-key={key} className="flex items-center gap-1 text-[10px]">
                 <span className="w-7 shrink-0 text-ink">{QUICK_UNITS[key].label}</span>
                 <input
                   type="number"
                   step="any"
-                  value={Number((state.values[key] * factor).toPrecision(8))}
-                  onChange={(event) => change(key, event.target.value)}
+                  value={text}
+                  onChange={(event) => {
+                    const raw = event.target.value;
+                    setDraft((current) => ({ ...current, [key]: raw }));
+                    change(key, raw);
+                  }}
+                  onBlur={() => setDraft((current) => {
+                    const copy = { ...current };
+                    delete copy[key];
+                    return copy;
+                  })}
                   className={`w-full min-w-0 rounded border bg-bg px-1 py-0.5 text-right text-ink ${
-                    provenance === '推得' ? 'border-ok/50' : 'border-line'
+                    provenance === '推得' ? 'border-ok/50 bg-ok/5' : 'border-line'
                   }`}
                   aria-label={`${QUICK_UNITS[key].label}${unit ? `（${unit}）` : ''}`}
+                  title={provenance === '推得' ? '自动算出；直接改会标成「手改」' : '输入值'}
                 />
                 <span className="w-6 shrink-0 text-muted">{unit}</span>
                 <span
@@ -179,14 +214,26 @@ export function QuickFill({ templateId, values, writableKeys, testId = 'quickfil
           </p>
         ) : (
           <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              data-testid="quick-write"
-              onClick={commit}
-              className="focus-ring rounded border border-cyan/50 px-2 py-0.5 text-[10px] text-cyan hover:border-cyan"
-            >
-              写入参数表
-            </button>
+            {mode === 'fromSmall' ? (
+              <button
+                type="button"
+                data-testid="quick-write"
+                onClick={commit}
+                className="focus-ring rounded border border-cyan/50 px-2 py-0.5 text-[10px] text-cyan hover:border-cyan"
+              >
+                写入参数表
+              </button>
+            ) : (
+              <button
+                type="button"
+                data-testid="quick-goto-small"
+                onClick={() => setMode('fromSmall')}
+                className="focus-ring rounded border border-cyan/50 px-2 py-0.5 text-[10px] text-cyan hover:border-cyan"
+                title="本模式推出的 gm / rπ / ro 参数表里没有对应项；切过去才能反填 Ic / VA"
+              >
+                切到倒推模式反填 Ic / VA
+              </button>
+            )}
             {!result.consistency.ok ? (
               <button
                 type="button"
@@ -200,6 +247,7 @@ export function QuickFill({ templateId, values, writableKeys, testId = 'quickfil
           </div>
         )}
       </div>
+      ) : null}
     </details>
   );
 }

@@ -343,7 +343,12 @@ function parseGraph(graph: CanvasGraph): Parsed {
     if (node.kind === 'momentArrow') {
       const joint = nearestJoint(x, y, loadSnapTol);
       if (joint === null) fail(`力偶「${node.label || node.id}」没有落在结点上：力偶要加在结点（pin/dot）上。`);
-      momentLoads.push({ joint, mz: loadValue(node) });
+      // 方向跟图元走：渲染器约定 rot=0 逆时针、rot=180 顺时针（symbols.ts 力偶
+      // 注释）。以前这里无视 rot —— 物件行「旋转 90°」转两下把力偶画成顺时针，
+      // 求解还是按逆时针算，画与算相反。torqueArrow 同一套约定。
+      const mRot = ((((node.rot ?? 0) % 360) + 360) % 360);
+      const mSign = mRot === 180 ? -1 : 1;
+      momentLoads.push({ joint, mz: mSign * loadValue(node) });
       continue;
     }
     if (node.kind === 'udl') {

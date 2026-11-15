@@ -1,26 +1,27 @@
 @import "tailwindcss";
 
 @theme {
-  /* 仪表盘浅色主题（design.md）：三层表面 —— 浅灰画布浮白卡，近黑只留给强调。
-     层级靠明度差 + 1px 发丝线，不靠重阴影。 */
-  --color-bg: #f9fafb; /* 内容区画布（Mist） */
-  --color-panel: #ffffff; /* 卡片 / 图表面 / 表格底（Card White） */
-  --color-panel-2: #f9fafb; /* 内嵌块、表格斑马、表头灰底 */
-  --color-elev: #ffffff; /* 工具栏、悬浮面板 */
-  /* 文字三档：近黑 → 中灰 → 弱灰（对应 #111827 / #6b7280 / #9ca3af） */
-  --color-ink: #111827;
-  --color-muted: #6b7280;
-  --color-faint: #9ca3af;
-  /* 线：两级灰，永远是 1px。卡片描边按规范用 #f3f4f6（见 .card），
-     通用发丝线 / 输入框边界用 gray-200，浅底下可读性优先 */
-  --color-line: #e5e7eb;
-  --color-line-2: #d1d5db;
-  /* 主强调色：indigo，全屏唯一蓝紫系；其余只做小面积状态标记 */
-  --color-cyan: #6366f1; /* 历史名保留（cyan 现为 indigo），全站引用不动 */
-  --color-indigo: #6366f1;
-  --color-amber: #d97706;
-  --color-ok: #10b981;
-  --color-danger: #ef4444;
+  /* 表面：暖白图纸 + 实面卡片。层级靠发丝线与「纸比卡片深半档」，
+     不靠大圆角与重阴影 —— 图纸是印出来的，不是浮起来的。 */
+  --color-bg: #f3efe6; /* 纸：暖白，带一点米黄 */
+  --color-panel: #fbf8f1; /* 卡片：比纸亮半档，边缘用一根发丝线交代 */
+  --color-panel-2: #f6f2e8; /* 内嵌块 / 表格底 */
+  --color-elev: #fffdf7; /* 工具栏、悬浮面板 */
+  /* 文字三档：墨 → 墨灰 → 淡墨 */
+  --color-ink: #16140f;
+  --color-muted: #5c574c;
+  --color-faint: #857f72;
+  /* 线：墨的百分比，永远 1px。图纸上所有分隔都靠它，不靠底色深浅。 */
+  --color-line: rgba(22, 20, 15, 0.13);
+  --color-line-2: rgba(22, 20, 15, 0.22);
+  /* 冷：动作与链接（制图钴蓝）。暖：重点数字与告警（赭石）。
+     冷暖分家，是为了「看这里」只有一个家族。 */
+  --color-cyan: #1b3f9c; /* 历史名保留（cyan 现为钴蓝），全站引用不动 */
+  --color-indigo: #1b3f9c;
+  --color-amber: #a15c14;
+  --color-gold: #b0761f;
+  --color-ok: #1f6a4a;
+  --color-danger: #a32a1c;
   /* 字体：Inter 全站唯一（缺字体时落系统链），数字等宽走 JetBrains Mono */
   --font-sans:
     "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
@@ -32,9 +33,11 @@
   /* 仪表盘密度：11–36px 阶（design.md type scale），正文 14px */
   --text-label: 11px;
   --text-code: 13px;
-  --radius-cards: 12px;
-  --radius-buttons: 8px;
-  --radius-panels: 12px;
+  /* 圆角：图纸语言要利落 —— 卡片 10 / 按钮 4 / 面板 14。
+     过去的 24/32 是玻璃片的圆角，纸不会这么圆。 */
+  --radius-cards: 10px;
+  --radius-buttons: 4px;
+  --radius-panels: 14px;
 }
 
 @layer base {
@@ -46,7 +49,6 @@
 
   body {
     margin: 0;
-    background: var(--color-bg);
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 14px;
@@ -55,6 +57,33 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* 纸上只有一层很淡的日光，不是三团霓虹。暖光在左上（赭），冷光在右下（钴），
+       中间不给光 —— 面积越大越要淡，否则整页读起来像加了滤镜。
+       不铺满格线：格线只活在需要它的局部（首页框注、画布）。 */
+    background-color: var(--color-bg);
+    background-image:
+      radial-gradient(1100px 780px at 4% -16%, var(--ambient-a), transparent 60%),
+      radial-gradient(980px 720px at 102% 12%, var(--ambient-b), transparent 64%),
+      radial-gradient(760px 620px at 60% 108%, var(--ambient-c), transparent 66%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
+  /* 图纸网格：48px、径向遮罩收到中部，四边自然消失。
+     它只交代「这是一张纸」，不参与信息 —— 所以压到几乎看不见；
+     铺满全屏的等距格会变成坐标纸，抢正文。 */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+      linear-gradient(var(--ambient-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--ambient-grid) 1px, transparent 1px);
+    background-size: 48px 48px;
+    -webkit-mask-image: radial-gradient(ellipse 74% 62% at 50% 38%, #000 26%, transparent 100%);
+    mask-image: radial-gradient(ellipse 74% 62% at 50% 38%, #000 26%, transparent 100%);
   }
 
   h1,
@@ -102,7 +131,7 @@
   }
 
   ::selection {
-    background: rgba(99, 102, 241, 0.22);
+    background: rgba(27, 63, 156, 0.18);
   }
 
   * {
@@ -138,14 +167,17 @@
 
   /* 深度靠表面阶梯与发丝线；卡片允许一级阴影（design.md Elevation） */
   .elev {
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+    box-shadow: var(--shadow-card);
   }
 
-  /* 卡片：12px 圆角、1px 描边、一级阴影；色值走变量，dark 只换值不换规则 */
+  /* 卡片：玻璃面 —— 半透填充 + 顶部高光带 + 一圈墨线。
+     顶部那道到 46% 就消失的白，是「玻璃有厚度」的唯一线索：没有它，
+     半透卡在浅色底上会被看成一块普通白板。 */
   .card {
     border: 1px solid var(--card-border);
     border-radius: var(--radius-cards);
-    background: var(--color-panel);
+    background-color: var(--color-panel);
+    background-image: linear-gradient(180deg, var(--card-sheen), transparent 46%);
     box-shadow: var(--shadow-card);
     transition:
       background-color 0.2s ease-out,
@@ -154,7 +186,7 @@
   }
 
   .card:hover {
-    background: var(--card-hover-bg);
+    background-color: var(--card-hover-bg);
     box-shadow: var(--shadow-card-hover);
   }
 
@@ -173,24 +205,32 @@
     }
   }
 
+  /* 产品实拍：抬一层投影，与页面分开（浅底用冷灰，暗底见文末覆盖） */
+  .product-shot {
+    box-shadow: 0 24px 60px rgba(23, 42, 72, 0.16);
+  }
+
   /* 页面进入：淡入 + 上浮 6px。让「换页」有一次呼吸，而不是硬切 */
   .page-enter {
     animation: sd-rise 220ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
   }
 
-  /* 侧栏 / 浮层（保留类名，浅色版）：90% 白 + 40px 模糊，右侧 1px 发丝线 */
+  /* 侧栏 / 浮层：玻璃本体。半透 + 模糊 + 内侧顶部高光（浅色版的「光」） */
   .vibrancy {
-    background: rgba(255, 255, 255, 0.9);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
-    backdrop-filter: blur(40px) saturate(180%);
-    border-right: 1px solid var(--color-line-2);
+    background: var(--glass-fill-hi);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    border-right: 1px solid var(--card-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   }
 
-  /* 浮层按钮（保留类名）：白面、灰描边、一级阴影 —— 不再用玻璃拟态 */
+  /* 浮层按钮：玻璃面、墨描边、顶部高光 */
   .glass {
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid var(--color-line-2);
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+    background: var(--glass-fill-hi);
+    border: 1px solid var(--card-border);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    box-shadow: var(--shadow-card);
     transition:
       background-color 0.2s ease-out,
       border-color 0.2s ease-out,
@@ -198,44 +238,46 @@
   }
 
   .glass:hover {
-    background: #ffffff;
-    border-color: #d1d5db;
-    box-shadow: 0 4px 12px rgba(17, 24, 39, 0.08);
+    background: var(--color-elev);
+    border-color: var(--color-line-2);
+    box-shadow: var(--shadow-card-hover);
   }
 
   .glass:active {
-    background: #f3f4f6;
+    background: var(--color-panel);
   }
 
-  /* 主按钮面板版：白底描边（页面主 CTA 已改 indigo 实色，见各页 PRIMARY） */
+  /* 主按钮面板版：透光面板 + 墨描边（页面主 CTA 已改 indigo 实色，见各页 PRIMARY） */
   .glass-white {
-    background: #ffffff;
-    border: 1px solid var(--color-line-2);
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+    background: var(--glass-fill-hi);
+    border: 1px solid var(--card-border);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    box-shadow: var(--shadow-card);
   }
 
   .glass-white:hover {
-    background: #f9fafb;
-    box-shadow: 0 4px 12px rgba(17, 24, 39, 0.08);
+    background: var(--color-elev);
+    box-shadow: var(--shadow-card-hover);
   }
 
-  /* 浮在内容之上的整条表面：底部动作条。浅色版：白 92% + 底部发丝线 */
+  /* 浮在内容之上的整条表面：底部动作条 */
   .glass-bar {
-    background: rgba(255, 255, 255, 0.92);
-    -webkit-backdrop-filter: blur(30px) saturate(180%);
-    backdrop-filter: blur(30px) saturate(180%);
-    border-top: 1px solid var(--color-line-2);
-    box-shadow: 0 -4px 16px rgba(17, 24, 39, 0.06);
+    background: var(--glass-fill-hi);
+    -webkit-backdrop-filter: blur(28px) saturate(var(--glass-sat));
+    backdrop-filter: blur(28px) saturate(var(--glass-sat));
+    border-top: 1px solid var(--card-border);
+    box-shadow: 0 -12px 32px rgba(23, 42, 72, 0.1);
   }
 
-  /* 全站带边框的中性按钮：白底、灰描边、hover 浅灰底。
+  /* 全站带边框的中性按钮：玻璃底、墨描边、hover 提亮。
      一条按「有没有边框」筛，覆盖三层粗改不了的地方。
-     语义色按钮（indigo/琥珀/绿/红实底）不带 border-line，不进这条，保持实色。 */
+     语义色按钮（indigo/香槟/绿/红实底）不带 border-line，不进这条，保持实色。 */
   button[class*='border-line'],
   button[class*='border-white'],
   button[class*='border-2'] {
-    background: #ffffff;
-    border-color: var(--color-line-2);
+    background: var(--glass-fill-hi);
+    border-color: var(--card-border);
     transition:
       background-color 0.2s ease-out,
       border-color 0.2s ease-out,
@@ -245,40 +287,43 @@
   button[class*='border-line']:hover,
   button[class*='border-white']:hover,
   button[class*='border-2']:hover {
-    background: #f9fafb;
-    border-color: #d1d5db;
+    background: var(--color-elev);
+    border-color: var(--color-line-2);
   }
 
   button[class*='border-line']:active,
   button[class*='border-white']:active,
   button[class*='border-2']:active {
-    background: #f3f4f6;
+    background: var(--color-panel);
   }
 
   /* 不支持 backdrop-filter 时退回较实的面 */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .glass,
     .glass-white {
-      background: #ffffff;
+      background: var(--color-panel);
     }
 
     .glass-bar {
-      background: rgba(255, 255, 255, 0.98);
+      background: var(--color-elev);
     }
   }
 
   .vibrancy-top {
-    background: rgba(255, 255, 255, 0.9);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
-    backdrop-filter: blur(40px) saturate(180%);
-    border-bottom: 1px solid var(--color-line-2);
+    background: var(--glass-fill-hi);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    border-bottom: 1px solid var(--card-border);
   }
 
-  /* 工具栏：52px、半透明面、底部发丝线、无重阴影（色值变量化，dark 换值） */
+  /* 工具栏：52px、玻璃条、底部发丝线、无重阴影（色值变量化，dark 换值） */
   .toolbar {
     height: 52px;
     background: var(--toolbar-bg);
-    border-bottom: 1px solid var(--color-line-2);
+    -webkit-backdrop-filter: blur(18px) saturate(var(--glass-sat));
+    backdrop-filter: blur(18px) saturate(var(--glass-sat));
+    border-bottom: 1px solid var(--card-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   }
 
   /* 工具栏随滚动加深：纯 CSS 滚动驱动动画，零 JS。
@@ -382,43 +427,63 @@
 }
 
 :root {
-  /* indigo 只此一支；画布里的「当前步」沿用它，其余一律中性灰 */
-  --schematic-active: #6366f1;
-  --schematic-idle: #9ca3af;
-  --schematic-text: #6b7280;
+  /* 光：纸上只有一层很淡的日光 —— 暖光（赭）打左上，冷光（钴）打右下。
+     面积大，浓度就必须小；否则整页像加了滤镜，正文先糊。 */
+  --ambient-a: rgba(226, 190, 126, 0.34);
+  --ambient-b: rgba(120, 152, 205, 0.2);
+  --ambient-c: rgba(150, 130, 96, 0.12);
+  --ambient-grid: rgba(22, 20, 15, 0.045);
+  /* 动作色只有一支钴蓝；画布里「当前步」也用它，其余一律中性灰 */
+  --schematic-active: #1b3f9c;
+  --schematic-idle: #a29b8c;
+  --schematic-text: #5c574c;
   --schematic-active-text: #ffffff;
   /* 组件级变量：dark 主题只换这组值，规则本体不重复写 */
-  --card-border: #f3f4f6;
-  --card-hover-bg: #f9fafb;
-  --shadow-card: 0 1px 2px rgba(17, 24, 39, 0.06);
-  --shadow-card-hover: 0 4px 12px rgba(17, 24, 39, 0.08);
-  --row-hover: rgba(17, 24, 39, 0.04);
-  --row-selected: rgba(99, 102, 241, 0.12);
-  --toolbar-bg: rgba(255, 255, 255, 0.9);
-  --toolbar-bg-deep: rgba(255, 255, 255, 0.98);
-  /* 图表专用（SVG 引用）：卡诺格 / 状态节点 / 时序波形 / 区域六色 */
-  --sch-grid-fill: rgba(17, 24, 39, 0.02);
-  --sch-grid-line: rgba(17, 24, 39, 0.18);
-  --sch-cell-1: #111827;
-  --sch-cell-x: #d97706;
-  --sch-cell-0: #9ca3af;
-  --sch-arrow: #6b7280;
-  --sch-node-fill: #ffffff;
-  --sch-label-active: #4338ca;
-  --sch-label-idle: #6b7280;
-  --sch-live: #d97706;
-  --sch-wave: #6366f1;
-  --sch-wave-x: #d97706;
-  --sch-wave-flat: #9ca3af;
-  --sch-wave-label: #374151;
-  --sch-wave-grid: rgba(17, 24, 39, 0.08);
-  --chart-area-fill: rgba(99, 102, 241, 0.1);
-  --sch-region-0: #6366f1;
-  --sch-region-1: #d97706;
-  --sch-region-2: #7c3aed;
-  --sch-region-3: #059669;
-  --sch-region-4: #db2777;
-  --sch-region-5: #2563eb;
+  --card-border: rgba(22, 20, 15, 0.14);
+  --card-sheen: rgba(255, 255, 255, 0.5);
+  --card-hover-bg: var(--color-elev);
+  /* 阴影：纸上的卡片 = 极浅外影 + 上缘一道白光 + 下缘一道暗线。
+     扩散半径压小 —— 扩散一大就变成「浮起来的应用商店卡片」。 */
+  --shadow-card:
+    0 1px 2px rgba(38, 32, 20, 0.06), 0 12px 26px -18px rgba(38, 32, 20, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-card-hover:
+    0 2px 4px rgba(38, 32, 20, 0.07), 0 18px 36px -20px rgba(38, 32, 20, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --row-hover: rgba(22, 20, 15, 0.045);
+  --row-selected: rgba(27, 63, 156, 0.12);
+  --toolbar-bg: rgba(243, 239, 230, 0.86);
+  --toolbar-bg-deep: rgba(243, 239, 230, 0.96);
+  /* 悬浮面：只有浮在内容之上的面才吃模糊，卡片只做半透 ——
+     一屏十几张卡都挂 backdrop-filter，滚动会掉帧。 */
+  --glass-fill: rgba(251, 248, 241, 0.72);
+  --glass-fill-hi: rgba(251, 248, 241, 0.93);
+  --glass-blur: 18px;
+  --glass-sat: 110%;
+  /* 图表专用（SVG 引用）：卡诺格 / 状态节点 / 时序波形 / 区域六色。
+     六色是「制图色卡」：钴、赭、青、橄榄、酒红、石板 —— 没有一支紫。 */
+  --sch-grid-fill: rgba(22, 20, 15, 0.02);
+  --sch-grid-line: rgba(22, 20, 15, 0.2);
+  --sch-cell-1: #16140f;
+  --sch-cell-x: #a15c14;
+  --sch-cell-0: #a29b8c;
+  --sch-arrow: #857f72;
+  --sch-node-fill: #fbf8f1;
+  --sch-label-active: #1b3f9c;
+  --sch-label-idle: #857f72;
+  --sch-live: #a15c14;
+  --sch-wave: #1b3f9c;
+  --sch-wave-x: #a15c14;
+  --sch-wave-flat: #a29b8c;
+  --sch-wave-label: #3a352b;
+  --sch-wave-grid: rgba(22, 20, 15, 0.08);
+  --chart-area-fill: rgba(27, 63, 156, 0.1);
+  --sch-region-0: #1b3f9c;
+  --sch-region-1: #a15c14;
+  --sch-region-2: #16706b;
+  --sch-region-3: #4f6b1f;
+  --sch-region-4: #8a2f52;
+  --sch-region-5: #3f4a5a;
 }
 
 /* 动效纪律（来自设计规范）：只允许变颜色，200ms ease-out。
@@ -539,6 +604,26 @@
   body {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    /* 纸上没有光：光斑与网格必须关掉，玻璃也要落成实面，否则一行字被渐变吃掉 */
+    background-image: none !important;
+    background-color: #fff !important;
+  }
+
+  body::after {
+    display: none !important;
+  }
+
+  .card,
+  .glass,
+  .glass-white,
+  .glass-bar,
+  .vibrancy,
+  .vibrancy-top {
+    background: #fff !important;
+    box-shadow: none !important;
+    border-color: #d4d4d4 !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 
   .no-print,
@@ -719,70 +804,90 @@ svg text {
    打印稿由上方 @media print 里的 `:root, :root[data-theme='dark']` 夺回变量。 */
 :root[data-theme='dark'] {
   color-scheme: dark;
-  /* 表面三层：深夜画布 / 深灰卡 / 更深内嵌 */
-  --color-bg: #0c0f16;
-  --color-panel: #141923;
-  --color-panel-2: #0f1420;
-  --color-elev: #1a2130;
+  /* 表面：暖黑图纸（不是蓝黑 —— 纯蓝黑配暖纸会像两台机器拼起来） */
+  --color-bg: #14120d;
+  --color-panel: rgba(255, 251, 242, 0.055);
+  --color-panel-2: rgba(255, 251, 242, 0.03);
+  --color-elev: rgba(255, 251, 242, 0.09);
   /* 文字三档反转 */
-  --color-ink: #e5e9f0;
-  --color-muted: #98a2b3;
-  --color-faint: #64748b;
-  /* 线：暗底上的低亮度灰蓝 */
-  --color-line: #232b3a;
-  --color-line-2: #2e394d;
-  /* 强调色提亮一档（indigo-400 系），暗底可读 */
-  --color-cyan: #818cf8;
-  --color-indigo: #818cf8;
-  --color-amber: #fbbf24;
-  --color-ok: #34d399;
-  --color-danger: #f87171;
+  --color-ink: #f4f0e6;
+  --color-muted: #a8a190;
+  --color-faint: #7c7566;
+  /* 线：暖白的百分比 —— 暗底上灰线会被吃掉 */
+  --color-line: rgba(255, 251, 242, 0.14);
+  --color-line-2: rgba(255, 251, 242, 0.22);
+  /* 强调色提亮一档，暗底可读 */
+  --color-cyan: #8ab0ff;
+  --color-indigo: #8ab0ff;
+  --color-amber: #e0b072;
+  --color-gold: #c99450;
+  --color-ok: #7ac9a0;
+  --color-danger: #f28d7e;
   /* 画布 schematics */
-  --schematic-active: #818cf8;
-  --schematic-idle: #64748b;
-  --schematic-text: #98a2b3;
-  --schematic-active-text: #0c0f16;
+  --schematic-active: #8ab0ff;
+  --schematic-idle: #6d6759;
+  --schematic-text: #a8a190;
+  --schematic-active-text: #14120d;
+  /* 光：暗底上同一色相压到最低浓度，只留一点方向感 */
+  --ambient-a: rgba(226, 190, 126, 0.1);
+  --ambient-b: rgba(120, 152, 205, 0.16);
+  --ambient-c: rgba(150, 130, 96, 0.08);
+  --ambient-grid: rgba(255, 251, 242, 0.05);
+  /* 悬浮面 */
+  --glass-fill: rgba(255, 251, 242, 0.06);
+  --glass-fill-hi: rgba(255, 251, 242, 0.1);
+  --glass-blur: 20px;
+  --glass-sat: 120%;
   /* 组件级变量 */
-  --card-border: #232b3a;
-  --card-hover-bg: #1a2130;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.5);
-  --row-hover: rgba(255, 255, 255, 0.05);
-  --row-selected: rgba(129, 140, 248, 0.2);
-  --toolbar-bg: rgba(12, 15, 22, 0.86);
-  --toolbar-bg-deep: rgba(12, 15, 22, 0.97);
+  --card-border: rgba(255, 251, 242, 0.14);
+  --card-sheen: rgba(255, 251, 242, 0.07);
+  --card-hover-bg: rgba(255, 251, 242, 0.1);
+  --shadow-card:
+    0 1px 2px rgba(0, 0, 0, 0.5), 0 16px 32px -20px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 251, 242, 0.12);
+  --shadow-card-hover:
+    0 2px 4px rgba(0, 0, 0, 0.55), 0 22px 44px -22px rgba(0, 0, 0, 0.95),
+    inset 0 1px 0 rgba(255, 251, 242, 0.16);
+  --row-hover: rgba(255, 251, 242, 0.05);
+  --row-selected: rgba(138, 176, 255, 0.16);
+  --toolbar-bg: rgba(20, 18, 13, 0.82);
+  --toolbar-bg-deep: rgba(12, 11, 8, 0.94);
   /* 图表变量 */
-  --sch-grid-fill: rgba(255, 255, 255, 0.03);
-  --sch-grid-line: rgba(148, 163, 184, 0.22);
-  --sch-cell-1: #e2e8f0;
-  --sch-cell-x: #fbbf24;
-  --sch-cell-0: #64748b;
-  --sch-arrow: #94a3b8;
-  --sch-node-fill: #1a2130;
-  --sch-label-active: #a5b4fc;
-  --sch-label-idle: #94a3b8;
-  --sch-live: #fbbf24;
-  --sch-wave: #818cf8;
-  --sch-wave-x: #fbbf24;
-  --sch-wave-flat: #64748b;
-  --sch-wave-label: #cbd5e1;
-  --sch-wave-grid: rgba(148, 163, 184, 0.15);
-  --chart-area-fill: rgba(129, 140, 248, 0.16);
-  --sch-region-0: #818cf8;
-  --sch-region-1: #fbbf24;
-  --sch-region-2: #a78bfa;
-  --sch-region-3: #34d399;
-  --sch-region-4: #f472b6;
-  --sch-region-5: #60a5fa;
+  --sch-grid-fill: rgba(255, 251, 242, 0.03);
+  --sch-grid-line: rgba(200, 190, 170, 0.2);
+  --sch-cell-1: #f4f0e6;
+  --sch-cell-x: #e0b072;
+  --sch-cell-0: #6d6759;
+  --sch-arrow: #9a9384;
+  --sch-node-fill: #1b1811;
+  --sch-label-active: #8ab0ff;
+  --sch-label-idle: #9a9384;
+  --sch-live: #e0b072;
+  --sch-wave: #8ab0ff;
+  --sch-wave-x: #e0b072;
+  --sch-wave-flat: #6d6759;
+  --sch-wave-label: #d7d1c2;
+  --sch-wave-grid: rgba(200, 190, 170, 0.14);
+  --chart-area-fill: rgba(138, 176, 255, 0.14);
+  --sch-region-0: #8ab0ff;
+  --sch-region-1: #e0b072;
+  --sch-region-2: #62b3ab;
+  --sch-region-3: #a3c06b;
+  --sch-region-4: #d189a6;
+  --sch-region-5: #93a2b5;
 }
 
 :root[data-theme='dark'] body {
-  background: var(--color-bg);
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(1100px 780px at 4% -16%, var(--ambient-a), transparent 60%),
+    radial-gradient(980px 720px at 102% 12%, var(--ambient-b), transparent 64%),
+    radial-gradient(760px 620px at 60% 108%, var(--ambient-c), transparent 66%);
   color: var(--color-ink);
 }
 
 :root[data-theme='dark'] ::selection {
-  background: rgba(129, 140, 248, 0.35);
+  background: rgba(138, 176, 255, 0.26);
 }
 
 :root[data-theme='dark'] * {
@@ -799,52 +904,62 @@ svg text {
 /* 浮层与工具栏：暗玻璃 */
 :root[data-theme='dark'] .glass,
 :root[data-theme='dark'] .glass-white {
-  background: var(--color-elev);
-  border-color: var(--color-line-2);
+  background: var(--glass-fill-hi);
+  border-color: var(--card-border);
   box-shadow: var(--shadow-card);
 }
 
 :root[data-theme='dark'] .glass:hover,
 :root[data-theme='dark'] .glass-white:hover {
-  background: #1f2737;
-  border-color: #3b475e;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.32);
   box-shadow: var(--shadow-card-hover);
 }
 
 :root[data-theme='dark'] .glass:active {
-  background: #141923;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 :root[data-theme='dark'] .glass-bar {
-  background: rgba(12, 15, 22, 0.82);
-  border-top-color: var(--color-line-2);
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+  background: var(--glass-fill-hi);
+  border-top-color: var(--card-border);
+  box-shadow: 0 -12px 32px rgba(3, 7, 18, 0.5);
 }
 
 :root[data-theme='dark'] .vibrancy,
 :root[data-theme='dark'] .vibrancy-top {
-  background: rgba(12, 15, 22, 0.85);
+  background: rgba(11, 19, 34, 0.72);
+  border-color: var(--card-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
-/* 带边框中性按钮：暗卡 + 灰蓝描边 */
+/* 带边框中性按钮：玻璃 + 白描边 */
 :root[data-theme='dark'] button[class*='border-line'],
 :root[data-theme='dark'] button[class*='border-white'],
 :root[data-theme='dark'] button[class*='border-2'] {
-  background: var(--color-elev);
-  border-color: var(--color-line-2);
+  background: var(--glass-fill-hi);
+  border-color: var(--card-border);
 }
 
 :root[data-theme='dark'] button[class*='border-line']:hover,
 :root[data-theme='dark'] button[class*='border-white']:hover,
 :root[data-theme='dark'] button[class*='border-2']:hover {
-  background: #1f2737;
-  border-color: #3b475e;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.32);
 }
 
 :root[data-theme='dark'] button[class*='border-line']:active,
 :root[data-theme='dark'] button[class*='border-white']:active,
 :root[data-theme='dark'] button[class*='border-2']:active {
-  background: #141923;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 钴蓝实底按钮：深色下 --color-cyan 变亮，白字会糊，改深字保对比 */
+:root[data-theme='dark'] a.bg-cyan.text-white,
+:root[data-theme='dark'] button.bg-cyan.text-white,
+:root[data-theme='dark'] a.bg-danger.text-white,
+:root[data-theme='dark'] button.bg-danger.text-white {
+  color: #0d1018;
 }
 
 /* 窗口控件圆点的静态底（彩色三点重新声明，避免压过 layer 内的 nth-child 彩色） */
@@ -864,19 +979,154 @@ svg text {
   background: #10b981;
 }
 
-/* 浅色产品截图在暗页上不突兀：轻度反色 + 色相回旋（indigo 近似保留） */
+/* 产品图是暗色实拍：暗页不反色（反色会把深色界面洗成浅灰）。
+   暗底暗图靠一圈投影把它托起来，否则窗口边界会和页面糊在一起。 */
 :root[data-theme='dark'] .product-shot {
-  filter: invert(0.92) hue-rotate(180deg);
+  filter: none;
+  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.55);
 }
 
 /* 不支持 backdrop-filter 时的实面兜底 */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root[data-theme='dark'] .glass,
   :root[data-theme='dark'] .glass-white {
-    background: #1a2130;
+    background: #1b2740;
   }
 
   :root[data-theme='dark'] .glass-bar {
-    background: rgba(12, 15, 22, 0.97);
+    background: rgba(11, 19, 34, 0.97);
   }
+}
+
+/* ============ 装配台全屏工作区（R-布局） ============
+   问题：三栏各自 max-h-[70vh]、画布写死 420px，1440×900 下整块工位只占上半屏，
+   下面半屏全空 —— 一个「拖图」的地方不该有 40% 屏幕是黑的。
+   做法：只在屏幕（不是打印）且 ≥768 时，把 SpecGrid 这条链上的高度逐层放开，
+   画布吃掉剩余高度；面板边框跟着拉到底，三栏底部齐平。
+   只碰高度，不碰坐标：指针换算走 svg.getScreenCTM()，留白变化不影响点哪算哪。 */
+@media screen and (min-width: 768px) {
+  .lab-canvas {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .lab-canvas > h2 {
+    flex: 0 0 auto;
+  }
+
+  /* 第一个 div 恒为 SpecGrid 根（标题是 h2，不是 div；引脚列表 / 选中条排在它后面） */
+  .lab-canvas > div:first-of-type {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .lab-canvas figure {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* figure > 图身（已有 flex-1）> 可编辑层 > .schematic-frame */
+  .lab-canvas figure > div {
+    min-height: 0;
+  }
+
+  .lab-canvas figure > div > div {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .lab-canvas .schematic-frame {
+    height: 100%;
+    /* R3 修复：以前写死 min-height: 240px —— 小窗口（<700px 高）下 flex 链被压到
+       140px 左右时，240px 的硬下限把 svg 撑爆出 figure 的 overflow-hidden 裁剪区，
+       梁线 / 支座 / 箭头全部落到裁剪线以下，画布上只剩标签文字 —— 用户看到的就是
+       「箭头不见了，方向怎么改都没反应」。svg 走 viewBox letterbox，多矮都能完整
+       缩放显示：矮的时候随容器缩，高的时候维持 240px 下限。 */
+    min-height: min(240px, 100%);
+  }
+}
+
+/* ============ 结果页画布栏：图卡撑满中栏 ============
+   中栏高度由三栏里最长的那栏（通常是右侧读数）决定。图卡不跟着长，画布下面就空
+   半屏（A2 实测 1186 高的栏里只有 514 有内容）。只有一张图时让它长到底；主图+辅图
+   两张时保持自然高度 —— 平分会把两张图都压成扁带。 */
+@media screen and (min-width: 1024px) {
+  .print-canvas {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .print-canvas > div.flex.flex-col {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .print-canvas figure:only-of-type {
+    flex: 1 1 auto;
+    min-height: 420px;
+    /* 右栏常常比画布长一倍。全放开会让图卡长成 1100 高、图缩在正中间，四周一大圈空白；
+       封在 660 就是一张正常图纸的高度，剩下的留白回到页面上，比撑满更像版式。 */
+    max-height: 660px;
+  }
+
+  .print-canvas figure:only-of-type .schematic-frame {
+    height: 100%;
+    max-height: 640px;
+  }
+}
+
+/* 1024–1279：结果页只排两栏（步骤 | 画布），数据栏整行落到下方做双栏。
+   双栏用 multicol 不用 grid —— 这几张卡高矮差很大（参数面板 210，结果表 300，校验 90），
+   grid 按行对齐会在矮卡下面留 200px 的洞；multicol 顺着往下填，列高自己平衡。 */
+@media screen and (min-width: 1024px) and (max-width: 1279.98px) {
+  .print-side {
+    display: block;
+    column-count: 2;
+    column-gap: 16px;
+  }
+
+  .print-side > * {
+    break-inside: avoid;
+    margin-bottom: 12px;
+  }
+}
+
+/* ============ 装配台「已求解」态 ============
+   求解后讲解稿（<Result>）挂在工作区下面，是一屏长的文档流。外壳此时不能再是
+   h-screen + overflow-hidden —— 讲解稿的高度会把三栏挤成一条细线。页面退回可滚，
+   三栏自己按一屏高撑住，工作区手感不变。
+   D5：这条只在 ≥1024 成立 —— 768–1023 现在是「左栏+画布一行、右栏另起一行」，
+   容器若写死一屏高，第二行会溢出到讲解稿上；那一段本来就让页面滚动。 */
+@media screen and (min-width: 1024px) {
+  .lab-solved-row {
+    /* flex-basis 会盖掉 height：这里必须同时把 flex 收死，否则 100vh 白写。 */
+    flex: 0 0 auto;
+    /* 96 = 顶栏 52 + 顶部提示条 + 余量；再留出讲解稿自己的播放条（fixed 76）——
+       不留的话，工作区底边会被那条「上一步 / 播放」压在下面。 */
+    height: calc(100vh - 170px);
+    min-height: 440px;
+  }
+}
+
+/* 内嵌讲解稿自带 sticky 顶栏 + min-h-screen：放进装配台会叠出第二个吸顶栏、
+   再顶高一屏。这里把这两条按回普通流。 */
+.lab-embedded-result .result-header {
+  position: static;
+}
+
+.lab-embedded-result .result-page {
+  /* 只去掉 min-h-screen：底部 pb-24 留着，那是给讲解稿自己的 fixed 播放条让位的。 */
+  min-height: 0;
+}
+
+/* R-39 ③：折叠的 <details> 内容在 Chrome 147 里仍保留布局盒（实测
+   `getBoundingClientRect` 80×22.5、offsetParent 存在），读屏 / 自动化能碰到
+   用户看不见的控件。收起时彻底移出渲染与可访问性树，展开后由浏览器自带的
+   open 属性自动恢复正常显示。覆盖结果页的知识库链接 / 参数扫描 / 跳过项 /
+   自检四处，以及将来新增的折叠面板。 */
+details:not([open]) > :not(summary) {
+  display: none !important;
 }

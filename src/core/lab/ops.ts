@@ -4,11 +4,16 @@
  */
 
 import { applyParams, valueFromLabel } from './picks.ts';
+import { deviceName } from './labels.ts';
 import { anchorsOfNode, findAnchor, relayout } from './pins.ts';
 import { expandComposites, portPins, type CompositeDef } from './composite.ts';
 import { allComposites, loadStoredComposites, registerComposites, storeComposites } from './compositeStore.ts';
 import { validateMember, validateWire } from './wiring.ts';
+/** 两点连线的折线要避开器件本体：与通用求解器共用 S6 穿体判据。 */
+import { buildNets } from './netSolve.ts';
+import { SYMBOLS } from '../../render/symbols.ts';
 import { healAfterDeviceDelete } from './heal.ts';
+import { deviceParamFields } from './deviceParams.ts';
 import { nextId } from './ids.ts';
 import {
   ATTACH_CONFIG,
@@ -56,6 +61,36 @@ export const UNIT_OF: Record<string, string> = {
   res: 'Ω', cap: 'F', vsrc: 'V', isrc: 'A', npn: 'A', nmos: 'A',
 };
 
+/**
+ * 源器件的量值可以是 0 或负值：0V 源 = 短路（测等效电阻 / 关掉这一路供电），
+ * 负值 = 反极性（-5V 就是反向电源）。无源件（R / C）不同：0Ω 与负电阻在
+ * 归约与 MNA 里都没有意义，仍按 (0, 1e12] 收。
+ *
+ * 以前一刀切 (0, 1e12]：学生想把 Vs 设 0 做「关源」实验时，输入框显示 0、
+ * 图上却还是旧值，也不说为什么 —— 静默失败。现在按 kind 分开判，界面
+ * 把「为什么不收」写在输入框旁边。
+ */
+export const SIGNED_VALUE_KINDS: ReadonlySet<string> = new Set(['vsrc', 'isrc']);
+
+/** 器件数值的合法区间（按 kind 分档，界面与 ops 共用同一套判据）。 */
+export function valueInRange(kind: string, value: number): boolean {
+  if (!Number.isFinite(value)) return false;
+  if (Math.abs(value) > 1e12) return false;
+  return SIGNED_VALUE_KINDS.has(kind) ? true : value > 0;
+}
+
+/** 拒收时的人话（ops 的 refused 与界面提示同源）。 */
+export function valueRangeNote(kind: string): string {
+  return SIGNED_VALUE_KINDS.has(kind)
+    ? '数值要在 [-1e12, 1e12] 里：空 / 非数字不收。电压源、电流源可以是 0 或负值（0 = 短路，负 = 反极性）。'
+    : '数值要在 (0, 1e12] 里：负数 / 0 / 空都不收。';
+}
+
+/** 输入框旁边的短提示（红字，占不了几个字）。 */
+export function valueRangeHint(kind: string): string {
+  return SIGNED_VALUE_KINDS.has(kind) ? '±1e12 内' : '需 > 0';
+}
+
 /** 变异开关（check:assemble ㉔④）：关掉 = 旋转后不重新吸附导线端点。 */
 export const ROTATE_CONFIG = { resnap: true };
 /** 变异开关（check:assemble ㉕④）：关掉 = 删线后不复查孤立 dot。 */
@@ -100,15 +135,6 @@ export function formatValue(kind: string, value: number): string {
     default:
       return `${trimNum(value)}${UNIT_OF[kind] ?? ''}`;
   }
-}
-
-/** 'Rc 2.0k' → 'Rc'；'P1 = 10 kN' → 'P1'；无标签用 kind。 */
-function deviceName(label: string | undefined, kind: string): string {
-  const text = (label ?? '').trim();
-  if (!text) return kind;
-  const eq = text.indexOf('=');
-  const head = (eq >= 0 ? text.slice(0, eq) : text.split(/[\d.]/)[0]).trim();
-  return head || kind;
 }
 
 /** setDeviceValue 的配套：按 kind 把数值写成显示格式（Rc 4.7k / C 10nF / Vs 5V）。 */
@@ -357,6 +383,21 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
   const next: CanvasGraph = { ...graph, nodes, edges, meta: { ...graph.meta } };
 
   switch (op.op) {
+    case 'clearGraph': {
+      if (graph.nodes.length === 0 && graph.edges.length === 0) {
+        return { graph, rules, refused: '画布已经是空的 —— 直接点「+ R / + V / + 接地」开始自建。' };
+      }
+      // 纯说明文字也要清掉：留着它，画布 viewBox 会缩成只有一行字，
+      // 而且旧骨架的标注会让人误以为电路还在。
+      const cleared: CanvasGraph = {
+        ...graph,
+        nodes: [],
+        edges: [],
+        meta: { ...graph.meta, resetAt: (typeof graph.meta.resetAt === 'number' ? graph.meta.resetAt : 0) + 1 },
+      };
+      rules.push('已清空画布：器件 / 导线 / 结点 / 旧标注全部移除，接下来从零自建（本题参数表与求解器不变）');
+      return { graph: cleared, rules };
+    }
     case 'deleteDevice': {
       const victim = nodes.find((node) => node.id === op.nodeId);
       if (!victim) return { graph, rules, refused: `画布上没有「${op.nodeId}」这个器件。` };
@@ -372,11 +413,15 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
           return { graph, rules, refused: '结点不是器件，不能按器件删除。' };
         }
         const attached = edges.filter((edge) => edge.from === victim.id || edge.to === victim.id);
+        // R3 修复：级联范围补上「atMember 指向被删杆」的载荷 —— 删结点连带删杆后，
+        // 显式挂靠的载荷会成孤儿（悬空箭头 + reduce 归不出 a）。只认显式挂靠：
+        // 骨架 / 快照载荷只有坐标，几何推断会误伤（S3 刚体载荷就画在杆身上）。
+        const attachedEdgeIds = new Set(attached.map((edge) => edge.id));
         const cascadeLoads = ATTACH_CONFIG.cascade
           ? nodes.filter((node) => {
               if (!LOAD_NODE_KINDS.has(node.kind)) return false;
               if (node.atJoint === victim.id) return true;
-              return Math.hypot(node.x - victim.x, node.y - victim.y) <= ATTACH_CONFIG.tolerance;
+              return Boolean(node.atMember && attachedEdgeIds.has(node.atMember));
             })
           : [];
         const dropped = new Set([victim.id, ...cascadeLoads.map((node) => node.id)]);
@@ -533,11 +578,97 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
       const a = anchorOf(op.from);
       const b = anchorOf(op.to);
       if (!a || !b) return { graph, rules, refused: '引脚不在当前画布上，先恢复骨架或重新点。' };
-      const points: [number, number][] = [
-        [a.x, a.y],
-        [a.x, b.y],
-        [b.x, b.y],
+      /**
+       * 从零自建电路时器件默认排在同一行，只走「先竖后横」会把水平段压在
+       * 器件中心线上，S6 判为导线穿体 —— 整张图直接拒答（用户什么都没做错）。
+       * 这里给两条正交候选，用 netSolve 同一份 bodyCross 判据择优：平手保留
+       * 原画法（骨架连线的既有外观不变），只有原画法真的穿体时才换「先横后竖」。
+       *
+       * R-36d 绕障布线：两条 L 之外，再按器件本体矩形生成「绕行车车道」——
+       * 水平车道 / 垂直车道各几条（障碍带的间隙中点 + 带外两侧，留 28 边距），
+       * 全部候选统一按 crossings·1e6 + 长度打分。任何一条不穿体就绝不交
+       * bodyCross 拒答；都不穿体的平手里最短优先，长度再平手保留原画法。
+       */
+      const candidates: [number, number][][] = [
+        [
+          [a.x, a.y],
+          [a.x, b.y],
+          [b.x, b.y],
+        ],
+        [
+          [a.x, a.y],
+          [b.x, a.y],
+          [b.x, b.y],
+        ],
       ];
+      {
+        const bodies = graph.nodes
+          .filter((node) => SYMBOLS[node.kind] && node.kind !== 'text' && node.kind !== 'dot')
+          .map((node) => {
+            const def = SYMBOLS[node.kind];
+            const rot = (((node.rot ?? 0) % 360) + 360) % 360;
+            const swap = rot === 90 || rot === 270;
+            const hw = swap ? def.hh : def.hw;
+            const hh = swap ? def.hw : def.hh;
+            return { x0: node.x - hw, x1: node.x + hw, y0: node.y - hh, y1: node.y + hh };
+          });
+        const MARGIN = 28;
+        /** 连线主方向上与连线带相交的障碍，返回它们在 axis 上的封闭带（有序）。 */
+        const blockedBands = (axis: 'x' | 'y', lo: number, hi: number) => {
+          const bands = bodies
+            .filter((b) => (axis === 'x' ? b.x1 > lo && b.x0 < hi : b.y1 > lo && b.y0 < hi))
+            .map((b) => (axis === 'x' ? { lo: b.x0, hi: b.x1 } : { lo: b.y0, hi: b.y1 }))
+            .sort((p, q) => p.lo - q.lo);
+          return bands;
+        };
+        /** 与连线带相交的障碍之间/之外的可行车道，夹在 [lo-160, hi+160] 防绕飞。 */
+        const detourLanes = (axis: 'x' | 'y', lo0: number, hi0: number): number[] => {
+          const lo = Math.min(lo0, hi0);
+          const hi = Math.max(lo0, hi0);
+          const bands = blockedBands(axis, lo, hi).filter((b) => b.hi - b.lo > 8);
+          const out: number[] = [(lo + hi) / 2];
+          let cursor = lo;
+          for (const band of bands) {
+            const above = band.lo - MARGIN;
+            if (above > cursor + 16) out.push((cursor + above) / 2);
+            cursor = Math.max(cursor, band.hi);
+          }
+          out.push(Math.max(cursor + MARGIN, hi + MARGIN));
+          return [...new Set(out.map((v) => Math.round(v)))].filter((v) => v >= lo - 160 && v <= hi + 160);
+        };
+        for (const y of detourLanes('y', a.y, b.y)) {
+          candidates.push([
+            [a.x, a.y],
+            [a.x, y],
+            [b.x, y],
+            [b.x, b.y],
+          ]);
+        }
+        for (const x of detourLanes('x', a.x, b.x)) {
+          candidates.push([
+            [a.x, a.y],
+            [x, a.y],
+            [x, b.y],
+            [b.x, b.y],
+          ]);
+        }
+      }
+      const probe = { id: '__wire_route_probe__', from: op.from, to: op.to, kind: op.kind ?? 'wire' };
+      const crossings = (points: [number, number][]) =>
+        buildNets({ ...graph, edges: [{ ...probe, points }] }).crossings.length;
+      const lengthOf = (points: [number, number][]) =>
+        points.slice(1).reduce((sum, p, i) => sum + Math.hypot(p[0] - points[i][0], p[1] - points[i][1]), 0);
+      // 打分：穿体一票否决（×1e6），再比路径长度；原画法参与平手（保持骨架外观稳定）。
+      let points = candidates[0];
+      let bestScore = crossings(points) * 1e6 + lengthOf(points);
+      for (const candidate of candidates.slice(1)) {
+        const score = crossings(candidate) * 1e6 + lengthOf(candidate);
+        if (score < bestScore) {
+          points = candidate;
+          bestScore = score;
+        }
+      }
+      void bestScore;
       next.edges = [
         ...edges,
         // 点击连的线两端各落一个器件（自环已被拒）→ owner 记 shared：
@@ -556,6 +687,17 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
       const victim = edges.find((edge) => edge.id === op.edgeId);
       if (!victim) return { graph, rules, refused: `画布上没有「${op.edgeId}」这根杆。` };
       next.edges = edges.filter((edge) => edge.id !== op.edgeId);
+      // R3 修复：删杆级联清掉**显式挂在它身上**的载荷（atMember 指向它，放置器落的）。
+      // 只认显式挂靠、不做几何推断：骨架 / 快照载荷只有坐标（S3 刚体的载荷就画在
+      // 杆身上，W11 门禁「删主跨→补回→与快照逐位一致」要求它们活下来，补回即还原）。
+      // 显式载荷跟着杆走 —— 不清掉就是孤儿：列表还在、画布悬空箭头、reduce 归不出 a。
+      const orphanLoads = ATTACH_CONFIG.cascade
+        ? nodes.filter((node) => LOAD_NODE_KINDS.has(node.kind) && node.atMember === op.edgeId)
+        : [];
+      if (orphanLoads.length > 0) {
+        const dropped = new Set(orphanLoads.map((node) => node.id));
+        next.nodes = nodes.filter((node) => !dropped.has(node.id));
+      }
       // W17-C：删杆走 m = 2j−3 判据 —— 杆照删（节点是自由度载体不合并），
       // 但少于静定根数要说清楚：少杆桁架成机构，通解会拒答。
       let tail = '';
@@ -565,7 +707,8 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
         const twoJm3 = 2 * joints.size - 3;
         if (m < twoJm3) tail = `；判据：m = ${m} < 2j−3 = ${twoJm3}，少一根 —— 少杆桁架成机构，通解会拒答`;
       }
-      rules.push(`已删除构件 ${memberLabel(victim.id)}（${op.edgeId}）${tail}`);
+      const loadText = orphanLoads.length > 0 ? `，连带 ${orphanLoads.length} 个载荷（${orphanLoads.map((node) => node.label ?? node.id).join('、')}）` : '';
+      rules.push(`已删除构件 ${memberLabel(victim.id)}（${op.edgeId}）${loadText}${tail}`);
       return { graph: next, rules };
     }
     case 'setMemberProps': {
@@ -684,7 +827,7 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
       // 约束是什么」有唯一答案；坐标也就只有一份，不存在「支座飘在结点旁边」。
       const at = nodes.find((node) => node.id === op.atNodeId);
       if (!at || !isJoint(at)) {
-        return { graph, rules, refused: '支座必须挂在结点上：先在画布或左栏选中一个结点（点它一下），再加支座。' };
+        return { graph, rules, refused: '先选中一个结点，再加支座。' };
       }
       const kind = SUPPORT_KIND_OF[op.type];
       if (at.support) {
@@ -752,14 +895,14 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
       } else if (op.atNodeId) {
         const at = nodes.find((node) => node.id === op.atNodeId);
         if (!at || !isJoint(at)) {
-          return { graph, rules, refused: '载荷要落在结点上：先在画布或左栏选中一个结点；跨内载荷请选中一根构件。' };
+          return { graph, rules, refused: '先选中结点或构件，再加荷载。' };
         }
         x = at.x;
         y = at.y;
         atJoint = at.id;
         atJointName = jointName(at);
       } else {
-        return { graph, rules, refused: '载荷没有落点：先选中一个结点（结点载荷），或选中一根构件并按 t 放在跨内。' };
+        return { graph, rules, refused: '先选中结点或构件。' };
       }
       const dir = op.type === 'point' ? glyphRotOf(op.dir ?? 0) : 0;
       const id = freeId(nodes, `n-load-${nodes.filter((node) => LOAD_NODE_KINDS.has(node.kind)).length}`);
@@ -771,7 +914,11 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
           y,
           kind,
           rot: dir,
-          label: loadLabelOf(name, op.value, unit, atJoint ? { atJoint } : { t }),
+          // R-36：均布是「铺满整段」的整跨载荷（BeamModel 只有整跨 q），
+          // 标签里再挂一个 t=0.47 会让人误以为是局部段 —— 命中点只用来选杆，不是区间起点。
+          label: op.type === 'udl' && atMemberId
+            ? `${loadLabelOf(name, op.value, unit, {})} · 整跨`
+            : loadLabelOf(name, op.value, unit, atJoint ? { atJoint } : { t }),
           value: op.value,
           ...(atJoint ? { atJoint } : {}),
           ...(atMemberId ? { atMember: atMemberId } : {}),
@@ -810,6 +957,11 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
     case 'setLoadT': {
       const load = nodes.find((node) => node.id === op.nodeId);
       if (!load || !LOAD_NODE_KINDS.has(load.kind)) return { graph, rules, refused: '这条改动只对画布上的载荷生效。' };
+      // R-36：均布铺满整段，没有「跨内位置 t」。给它设 t 只会把标签写回
+      // 「t=0.47」并和规则里的「整跨」打架 —— 直接拒答，说清本模型的边界。
+      if (load.kind === 'udl') {
+        return { graph, rules, refused: '均布载荷是整跨的（q 铺满这一整段），没有跨内位置 t：本模型暂不支持局部区间均布。' };
+      }
       // R3-4 U1：载荷落过哪一段就以那一段为准（切段之后 mainSpanOf 只是第一段）。
       const ownEdge = load.atMember ? edges.find((edge) => edge.id === load.atMember) : undefined;
       const ownA = ownEdge && nodes.find((node) => node.id === ownEdge.from);
@@ -1198,8 +1350,8 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
       if (victim.compositeId) {
         return { graph, rules, refused: '复合器件的数值在内层器件上 —— 先摊开再改。' };
       }
-      if (!(Number.isFinite(op.value) && op.value > 0 && op.value <= 1e12)) {
-        return { graph, rules, refused: '数值要在 (0, 1e12] 里：负数 / 0 / 空都不收。' };
+      if (!valueInRange(victim.kind, op.value)) {
+        return { graph, rules, refused: valueRangeNote(victim.kind) };
       }
       if (!UNIT_OF[victim.kind]) {
         return {
@@ -1212,6 +1364,41 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
       victim.label = rewriteLabel(victim.kind, victim.label, op.value);
       // 不是结构改动：appliedRules 不新增，人话走 note（页面 toast 用）。
       return { graph: next, rules: [], note: `已把「${deviceName(victim.label, victim.kind)}」设为 ${formatValue(victim.kind, op.value)}${UNIT_OF[victim.kind]}` };
+    }
+    /* ── W24：器件模型参数（gm / ro / β / VA / Vf…）的可编辑入口 ────────
+       netSolve 的 npn / nmos 分支直接读 node.params，以前这张表只能由
+       applyParams 从骨架默认值写回；用户拿着一张没有 params 的管子时，
+       拒答说「缺 gm / ro」，界面却没有任何输入框能补。一条 op 写多个器件，
+       避免逐字段 mutate 基于同一份 ui 闭包互相覆盖。 */
+    case 'setDeviceParams': {
+      if (op.entries.length === 0) return { graph, rules, refused: '没有要写入的模型参数。' };
+      const targets = op.entries.map((entry) => ({ entry, node: nodes.find((one) => one.id === entry.nodeId) }));
+      for (const { entry, node } of targets) {
+        if (!node) return { graph, rules, refused: `画布上没有「${entry.nodeId}」这个器件。` };
+        if (node.compositeId) return { graph, rules, refused: '复合器件的模型参数在内层器件上 —— 先摊开再改。' };
+        const allowed = new Set(deviceParamFields(node).map((field) => field.key));
+        for (const [key, value] of Object.entries(entry.params ?? {})) {
+          if (!allowed.has(key)) return { graph, rules, refused: `「${key}」不是「${node.label ?? node.kind}」的模型参数。` };
+          if (!(Number.isFinite(value) && value > 0 && value <= 1e12)) {
+            return { graph, rules, refused: `${key} 要在 (0, 1e12] 里：负数 / 0 / 空都不收。` };
+          }
+        }
+        if (entry.value !== undefined && !(Number.isFinite(entry.value) && entry.value > 0 && entry.value <= 1e12)) {
+          return { graph, rules, refused: '器件数值要在 (0, 1e12] 里：负数 / 0 / 空都不收。' };
+        }
+      }
+      const written: string[] = [];
+      for (const { entry, node } of targets) {
+        if (!node) continue;
+        node.params = { ...(node.params ?? {}), ...(entry.params ?? {}) };
+        if (entry.value !== undefined) {
+          node.value = entry.value;
+          node.label = rewriteLabel(node.kind, node.label, entry.value);
+          written.push(`Ic=${formatValue(node.kind, entry.value)}`);
+        }
+        for (const [key, value] of Object.entries(entry.params ?? {})) written.push(`${key}=${value}`);
+      }
+      return { graph: next, rules: [], note: `已给 ${targets.length} 个器件补上模型参数：${written.join(' / ')}` };
     }
     case 'rotateDevice': {
       const victim = nodes.find((node) => node.id === op.nodeId);

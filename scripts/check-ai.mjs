@@ -65,8 +65,12 @@ const skHits = [];
 for (const file of files) {
   const name = file.slice(root.length).replace(/\\/g, '/');
   const text = readFileSync(file, 'utf8');
-  if (/https?:\/\//.test(text) && name !== 'src/core/ai/config.ts') leaky.push(name);
-  const count = (text.match(/sk-/g) ?? []).length;
+  /* XML 命名空间是标识符不是地址（`createElementNS('http://www.w3.org/2000/svg')`
+     一个包都不发）。剥掉再判，与 check-p0 的同名规则保持同一口径。 */
+  const withoutNs = text.replace(/https?:\/\/www\.w3\.org\/[\w./-]*/g, '');
+  if (/https?:\/\//.test(withoutNs) && name !== 'src/core/ai/config.ts') leaky.push(name);
+  // 词边界：`mask-image` 这类 CSS 属性里也有 sk- 三个字母，它不是密钥。
+  const count = (text.match(/\bsk-/g) ?? []).length;
   if (count > 0) skHits.push({ name, count });
 }
 ok('url', '①', leaky.length === 0, `config.ts 之外还有网址：${leaky.join(', ')}`);

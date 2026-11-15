@@ -109,6 +109,8 @@ export interface CanvasGraph {
 
 /** 装配操作：只允许这几种；拖坐标不允许（布局由既有布局函数给）。 */
 export type GraphOp =
+  /** 从零自建：一次性清掉所有图元（含说明文字 / 结点）与连线，保留本题参数表与求解器。 */
+  | { op: 'clearGraph' }
   | { op: 'deleteDevice'; nodeId: string }
   | {
       op: 'addDevice';
@@ -201,6 +203,15 @@ export type GraphOp =
     }
   /** W16：改任何器件的数值（node.value 是唯一真相，label 按 kind 重写成显示格式）。 */
   | { op: 'setDeviceValue'; nodeId: string; value: number }
+  /**
+   * W24：补 / 改器件的**模型参数**（gm / ro / β / VA / Vf…）。一次可写多个器件，
+   * 避免逐字段 mutate 时基于同一份 ui 闭包互相覆盖（一键标全踩过这个坑）。
+   * source='value' 的字段（npn 的 Ic）走 value，同时按 kind 重写 label。
+   */
+  | {
+      op: 'setDeviceParams';
+      entries: { nodeId: string; params?: Record<string, number>; value?: number }[];
+    }
   /** W17-C：改杆的截面属性（A 截面积 / I 惯性矩 / E 弹性模量，相对比例）。 */
   | { op: 'setMemberProps'; edgeId: string; A?: number; I?: number; E?: number }
   /** W16：器件转 90°（delta 缺省 90）；导线端点重新吸附到新引脚并 relayout。 */

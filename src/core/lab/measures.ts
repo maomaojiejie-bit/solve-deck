@@ -25,6 +25,9 @@ import type { FrameSolution } from './frameSolve.ts';
 import { frameSolve } from './frameSolve.ts';
 import type { CircuitSolution } from './netSolve.ts';
 import { valueFromLabel } from './picks.ts';
+import { displayLabels, shownId, shownMember } from './display.ts';
+import { formatScalar } from '../format.ts';
+import { getUnitMode } from '../units.ts';
 
 /**
  * W22-B 变异位：check:netsolve 把 preferNamedNet 关掉 = 输出网退回「|v| 最大」
@@ -108,6 +111,28 @@ function sectionOf(graph: CanvasGraph): Section {
   };
 }
 
+/** 1 / 2 / 2.5 / 5 × 10ⁿ 刻度步长（与 Chart.ticks 同一套「整齐」口径）。 */
+function niceStepOf(span: number, target = 6): number {
+  const rough = span / Math.max(target, 1);
+  if (!(rough > 0) || !Number.isFinite(rough)) return 1;
+  const mag = 10 ** Math.floor(Math.log10(rough));
+  const norm = rough / mag;
+  const mult = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10;
+  return mult * mag;
+}
+
+/**
+ * R3 修复：y 域不再按百分比随便垫，而是**向外吸附到刻度倍数**——
+ * 数据极值至少有一条刻度可对照（Qmax=50 以前悬在 40 之上、|M|max=44.9
+ * 只见 -40，读数全靠猜）。flat-zero（lo===hi）保持旧的 ±1 垫法。
+ */
+function niceDomain(lo: number, hi: number): [number, number] {
+  const span = hi - lo;
+  if (!(span > 0)) return [lo - 1, hi + 1];
+  const step = niceStepOf(span * 1.05, 6);
+  return [Math.floor(lo / step + 1e-9) * step, Math.ceil(hi / step - 1e-9) * step];
+}
+
 /**
  * W20：沿梁长的弯曲正应力 σ(x) = M(x)/W。
  * M 是 kN·m、W 是 mm³，换到 MPa 要 ×1e6（kN·m → N·mm）。
@@ -121,7 +146,6 @@ export function stressChart(frame: FrameSolution, W: number): ChartSpec | undefi
   const values = curves.flatMap((curve) => curve.samples.map((sample) => (sample.M * 1e6) / W));
   const lo = Math.min(0, ...values);
   const hi = Math.max(0, ...values);
-  const pad = hi - lo > 0 ? (hi - lo) * 0.1 : 1;
   return {
     id: 'section-stress',
     title: '应力分布 σ(x) = M(x) / W',
@@ -129,7 +153,7 @@ export function stressChart(frame: FrameSolution, W: number): ChartSpec | undefi
     xLabel: 'x (m)',
     yLabel: 'σ (MPa)',
     xDomain: [Math.min(...xs), Math.max(...xs)],
-    yDomain: [lo - pad, hi + pad],
+    yDomain: niceDomain(lo, hi),
     zeroLine: true,
     series: curves.map((curve) => ({
       kind: 'line' as const,
@@ -187,6 +211,17 @@ export function fmtMeasure(value: number | string, digits = 6): string {
   return String(rounded);
 }
 
+/**
+ * P0-④：带单位的读数也走「单位制」这一档 —— 结果表早就跟着切了，标题行
+ * （`|M|max = 20 kN·m`）以前是写死的，于是同一屏里 N 与 kN·m 混着出现。
+ * auto 档逐字沿用 fmtMeasure（几十条门禁断言的就是它），只有 si / eng 才换算。
+ */
+export function fmtMeasureUnit(value: number, unit: string): string {
+  const mode = getUnitMode();
+  if (mode === 'auto') return `${fmtMeasure(value)} ${unit}`;
+  return formatScalar(value, unit, mode);
+}
+
 /* ── 梁族 ─────────────────────────────────────────────────────── */
 
 /** 三联内力图（N / Q / M 共享 x 轴）：直接吃 frameSolve 的 memberCurves。
@@ -195,7 +230,6 @@ export function internalChart(frame: FrameSolution): ChartSpec | undefined {
   const curves = frame.memberCurves;
   const xs = curves.flatMap((curve) => curve.samples.map((sample) => sample.gx));
   const xDomain: [number, number] = xs.length > 0 ? [Math.min(...xs), Math.max(...xs)] : [0, 1];
-  const pad = (span: number) => (span > 0 ? span * 0.08 : 1);
   const panel = (
     id: string,
     title: string,
@@ -212,7 +246,7 @@ export function internalChart(frame: FrameSolution): ChartSpec | undefined {
       xLabel: 'x (m)',
       yLabel: unit,
       xDomain,
-      yDomain: [lo - pad(hi - lo), hi + pad(hi - lo)],
+      yDomain: niceDomain(lo, hi),
       zeroLine: true,
       series: curves.map((curve) => ({
         kind: 'line' as const,
@@ -370,6 +404,8 @@ function beamMeasures(graph: CanvasGraph, frame: FrameSolution): Measure[] {
   const section = sectionOf(graph);
   const measures: Measure[] = [];
   const members = frame.members ?? [];
+  // P0：结果区行名一律走图上标签（`n-sup-0` → `END-A · 固定铰`），不印内部 id。
+  const labels = displayLabels(graph);
 
   /* 支座反力 */
   if (frame.reactions.length > 0) {
@@ -377,7 +413,7 @@ function beamMeasures(graph: CanvasGraph, frame: FrameSolution): Measure[] {
       id: 'react',
       title: '支座反力（全局坐标，y 向上；力偶逆时针为正）',
       rows: frame.reactions.map((reaction) => ({
-        label: reaction.nodeId,
+        label: shownId(labels, reaction.nodeId),
         value: `Fx ${fmtMeasure(reaction.fx)} · Fy ${fmtMeasure(reaction.fy)} · Mz ${fmtMeasure(reaction.mz)}`,
       })),
     });
@@ -392,10 +428,14 @@ function beamMeasures(graph: CanvasGraph, frame: FrameSolution): Measure[] {
       id: 'internal',
       title: '内力（N 拉为正 / Q 顺时针为正 / M 下侧受拉为正）',
       headline: hasBending
-        ? `|M|max = ${fmtMeasure(frame.extremes.Mmax)} kN·m @ x = ${fmtMeasure(frame.extremes.atX)} m · |Q|max = ${fmtMeasure(frame.extremes.Qmax)} kN`
-        : `各构件轴力（桁架）：max |N| = ${fmtMeasure(Math.max(...frame.memberEndForces.map((member) => Math.max(Math.abs(member.N[0]), Math.abs(member.N[1]))), 0))} kN`,
+        ? `|M|max = ${fmtMeasureUnit(frame.extremes.Mmax, 'kN·m')} @ x = ${fmtMeasureUnit(frame.extremes.atX, 'm')} · |Q|max = ${fmtMeasureUnit(frame.extremes.Qmax, 'kN')}`
+        : `各构件轴力（桁架）：max |N| = ${fmtMeasureUnit(Math.max(...frame.memberEndForces.map((member) => Math.max(Math.abs(member.N[0]), Math.abs(member.N[1]))), 0), 'kN')}`,
       rows: frame.memberEndForces.map((member) => ({
-        label: member.edgeId,
+        label: shownMember(
+          labels,
+          member.edgeId,
+          members.find((item) => item.edgeId === member.edgeId),
+        ),
         value: `N ${fmtMeasure(member.N[0])}/${fmtMeasure(member.N[1])} · Q ${fmtMeasure(member.Q[0])}/${fmtMeasure(member.Q[1])} · M ${fmtMeasure(member.M[0])}/${fmtMeasure(member.M[1])}`,
       })),
       chart: internalChart(frame),

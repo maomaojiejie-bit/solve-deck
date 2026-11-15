@@ -87,6 +87,8 @@ const evaluate = async (expression) => {
 
 await send('Page.enable');
 await send('Runtime.enable');
+// headless 的默认 color-scheme 可能是 dark，会把「浅色版」拍成深色 —— 显式钉浅色
+await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
 
 async function viewport(width, height, mobile = false) {
   await send('Emulation.setDeviceMetricsOverride', {

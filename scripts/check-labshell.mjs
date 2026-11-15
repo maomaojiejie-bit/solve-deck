@@ -178,18 +178,21 @@ await send('Runtime.enable');
   await go('#/lab/t/M3');
   await sleepFor("document.querySelectorAll('[data-testid=param-row]').length > 0", 'M3 装配态');
 
+  // 三栏断言挂在 data-testid 上，不挂在标题文案上 —— 文案会随精简改动，结构不该跟着抖。
   const columns = await evaluate(`(() => {
-    const heads = [...document.querySelectorAll('main h2')].map((h) => h.innerText.trim());
-    return heads;
+    const ids = ['col-left', 'col-canvas', 'col-known'].map(
+      (id) => document.querySelector('[data-testid="' + id + '"]')?.innerText.trim() ?? null,
+    );
+    return { heads: [...document.querySelectorAll('main h2')].map((h) => h.innerText.trim()), ids };
   })()`);
   ok(
     '#/lab 三栏齐（装配 / 画布 / 已知量）',
-    ['装配（白名单内）', '画布（骨架 + 装配结果）', '确认已知量'].every((head) => columns.includes(head)),
+    columns.ids.every((head) => Boolean(head)) && columns.heads.length >= 3,
     JSON.stringify(columns),
   );
 
   const overflow = await evaluate(`(() => {
-    const left = [...document.querySelectorAll('main section')].find((s) => s.innerText.includes('装配（白名单内）'));
+    const left = [...document.querySelectorAll('main section')].find((s) => s.innerText.includes('装配'));
     if (!left) return null;
     return { scrollWidth: left.scrollWidth, clientWidth: left.clientWidth };
   })()`);

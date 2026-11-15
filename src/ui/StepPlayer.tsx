@@ -46,6 +46,9 @@ export function StepPlayer({
             value={stepIndex}
             onChange={(event) => onSeek(Number(event.target.value))}
             aria-label="步骤进度"
+            /* value 是 0 基索引，读屏会念成「3」而屏幕写「4 / 5 · 80%」——
+               把文字口径交给 aria-valuetext（巡检 P3）。 */
+            aria-valuetext={`第 ${stepIndex + 1} 步 / 共 ${stepCount} 步`}
             className="h-1 min-w-0 flex-1 accent-cyan"
           />
           <span className="w-12 shrink-0 text-right text-[11px] text-muted">

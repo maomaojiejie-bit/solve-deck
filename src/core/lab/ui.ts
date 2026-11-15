@@ -15,7 +15,7 @@ import { effectiveSemantic, semanticCheck, type SemanticCheck } from './semantic
 import { freshSkeleton } from './skeleton.ts';
 import { tierOf, genericVerdict, type LabVerdict } from './tiers.ts';
 import { PICKS } from './picks.ts';
-import { resolveLabSolve, supportOffJointProblems } from './resolve.ts';
+import { resolveLabSolve, supportOffJointProblems, noGroundProblems } from './resolve.ts';
 import { emptySession, wireClick, type PointerHit, type PointerSession } from './pointer.ts';
 import { relayout } from './pins.ts';
 import { countComposites, isBlockingProblem } from './composite.ts';
@@ -49,6 +49,7 @@ export const SUPPORT_FOLLOW_CONFIG = { follow: true, tolerance: 0.6 };
 
 /** 入栈的结构操作（W14 文档清单；addSupport/addLoad 是力学侧的 addDevice 同类，一并入栈）。 */
 export const UNDOABLE_OPS = new Set([
+  'clearGraph',
   'deleteDevice',
   'addDevice',
   'addEdge',
@@ -68,6 +69,8 @@ export const UNDOABLE_OPS = new Set([
   'setLoadT',
   // W16 三个缺失的操作：改值 / 旋转 / 删线都是可撤销的结构编辑。
   'setDeviceValue',
+  // W24：补模型参数（gm / ro…）也是一次可撤销的结构编辑。
+  'setDeviceParams',
   'rotateDevice',
   'deleteEdge',
   // W17-C：杆的截面属性（A / I / E）也是可撤销的结构编辑。
@@ -162,6 +165,20 @@ function verdictPreviewOf(
     };
   }
   const blocking = result.problems.filter(isBlockingProblem);
+  // 接地判据：与 resolveLabSolve 同源同话术 —— 删 gnd 后归约仍「无硬伤」，
+  // 以前这里会照旧给 F，屏幕上盖章、求解却拒答（自相矛盾）。
+  const noGnd = noGroundProblems(graph);
+  if (noGnd.length > 0) {
+    return {
+      tier: 'U',
+      headline: '本题解不动，不渲染数值',
+      detail: noGnd.join('；'),
+      substitute: [
+        { label: '恢复骨架重试', hash: '' },
+        { label: '换一个题型', hash: '#/lab' },
+      ],
+    };
+  }
   // W17-A：删即合并后的图拓扑合法但模板讲解稿不适用（solver 要求被合并器件 > 0）
   // → 档位与 resolve 的 generic 路由同源给 N，不再亮 F。
   if (blocking.length === 0 && graph.meta.healedSeries !== undefined) {
@@ -249,7 +266,12 @@ export function labUiStep(templateId: string, state: LabUiState, action: LabUiAc
       if (UNDO_CONFIG.respectLimit && undoStack.length > UNDO_LIMIT) undoStack = undoStack.slice(undoStack.length - UNDO_LIMIT);
       redoStack = [];
     }
-    const rules = [...state.rules, ...out.rules];
+    // R3 修复：参数实验场拖滑杆每次节流触发都 append 同一条「参数表改动已写回图」，
+    // 日志瞬间一大片重复行。这里对**连续重复**的 rule 去重（同一条不动图的话只留最新），
+    // 并把清单封顶在 40 条（保留最新的，更早的丢弃）—— 结构证据仍然逐条可查。
+    const rules = [...state.rules, ...out.rules]
+      .filter((rule, index, all) => index === 0 || rule !== all[index - 1])
+      .slice(-40);
     return {
       ...state,
       graph: out.graph,

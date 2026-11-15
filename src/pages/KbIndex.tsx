@@ -2,6 +2,7 @@
  * #/kb · 知识库索引（K4）：四科 × 章节；每行标 有图 / 有思路 / 可解题。
  * 纯读物页：不挂解题逻辑，只把人送到条目页。
  */
+import { useState } from 'react';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { KB } from '../kb/index.ts';
 import type { Subject } from '../kb/types.ts';
@@ -11,10 +12,22 @@ const SUBJECT_LABEL: Record<Subject, string> = {
   digital: '数字逻辑',
   mechanics: '材料力学',
   statics: '理论力学',
+  physics: '大学物理',
+  math: '高等数学',
+  programming: '程序设计 · C/C#',
 };
-const SUBJECT_ORDER: Subject[] = ['circuit', 'digital', 'mechanics', 'statics'];
+const SUBJECT_ORDER: Subject[] = ['circuit', 'digital', 'mechanics', 'statics', 'physics', 'math', 'programming'];
 
 export function KbIndex() {
+  /* 59 条摊在四科里，首页有搜索、这里却没有 —— 想找「卡诺图」只能靠滚。
+     给一个就地过滤：标题 / 一句话 / 章节 / id 都参与匹配，不改变分组结构。 */
+  const [keyword, setKeyword] = useState('');
+  const query = keyword.trim().toLowerCase();
+  const hits = query
+    ? KB.filter((entry) =>
+        [entry.title, entry.oneLine, entry.chapter, entry.id].join(' ').toLowerCase().includes(query),
+      )
+    : KB;
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
@@ -37,12 +50,43 @@ export function KbIndex() {
           知识库 · {KB.length} 条知识点
         </h1>
         <p className="mt-3 max-w-[52ch] text-[14px] leading-[1.6] text-muted">
-          每条给你四样东西：怎么下手、哪几个公式够用、一张图，还有容易踩的坑。
-          能算的题型点过去就替你选好；不能算的只讲，不硬凑。
+          每条给：怎么下手、用哪几个公式、一张图、容易踩的坑。
+          能算的题型可直接点进去算。
         </p>
 
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          <input
+            type="search"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            placeholder="按标题 / 章节 / 关键词过滤，如「卡诺图」「莫尔圆」"
+            aria-label="过滤知识库条目"
+            data-testid="kb-filter"
+            className="focus-ring w-full max-w-[420px] rounded border border-line bg-panel px-3 py-2 text-[13px] text-ink outline-none placeholder:text-faint focus:border-cyan/60"
+          />
+          <span className="text-[12px] text-faint" data-testid="kb-filter-count">
+            {query ? `匹配 ${hits.length} / ${KB.length} 条` : `共 ${KB.length} 条`}
+          </span>
+          {query ? (
+            <button
+              type="button"
+              onClick={() => setKeyword('')}
+              className="rounded border border-line px-2 py-1 text-[11px] text-muted hover:border-cyan/60"
+            >
+              清空
+            </button>
+          ) : null}
+        </div>
+
+        {query && hits.length === 0 ? (
+          <p data-testid="kb-filter-empty" className="mt-8 rounded border border-line bg-panel px-4 py-3 text-[13px] text-muted">
+            没有匹配「{keyword.trim()}」的条目。换个词试试（比如公式名、器件名、章节名），或者清空过滤看全部 {KB.length} 条。
+          </p>
+        ) : null}
+
         {SUBJECT_ORDER.map((subject) => {
-          const entries = KB.filter((entry) => entry.subject === subject);
+          const entries = hits.filter((entry) => entry.subject === subject);
+          if (entries.length === 0) return null;
           const chapters = [...new Set(entries.map((entry) => entry.chapter))];
           return (
             <section key={subject} className="mt-12">

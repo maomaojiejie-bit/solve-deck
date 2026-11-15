@@ -25,8 +25,63 @@ const AnalogSchematic = lazy(() =>
 const Chart = lazy(() => import('./Chart').then((module) => ({ default: module.Chart })));
 const Mohr = lazy(() => import('./Mohr').then((module) => ({ default: module.Mohr })));
 
+/** R-36 B2：图头给人话，不给学生念开发词。id 翻译表只收渲染侧真实用到的键；
+ *  没收到的 id 不再裸奔英文，退回用 type 的中文（再没有就不显示）——
+ *  data-spec-id / data-role 数据属性原样保留，门禁与自动化不受影响。 */
+const SPEC_ID_LABELS: Record<string, string> = {
+  internal: '内力图',
+  checks: '校核表',
+  pi: 'π 等效电路',
+  'pi-n-gnd': 'π 等效电路（含发射极地）',
+  thevenin: '戴维南等效',
+  'small-signal': '小信号等效',
+  'symbolic-equiv': '符号等效',
+  deflection: '挠曲线',
+  axial: '轴力图',
+  shear: '剪力图',
+  moment: '弯矩图',
+  torque: '扭矩图',
+  torsion: '扭转应力图',
+  stress: '应力图',
+  'section-stress': '弯曲应力图',
+  stability: '临界力',
+  react: '受力图',
+  vectors: '矢量图',
+  mohr: '莫尔圆',
+  beam: '内力图',
+  combined: '内力与应力',
+  truth: '真值表',
+  'truth-table': '真值表',
+  'state-table': '状态表',
+  states: '状态图',
+  kmap: '卡诺图',
+  wave: '波形图',
+  'timing-sim': '时序仿真',
+  numeric: '数制对照',
+  'radix-convert': '数制转换',
+  gain: '增益',
+};
+const SPEC_TYPE_LABELS: Record<string, string> = {
+  schematic: '电路图',
+  timing: '时序图',
+  karnaugh: '卡诺图',
+  state: '状态图',
+  beam: '内力图',
+  stress: '应力图',
+  mohr: '莫尔圆',
+  shaft: '扭矩图',
+  truss: '桁架图',
+  freebody: '受力图',
+  table: '真值表',
+  matrix: '数据表',
+};
+const specIdLabel = (id: string): string | undefined => SPEC_ID_LABELS[id];
+const specTypeLabel = (type: string): string | undefined => SPEC_TYPE_LABELS[type];
+
 const DIGITAL_KINDS = new Set(['and', 'or', 'not', 'xor', 'nand', 'nor', 'input', 'output']);
 const ACCENT = 'var(--schematic-active)';
+/** 零杆用赭色，和「当前步 / 选中」的钴蓝明确分开。 */
+const ZERO_COLOR = 'var(--sch-live)';
 
 const FIGURE_FALLBACK = (
   <div className="flex min-h-[200px] items-center justify-center text-xs text-muted">
@@ -72,6 +127,8 @@ export interface EditableCanvas {
   /** W16 导线选中：可点线体（世界坐标折线，6px 容差）+ 当前选中 id。 */
   wires?: { id: string; points: [number, number][] }[];
   selectedWireId?: string | null;
+  /** R-37 零杆高亮：需要描粗 + 打「零杆」标签的边 id（只画，不接收指针事件）。 */
+  highlightWires?: string[];
   /** 点中线体 / 点空白取消选中。引脚热区优先级高于线体（先画线体后画引脚）。 */
   onSelectWire?: (edgeId: string | null) => void;
   /**
@@ -401,6 +458,23 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
             />
           ))}
           {beamFamily ? memberHits : null}
+          {/* R-37 零杆高亮：描粗 + 标签，pointerEvents=none 不抢点选 / 拖动。 */}
+          {(canvas.highlightWires?.length ?? 0) > 0 ? (
+            <g pointerEvents="none" data-testid="zero-member-highlight">
+              {(canvas.wires ?? [])
+                .filter((wire) => canvas.highlightWires?.includes(wire.id) && wire.points.length >= 2)
+                .map((wire) => {
+                  const a = wire.points[0];
+                  const b = wire.points[wire.points.length - 1];
+                  return (
+                    <g key={wire.id}>
+                      <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={ZERO_COLOR} strokeWidth={12} strokeLinecap="round" opacity={0.3} />
+                      <text x={(a[0] + b[0]) / 2} y={(a[1] + b[1]) / 2 - 14} textAnchor="middle" fontSize={13} fill={ZERO_COLOR}>零杆</text>
+                    </g>
+                  );
+                })}
+            </g>
+          ) : null}
           {/* 拖动热区（在引脚下面，点击引脚时会优先命中 data-pin） */}
           {canvas.nodes.map((node) => (
             <circle
@@ -650,14 +724,22 @@ function Figure({ spec, stepIndex, liveSelection, canvas }: FigureProps) {
           <span className="rounded border border-line px-1.5 py-0.5 text-muted">
             {spec.role === 'primary' ? '主图' : '辅图'}
           </span>
-          <span className="text-ink">{spec.id}</span>
-          {/* id 与 type 同名时只印一次：否则 M6 的莫尔圆图头会写成「mohr mohr」 */}
-          {spec.id === spec.type ? null : <span className="text-muted">{spec.type}</span>}
+          {/* R-36 B2：图头不再对学生念开发词（main / freebody / primary）。
+              id 翻人话（未知 id 原样兜底，自建图元的名字不受影响）；type 只在
+              与 id 不同义时补一句中文；右侧裸 role（primary/secondary）删掉 ——
+              和左边的「主图 / 辅图」徽标重复。data-spec-id / data-role 保留，
+              门禁与自动化照旧走数据层。 */}
+          {spec.id === 'main'
+            ? null
+            : specIdLabel(spec.id)
+              ? <span className="text-ink">{specIdLabel(spec.id)}</span>
+              : specTypeLabel(spec.type)
+                ? <span className="text-ink">{specTypeLabel(spec.type)}</span>
+                : null}
           {spec.derivedFrom ? (
-            <span className="text-muted">← {spec.derivedFrom}</span>
+            <span className="text-muted">← 由{SPEC_ID_LABELS[spec.derivedFrom] ?? '原图'}推导</span>
           ) : null}
         </span>
-        <span className="text-muted">{spec.role}</span>
       </figcaption>
       <div className="min-w-0 flex-1 p-3">
         <Suspense fallback={FIGURE_FALLBACK}>

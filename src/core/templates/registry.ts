@@ -721,7 +721,7 @@ export const TEMPLATES: readonly TemplateEntry[] = [
     variants: [
       {
         id: 'M3-cantilever',
-        title: 'M3 · 悬臂梁（固定端 + 自由端集中力）',
+        title: 'M3 · 悬臂梁（固定端 + 跨中集中力 a=L/2）',
         short: '悬臂梁',
         config: 'cantilever',
         example: 'src/examples/M3-cantilever.json',

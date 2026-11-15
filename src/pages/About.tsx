@@ -24,8 +24,8 @@ const BOUNDARIES = [
   '纯前端静态站：无后端、无网络请求、无账号。',
   '只解静定 / 可解析题型：小信号 CE/CB/CC、CS/CG/CD，组合逻辑与卡诺图，M1–M8 材料力学，S1–S7 静力学。',
   '不做：超静定解析、弹塑性、大变形、时序仿真、任意网表、三维与动力学。',
-  '超静定直接拒绝：S1 的两个反例（pin+pin、双平行辊）让你亲眼看它拒绝 —— 页头红条写明「反例」，结果位一个反力数字都不印。',
-  '机构（几何可变）靠约束矩阵的秩判据识别，同样拒绝；不是「算出来一个很大的数」蒙过去。',
+  '超静定直接拒绝：反例页只给「为什么拒」，不印反力数字。',
+  '机构（几何可变）同样拒绝。',
   'M7 压杆稳定只在 λ ≥ λp 时给数；λ < λp 一律黄底拒绝作答，但会在 λ 轴上标出当前位置。',
   '每个结论都带六项校验；校验不过就不给结论。',
   '装配台只支持骨架 + 白名单器件：可装配的 16 个入口（含 M3 悬臂变体）逐型列在下面的覆盖账本里。',
@@ -115,7 +115,7 @@ export function About({ onBack }: AboutProps) {
         <section data-testid="kb-section">
           <h2 className="mb-2 text-[20px] font-medium text-ink">知识库</h2>
           <p className="max-w-[620px] text-[15px] leading-7 text-muted">
-            59 条知识点，电路、数字、材力、理力四科。每条给四样东西：怎么下手（解题思路）、
+            知识点覆盖电路、数字、材力、理力四科，另有大学物理 / 高数 / C·C# 基础扩展。每条给四样东西：怎么下手（解题思路）、
             哪几个公式够用、一张图、老师嘴上说过但书上不写的那种坑。能算的题型在条目页底部有按钮，
             点过去题型已经替你选好。搜索支持打错字——搜「莫而圆」也找得到莫尔圆。
           </p>
@@ -236,8 +236,8 @@ export function About({ onBack }: AboutProps) {
         <section className="rounded-xl border border-line bg-panel p-5">
           <h2 className="text-sm text-ink">技术与边界</h2>
           <p className="mt-2 text-[12px] text-ink">
-            它不假装什么都能算。超静定、空间力系、动力冲击、塑性大变形这类题，本工具直接说「不覆盖」；
-            不确定自己那道题在不在范围内，去 <a href="#/scope" className="text-cyan hover:underline">#/scope 六问判别</a> 走一遍。
+            超静定、空间力系、动力冲击、塑性大变形等不覆盖；
+            拿不准的题先去 <a href="#/scope" className="text-cyan hover:underline">#/scope 六问判别</a> 走一遍。
           </p>
           <ul className="mt-3 space-y-2 text-[11px] leading-5 text-muted">
             {BOUNDARIES.map((item) => (

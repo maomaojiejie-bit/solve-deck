@@ -3,7 +3,7 @@
  * 本批只有类型与空位：文案 K2 写、图 K3 出、页面 K4 建。
  */
 
-export type Subject = 'circuit' | 'digital' | 'mechanics' | 'statics';
+export type Subject = 'circuit' | 'digital' | 'mechanics' | 'statics' | 'physics' | 'math' | 'programming';
 
 export type KbFigure =
   | { kind: 'photo'; src: string; alt: string; caption: string; credit: string }

@@ -22,7 +22,7 @@ import { reduce } from './reduce.ts';
 import { isBlockingProblem } from './composite.ts';
 import { interpretQuestion, type Measure } from './measures.ts';
 import type { CanvasGraph, ReduceResult } from './types.ts';
-import { netSolve, type CircuitSolution, type NetSolveOptions, type NetSolveOutcome } from './netSolve.ts';
+import { netSolve, NO_GROUND_REASON, type CircuitSolution, type NetSolveOptions, type NetSolveOutcome } from './netSolve.ts';
 import { frameSolve, type FrameSolution } from './frameSolve.ts';
 
 export const RESOLVE_CONFIG = { genericOnMismatch: true };
@@ -172,21 +172,54 @@ function genericRoute(
   solved: { circuit?: CircuitSolution; frame?: FrameSolution },
   notices: string[],
   reason: 'skeleton' | 'unmodeled' | 'healed',
+  /** 图里少了关键器件（blocking 不为空）：算出来的增益是「残图的线性解」，
+   *  不是本题答案 —— 数值照给，但必须当场标明（巡检 B5：缺晶体管时印了个 Av=0）。 */
+  incomplete = false,
 ): LabSolveRoute {
   // W22-B：电路族的通用解一律按交流小信号口径 —— 图上有 C / L 时结果卡要说清。
   const acNotice =
     family === 'circuit' && graph.nodes.some((node) => node.kind === 'cap' || node.kind === 'ind')
       ? ['交流小信号口径：C 视为短路、L 视为开路 —— 增益等小信号量按这个口径现算']
       : [];
+  const measures = interpretQuestion(graph, family === 'beam' ? 'beam' : 'circuit', solved);
+  if (incomplete) {
+    for (const measure of measures) {
+      if (measure.id !== 'gain') continue;
+      measure.title = '电压增益（残图，不是答案）';
+      measure.tone = 'warn';
+      measure.note = `这张图缺关键器件，下面这个 Av 只是残图的线性解 —— 补回器件再求解才是本题答案。${measure.note ?? ''}`;
+    }
+  }
   return {
     kind: 'generic',
     family,
     circuit: solved.circuit,
     frame: solved.frame,
     notices: [...notices, ...acNotice],
-    measures: interpretQuestion(graph, family === 'beam' ? 'beam' : 'circuit', solved),
+    measures,
     reason,
   };
+}
+
+/**
+ * 电路族：画布上必须有接地符号。模板路径的 solver 只读归约出来的器件数值、
+ * 根本不看 gnd，所以删掉 gnd 后归约照旧齐全 → 走模板 → 屏幕上出数，
+ * 与通用路径的 noGround 拒答自相矛盾（同一个「没有参考点」的图，点空画布
+ * 拒答、删 gnd 却给数）。判据先于模板早退，覆盖全部路由。
+ *
+ * enforce 变异位：check:labresolve ⑧ 把它关掉 → 删 gnd 又照常出数，必红。
+ */
+export const GROUND_GATE_CONFIG = { enforce: true };
+
+/** 接地判据：电路族没有 gnd 符号时返回一句话（空数组 = 通过）。 */
+export function noGroundProblems(graph: CanvasGraph): string[] {
+  if (!GROUND_GATE_CONFIG.enforce) return [];
+  const family = PICKS[graph.templateId]?.family ?? graph.family;
+  if (family !== 'circuit') return [];
+  if (graph.nodes.some((node) => node.kind === 'gnd')) return [];
+  // 复合器件里带 gnd 的极少见；真带了就按「有地」放过，交给 netSolve 展开后再判。
+  if (graph.nodes.some((node) => node.compositeId && node.kind === 'gnd')) return [];
+  return [NO_GROUND_REASON];
 }
 
 export function resolveLabSolve(templateId: string, graph: CanvasGraph, rules: readonly string[] = []): LabSolveRoute {
@@ -194,6 +227,11 @@ export function resolveLabSolve(templateId: string, graph: CanvasGraph, rules: r
   const supportProblems = supportOffJointProblems(graph);
   if (supportProblems.length > 0) {
     return { kind: 'refused', code: 'supportOffJoint', reason: supportProblems.join('；') };
+  }
+  // A1 这一型的归约表不含 gnd：删地后仍「无硬伤」，模板路径会照常出数 —— 先拦。
+  const groundProblems = noGroundProblems(graph);
+  if (groundProblems.length > 0) {
+    return { kind: 'refused', code: 'noGround', reason: groundProblems.join('；') };
   }
   const result = reduce(templateId, graph, rules);
   const blocking = result.problems.filter(isBlockingProblem);
@@ -258,7 +296,7 @@ export function resolveLabSolve(templateId: string, graph: CanvasGraph, rules: r
   if (family === 'beam') {
     try {
       const frame = frameSolve(graph);
-      return genericRoute(graph, 'beam', { frame }, notices, 'skeleton');
+      return genericRoute(graph, 'beam', { frame }, notices, 'skeleton', true);
     } catch (error) {
       return {
         kind: 'refused',
@@ -273,7 +311,7 @@ export function resolveLabSolve(templateId: string, graph: CanvasGraph, rules: r
     notices.push(
       ...defaultedVsrc.map((id) => `电压源「${id}」画布上没标数值，按 1V 测试源求值（输出即增益/响应值）`),
     );
-    return genericRoute(graph, 'circuit', { circuit: outcome.solution }, notices, 'skeleton');
+    return genericRoute(graph, 'circuit', { circuit: outcome.solution }, notices, 'skeleton', true);
   }
   return { kind: 'refused', code: outcome.code, reason: outcome.reason };
 }

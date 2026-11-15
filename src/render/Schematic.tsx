@@ -62,10 +62,21 @@ function GateAccessory({ kind }: { kind: string }) {
 
 export function Schematic({ spec, activeIds, labels, liveIds }: SchematicProps) {
   if (spec.nodes.length === 0) {
+    /** 从零自建的起点：必须仍然给一张可点的 SVG 白纸。以前这里只返回
+     *  一个 div，SpecGrid 的 mainSvg() 拿到 null，力学「结点」放置器在空
+     *  画布上点一下什么都不会发生 —— 空态反而把唯一的新建入口堵死了。 */
     return (
-      <div className="flex min-h-[320px] items-center justify-center text-sm text-muted">
-        这张图没有 nodes
-      </div>
+      <svg
+        viewBox="0 60 800 580"
+        className="canvas-grid h-full w-full"
+        style={{ minHeight: 320 }}
+        role="img"
+        aria-label="空白画布：从零开始"
+      >
+        <text x="400" y="330" textAnchor="middle" fontSize="14" fill="var(--sch-label-idle)">
+          画布已空 · 用左侧的加入器件 / 放置器开始自建
+        </text>
+      </svg>
     );
   }
 
@@ -82,10 +93,14 @@ export function Schematic({ spec, activeIds, labels, liveIds }: SchematicProps) 
     return [node.y - box.h / 2, node.y + box.h / 2];
   });
   const pad = 56;
-  const minX = Math.min(...xs.flat()) - pad;
-  const maxX = Math.max(...xs.flat()) + pad;
-  const minY = Math.min(...ys.flat()) - pad;
-  const maxY = Math.max(...ys.flat()) + pad;
+  /** 从零自建时画布可能一个图元都没有（或只剩一行旧标注）：包围盒会退化成
+   *  Infinity / 一个字那么窄，既渲染不出来也没地方点。给一张固定白纸，
+   *  范围同时覆盖「加入器件」的默认落点 y=560 与力学结点的常用高度。 */
+  const bare = spec.nodes.every((node) => node.kind === 'text');
+  const minX = bare ? 0 : Math.min(...xs.flat()) - pad;
+  const maxX = bare ? 800 : Math.max(...xs.flat()) + pad;
+  const minY = bare ? 60 : Math.min(...ys.flat()) - pad;
+  const maxY = bare ? 640 : Math.max(...ys.flat()) + pad;
 
   const wires = spec.edges.flatMap((edge) => {
     const from = boxes.get(edge.from);

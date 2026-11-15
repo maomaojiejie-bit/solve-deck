@@ -296,7 +296,8 @@ function beamToGraph(templateId: string, beam: BeamModel, meta: Record<string, n
     const b = member ? beam.nodes.find((node) => node.id === member.to) : undefined;
     const at = beam.nodes.find((node) => node.id === load.at);
     const x = a && b && load.t !== undefined ? a.x + load.t * (b.x - a.x) : (at?.x ?? 0);
-    const y = at?.y ?? a?.y ?? 0;
+    // R-38：y 也沿构件方向插值，竖直杆上的载荷才会沿杆分开而不是堆成一个点。
+    const y = a && b && load.t !== undefined ? a.y + load.t * (b.y - a.y) : (at?.y ?? a?.y ?? 0);
     nodes.push({
       id: load.id,
       x,

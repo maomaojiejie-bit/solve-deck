@@ -140,7 +140,7 @@ ok('④', /href="#\/scope"/.test(scopeSource) || /#\/scope/.test(aboutSource), '
 ok('④', /href="#\/scope"/.test(solveSource), '#/solve 的拦截卡没有「去 #/scope」出口');
 ok('④', /href="#\/about"/.test(solveSource), '#/solve 的拦截卡没有能力边界出口');
 ok('④', /改写成覆盖内的题/.test(solveSource), '#/solve 的拦截卡没有「改写成覆盖内的题」出口');
-ok('④', aboutSource.includes('它不假装什么都能算。'), '#/about 少了那句「它不假装什么都能算。」');
+ok('④', /不覆盖/.test(aboutSource) && /超静定/.test(aboutSource), '#/about 没有如实写出能力边界（不覆盖 / 超静定）');
 ok('④', scopeSource.includes('它不假装什么都能算。'), '#/scope 页头少了那句「它不假装什么都能算。」');
 ok('④', /data-scope-q=/.test(scopeSource) && /data-scope-v=/.test(scopeSource), '六问没有可键盘定位的按钮标记');
 ok('④', /aria-pressed=/.test(scopeSource), '六问按钮没有 aria-pressed（键盘/读屏不好判断当前选项）');

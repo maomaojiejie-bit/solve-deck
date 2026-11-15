@@ -70,7 +70,7 @@ export const CANDIDATES: Record<string, readonly Candidate[]> = {
   ],
   M3: [
     snap('M3-SIMPLE', '简支', 'pin@0 + roller@L，弯矩在跨中最大', '△────P────○', 'M3', 'M3'),
-    snap('M3-CANT', '悬臂', '固定端 + 自由端集中力，固定端反力偶最大', '▌────────P↓', 'M3-cantilever', 'M3-cantilever'),
+    snap('M3-CANT', '悬臂', '固定端 + 跨中集中力（a=L/2），固定端反力偶最大', '▌────────P↓', 'M3-cantilever', 'M3-cantilever'),
     none('M3-OVERHANG', '带外伸', '支座外还有一段梁，反力与 M 图要另立分段', '△──○────P↓', '缺带外伸梁的已校验快照，不硬造'),
   ],
   S5: [

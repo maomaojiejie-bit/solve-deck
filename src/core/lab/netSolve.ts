@@ -31,6 +31,13 @@ import type { CanvasEdge, CanvasGraph, CanvasNode } from './types.ts';
 /** 变异开关：check:netsolve 第 6 条把它关掉 = 无地不再拒答 → 第 5 条红。 */
 export const NETSOLVE_CONFIG = { checkGround: true };
 
+/**
+ * 无地拒答的唯一话术。netSolve 与「先于模板早退」的接地判据（resolve.ts）共用
+ * —— 同一条规则两条路径不能有两套说法（A1 删 gnd 曾照常出数，就是路径漏了它）。
+ */
+export const NO_GROUND_REASON =
+  '画布上没有接地符号（gnd）：没有电位参考点，解不了 —— 从器件面板加一个「接地」，或恢复骨架。';
+
 /** 端点吸附容差：与 pins.ts 同一档。 */
 const TOL = 0.6;
 /** stub 接地的标注距离：与 graphFromSpec 的文字归属同一档。 */
@@ -80,6 +87,12 @@ export interface NetSolveOptions {
    * 装配台的增益 / Ri / Ro 类 measure 一律走 `ac`（resolve.ts 的 generic 路径）。
    */
   mode?: 'dc' | 'ac';
+  /**
+   * W23 自动等效电路：在指定电气点与地之间加一支测试电流源，用同一份 MNA 现算
+   * 端口的戴维南电阻（V = Vth − I·Rth）。amps > 0 = 从端口抽出电流。
+   * 不传时行为与以前逐位一致 —— 通用求解的既有调用方一个都不用改。
+   */
+  testCurrent?: { net: string; amps: number };
 }
 
 /**
@@ -417,7 +430,7 @@ export function netSolve(graph: CanvasGraph, options: NetSolveOptions = {}): Net
 
   // ① 无地拒答（地的语义 = gnd 符号；stub 只在有 gnd 时跟随）
   if (NETSOLVE_CONFIG.checkGround && !build.hasGnd) {
-    return refuse('noGround', '画布上没有接地符号（gnd）：没有电位参考点，解不了 —— 从器件面板加一个「接地」，或恢复骨架。');
+    return refuse('noGround', NO_GROUND_REASON);
   }
 
   const vt = options.vt ?? 0.026;
@@ -495,7 +508,7 @@ export function netSolve(graph: CanvasGraph, options: NetSolveOptions = {}): Net
         const beta = node.params?.beta;
         const va = node.params?.lambda ?? node.params?.VA;
         if (!(typeof ic === 'number' && ic > 0) || typeof beta !== 'number' || typeof va !== 'number') {
-          return refuse('unsupported', `晶体管「${node.label ?? id}」缺工作点参数（Ic / β / VA）：通用解按小信号 π 模型算，需要这三个值 —— 从题面确认后填进参数表。`);
+          return refuse('unsupported', `晶体管「${node.label ?? id}」缺工作点参数（Ic / β / VA）：通用解按小信号 π 模型算，需要这三个值 —— 点「恢复编辑，改结构」后选中该器件，在「模型参数」里按题面补上（Ic 就是器件行的数值框）；拒答条下方的补参面板也能一次填完。`);
         }
         const gm = ic / vt;
         const rpi = beta / gm;
@@ -509,7 +522,7 @@ export function netSolve(graph: CanvasGraph, options: NetSolveOptions = {}): Net
         const gm = node.params?.gm;
         const ro = node.params?.ro;
         if (typeof gm !== 'number' || typeof ro !== 'number') {
-          return refuse('unsupported', `MOS 管「${node.label ?? id}」缺小信号参数（gm / ro）：通用解按 π 模型算，需要这两个值。`);
+          return refuse('unsupported', `MOS 管「${node.label ?? id}」缺小信号参数（gm / ro）：通用解按 π 模型算，需要这两个值 —— 最快是点下方「补模型参数」直接填；也可以点「恢复编辑，改结构」后选中该器件，在「模型参数」里按题面补上。`);
         }
         addElement({ id: `x:${id}:ro`, kind: 'R', a: netOf(id, 'd') as string, b: netOf(id, 's') as string, value: ro }, id);
         addElement({ id: `x:${id}:gm`, kind: 'VCCS', a: netOf(id, 'd') as string, b: netOf(id, 's') as string, value: gm, control: { a: netOf(id, 'g') as string, b: netOf(id, 's') as string } }, id);
@@ -573,6 +586,16 @@ export function netSolve(graph: CanvasGraph, options: NetSolveOptions = {}): Net
   if (opamps.length > 0) {
     for (const opamp of opamps) {
       elements.push({ id: `opamp:${opamp.id}`, kind: 'V', a: opamp.out, b: groundNet, value: 0 });
+    }
+  }
+  // W23：测试电流源只在这里 stamp 一次，与 R / V / VCCS 共用同一个方程，
+  // 等效电路的 Vth / Rth 因此不是「另写一套公式估的」，而是这张图的同一份解。
+  let testCurrent: { net: string; amps: number } | null = null;
+  if (options.testCurrent && Number.isFinite(options.testCurrent.amps) && options.testCurrent.amps !== 0) {
+    const net = resolveNet(options.testCurrent.net);
+    if (net && net !== groundNet) {
+      testCurrent = { net, amps: options.testCurrent.amps };
+      elements.push({ id: 'x:equiv-test', kind: 'I', a: net, b: groundNet, value: testCurrent.amps });
     }
   }
   const circuit: AnalogCircuit = { nodes: netNames, ground: groundNet, elements };
@@ -659,6 +682,8 @@ export function netSolve(graph: CanvasGraph, options: NetSolveOptions = {}): Net
   const powers: Record<string, number> = {};
   /** KCL 用：每条 primitive 元件的电流（a→b 为正）。 */
   const elementCurrents: { a: string; b: string; i: number }[] = [];
+  // W23：测试源也是真实元件，逐网 KCL 必须把它算进去，否则带测试解会留一个人造残差。
+  if (testCurrent) elementCurrents.push({ a: testCurrent.net, b: groundNet, i: testCurrent.amps });
   const deviceById = new Map(deviceNodes.map((node) => [node.id, node]));
 
   for (const node of deviceNodes) {

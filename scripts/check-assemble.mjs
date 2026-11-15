@@ -27,9 +27,11 @@ import { P_OVERRIDE_CONFIG } from '../src/core/lab/params.ts';
 import { reduce, REDUCE_CONFIG } from '../src/core/lab/reduce.ts';
 import { applyOp } from '../src/core/lab/ops.ts';
 import { netSolve } from '../src/core/lab/netSolve.ts';
+import { deriveCircuitEquivalent } from '../src/core/lab/equivalent.ts';
 import { pinAt } from '../src/render/symbols.ts';
 import { createUiState, labUiClick, labUiStep, UNDO_CONFIG, SUPPORT_FOLLOW_CONFIG } from '../src/core/lab/ui.ts';
 import { resolveLabSolve, SUPPORT_PIN_CONFIG } from '../src/core/lab/resolve.ts';
+import { missingModelParams, DEVICE_PARAM_FIELDS } from '../src/core/lab/deviceParams.ts';
 import { labDraftFromAIDraft } from '../src/core/ai/labDraft.ts';
 import { defaultValues, freshSkeleton, labSkeletonSpec } from '../src/core/lab/skeleton.ts';
 import {
@@ -43,7 +45,7 @@ import { findAnchor, snapAnchor, snapGrid, anchorsOfNode, anchorsOf } from '../s
 import { validateWire, DUPLICATE_WIRE, SAME_POINT, SELF_LOOP, PIN_HINT } from '../src/core/lab/wiring.ts';
 import { candidateDefaults, candidatesFor, CANDIDATES } from '../src/core/lab/candidates.ts';
 import { mergeOverrides, parseParamOverrides } from '../src/core/lab/params.ts';
-import { CRITICAL_SEMANTICS, SEMANTIC_OPTIONS } from '../src/core/lab/semantics.ts';
+import { CRITICAL_SEMANTICS, SEMANTIC_OPTIONS, semanticCheck, suggestSemantics } from '../src/core/lab/semantics.ts';
 import { SUPPORTED_IDS } from '../src/core/lab/ids.ts';
 import { HEAL_CONFIG } from '../src/core/lab/heal.ts';
 import { netSolveOptionsFor } from '../src/core/lab/resolve.ts';
@@ -1270,6 +1272,360 @@ function endpointReachesDevice(graph, x, y, tol = 0.6) {
 }
 }
 
+/* ── ㉛ 难题体验护栏（W23）：一键标全语义 / 多源参数写入 / 直达 UI ──────────
+ *  变异哨兵：把 suggestSemantics 删掉 → ①② 红；把 applyParams 的
+ *  「多源也写」改回单源 → ③ 红；把两个一键按钮删掉 → ④ 红。 */
+{
+  const a3 = freshSkeleton('A3', a3Spec);
+  const sug = suggestSemantics('A3', a3);
+  ok('㉛', sug.length === 3 && new Set(sug.map((s) => s.nodeId)).size === 3,
+    `㉛① 一键标全应给 3 个不同器件，实际 ${JSON.stringify(sug)}`);
+  ok('㉛', ['bias', 'coupling', 'load'].every((tag) => sug.some((s) => s.semantic === tag)),
+    '㉛① 建议表没覆盖 A3 的三个关键角色');
+  let marked = createUiState('A3', a3);
+  for (const s of sug) {
+    marked = labUiStep('A3', marked, { type: 'op', op: { op: 'setSemantic', nodeId: s.nodeId, semantic: s.semantic } });
+  }
+  ok('㉛', semanticCheck('A3', marked.graph).state === 'pass', '㉛② 走建议表标注后 semantic 没过（一键升不了 F 档）');
+  ok('㉛', semanticCheck('A3', a3).state === 'skipped', '㉛② 骨架本身仍应未标语义（N 档起步，不放水）');
+  console.log(`㉛② 建议表：${sug.map((s) => `${s.nodeId}→${s.semantic}`).join(' / ')}`);
+
+  const a5snap = JSON.parse(readFileSync(join(root, 'src', 'examples', 'A5.json'), 'utf8'));
+  const a5Base = freshSkeleton('A5', labSkeletonSpec('A5', a5snap.render_specs[0]));
+  const a5Changed = applyParams('A5', a5Base, { ...defaultValues('A5'), gm: 0.002 });
+  const gmAfter = reduce('A5', a5Changed).params.gm;
+  ok('㉛', rel(Number(gmAfter ?? 0), 0.002) < 1e-12,
+    `㉛③ A5 的 gm 是 M/Q 双源 deviceParam，改 0.002 后归约仍是 ${gmAfter}（参数被静默丢掉）`);
+  console.log(`㉛③ A5 gm 双源写入：${gmAfter}`);
+
+  const labSrc = readFileSync(join(root, 'src', 'pages', 'Lab.tsx'), 'utf8');
+  const qfSrc = readFileSync(join(root, 'src', 'ui', 'QuickFill.tsx'), 'utf8');
+  ok('㉛', labSrc.includes('data-testid="confirm-all"') && labSrc.includes('data-testid="mark-all-semantics"'),
+    '㉛④ 装配台缺一键确认 / 一键标全语义入口');
+  ok('㉛', /result\.values\[key\]/.test(qfSrc) && /open=\{open\}/.test(qfSrc),
+    '㉛④ 快填没用推导值实时显示，或收起态仍渲染控件');
+  console.log('㉛④ UI 直达入口与快填实时推导：源码护栏就位');
+}
+
+/* ── ㉜ 从零自建护栏（W23）：删空骨架后自己搭电路必须能求对 ──────────────
+ *  变异哨兵：把 addEdge 的折线候选改回「只走先竖后横」→ ① 红；
+ *  把 clearGraph 删掉 / 空图 viewBox 兜底删掉 → ②③ 红。 */
+{
+  const scratch = {
+    family: 'circuit',
+    nodes: [
+      { id: 'n-add-1', kind: 'vsrc', label: 'V', value: 5, x: 230, y: 560 },
+      { id: 'n-add-2', kind: 'res', label: 'R', value: 1000, x: 340, y: 560 },
+      { id: 'n-add-3', kind: 'res', label: 'R', value: 1000, x: 450, y: 560 },
+      { id: 'n-add-4', kind: 'gnd', label: '接地', x: 560, y: 560 },
+    ],
+    edges: [],
+    meta: {},
+  };
+  const links = [
+    ['n-add-1:p', 'n-add-2:a'],
+    ['n-add-2:b', 'n-add-3:a'],
+    ['n-add-3:b', 'n-add-1:n'],
+    ['n-add-1:n', 'n-add-4:t'],
+  ];
+  let built = scratch;
+  for (const [from, to] of links) {
+    const out = applyOp('A3', built, { op: 'addEdge', from, to });
+    ok('㉜', !out.refused, `㉜① 自建连线 ${from}→${to} 被拒：${out.refused}`);
+    built = out.graph;
+  }
+  const solved = netSolve(built);
+  ok('㉜', solved.ok, `㉜① 自建分压器被通用求解拒答：${solved.code} ${solved.reason ?? ''}`);
+  if (solved.ok) {
+    const volts = Object.values(solved.solution.nodeVoltages);
+    const currents = Object.values(solved.solution.branchCurrents).map(Math.abs);
+    ok('㉜', volts.some((v) => rel(v, 2.5) < 1e-9), `㉜① 中点电压应为 2.5 V，实际 ${JSON.stringify(volts)}`);
+    ok('㉜', currents.some((i) => rel(i, 0.0025) < 1e-9), `㉜① 支路电流应为 2.5 mA，实际 ${JSON.stringify(currents)}`);
+    ok('㉜', rel(solved.solution.residual.kclMax, 0) < 1e-9, '㉜① KCL 残差不为 0');
+  }
+  console.log('㉜① 从零搭 5V / 1k / 1k / GND：折线自动避开器件本体 → 2.5 V · 2.5 mA · KCL 0');
+
+  const cleared = applyOp('A3', built, { op: 'clearGraph' });
+  ok('㉜', cleared.graph.nodes.length === 0 && cleared.graph.edges.length === 0,
+    `㉜② 清空画布后仍有图元：${cleared.graph.nodes.length} 节点 / ${cleared.graph.edges.length} 边`);
+  let previewOk = true;
+  try { reduce('A3', cleared.graph, cleared.rules); } catch { previewOk = false; }
+  ok('㉜', previewOk, '㉜② 空图归约预览抛异常（清空后页面会崩）');
+  console.log('㉜② 清空画布：节点 / 边 / 旧标注一并清掉，空图归约不崩');
+
+  const labSrc2 = readFileSync(join(root, 'src', 'pages', 'Lab.tsx'), 'utf8');
+  const schSrc = readFileSync(join(root, 'src', 'render', 'Schematic.tsx'), 'utf8');
+  ok('㉜', labSrc2.includes('data-testid="clear-canvas"') && labSrc2.includes('data-testid="empty-canvas-hint"'),
+    '㉜③ 缺一键清空画布 / 空态引导');
+  ok('㉜', /const bare = spec\.nodes\.every/.test(schSrc) && /bare \? 0/.test(schSrc),
+    '㉜③ 画布包围盒没给空图兜底（viewBox 会变 Infinity）');
+  console.log('㉜③ UI：清空画布 + 空态引导 + 空图 viewBox 兜底就位');
+}
+
+/* ── ㉝ 自建图解护栏（W23）：通用求解不能只剩数值表，等效电路不许伪造 ─────── */
+{
+  const genSrc = readFileSync(join(root, 'src', 'ui', 'GenericResult.tsx'), 'utf8');
+  const labSrc3 = readFileSync(join(root, 'src', 'pages', 'Lab.tsx'), 'utf8');
+  const tierSrc = readFileSync(join(root, 'src', 'core', 'lab', 'tiers.ts'), 'utf8');
+  ok('㉝', genSrc.includes('data-testid="generic-graph-diagram"') && /<SpecGrid specs=\{\[graphSpec\]\}/.test(genSrc),
+    '㉝① 通用结果卡没有按自建图现画的原图图解');
+  ok('㉝', /graphSpec=\{graph \? graphToSpec\(graph, specType\) : null\}/.test(labSrc3),
+    '㉝① 装配台没把当前画布传给通用结果卡（会画成旧骨架）');
+  // 断言挂在结构上（两个独立区块 + 原图标注），不挂在标题文案上：文案会随精简改动。
+  ok('㉝', /不是等效电路/.test(genSrc) && /data-testid="generic-graph-diagram"/.test(genSrc) && /data-testid="equivalent-circuit"/.test(genSrc),
+    '㉝② 自建原图与等效电路没分成两块（原图须标「不是等效电路」，等效须独立成区）');
+  ok('㉝', /nTier \? base\.render_specs\.filter\(\(spec\) => !spec\.derivedFrom\)/.test(labSrc3),
+    '㉝② N 档又渲染了 derivedFrom 等效图（语义未确认却假装有）');
+  ok('㉝', /在归约预览点「按拓扑标全」/.test(labSrc3) && /在归约预览点「按拓扑标全」/.test(tierSrc),
+    '㉝③ N 档横幅 / 第 4 帧没告诉用户怎么升 F 档看等效电路');
+  console.log('㉝ 自建图解：原图随解重画 · 等效电路不伪造 · N 档给可操作提示');
+}
+
+/* ── ㉞ 自动等效电路护栏（W23）：数值与独立手算对账、图解不伪造 ──────────
+ *  变异哨兵：把 netSolve 的 `x:equiv-test` stamp 删掉 → ②③ 红；
+ *  把 equivalent.ts 的 (vm−vp)/2 改成 vm−vp → ② 红；
+ *  把 tag 端口优先去掉 → ① 里 label 不再含 Vout。 */
+{
+  const graph = {
+    templateId: 'divider',
+    family: 'circuit',
+    nodes: [
+      { id: 'n-v', x: 0, y: 100, kind: 'vsrc', label: 'Vs 5V', value: 5 },
+      { id: 'n-r1', x: 100, y: 56, kind: 'res', label: 'R1 1k', value: 1000 },
+      { id: 'n-r2', x: 260, y: 56, kind: 'res', label: 'R2 1k', value: 1000 },
+      { id: 'n-gnd', x: 180, y: 144, kind: 'gnd', label: '' },
+    ],
+    edges: [
+      { id: 'e1', from: '0,56', to: '56,56', kind: 'wire', points: [[0, 56], [56, 56]] },
+      { id: 'e2', from: '144,56', to: '216,56', kind: 'wire', points: [[144, 56], [216, 56]], tag: 'Vout' },
+      { id: 'e3', from: '304,56', to: '180,144', kind: 'wire', points: [[304, 56], [304, 144], [180, 144]] },
+      { id: 'e4', from: '0,144', to: '180,144', kind: 'wire', points: [[0, 144], [180, 144]] },
+    ],
+    meta: {},
+  };
+  const solved = netSolve(graph);
+  ok('㉞', solved.ok, `㉞① 5V/1k/1k 分压器被拒答：${solved.ok ? '' : `${solved.code} ${solved.reason ?? ''}`}`);
+  if (solved.ok) {
+    const eq = deriveCircuitEquivalent(graph, solved.solution);
+    ok('㉞', eq.ports.length >= 2, `㉞① 端口候选应至少 2 个（中点 + 电源端），实际 ${eq.ports.length}`);
+    const mid = eq.ports[0];
+    ok('㉞', /Vout/.test(mid.label), `㉞① 画布打了 Vout 的导线没被选成首选端口：${mid.label}`);
+    // 独立手算：Vth = 5·1k/(1k+1k) = 2.5V；Rth = 1k∥1k = 500Ω；I_N = 5mA。
+    ok('㉞', rel(mid.vth, 2.5) < 1e-9 && rel(mid.rth, 500) < 1e-9 && mid.inorton !== null && rel(mid.inorton, 0.005) < 1e-9,
+      `㉞② Vth/Rth/I_N 与手算不符：${mid.vth} / ${mid.rth} / ${mid.inorton}`);
+    ok('㉞', mid.linearResidual < 1e-9, `㉞② ±1A 测试解与当前解不自洽：残差 ${mid.linearResidual}`);
+    const spec = mid.spec;
+    const specJson = JSON.stringify(spec);
+    ok('㉞', spec.derivedFrom === 'main' && spec.role === 'secondary' && spec.type === 'schematic' &&
+      spec.nodes.some((n) => n.kind === 'vsrc') && spec.nodes.some((n) => n.kind === 'res') && spec.nodes.some((n) => n.kind === 'gnd') &&
+      spec.edges.length >= 2 && !/NaN|Infinity/.test(specJson),
+      '㉞③ 戴维南图不是可渲染的 RenderSpec（缺图元 / 有 NaN / 没标 derivedFrom）');
+    ok('㉞', /Vth 2\.5 V/.test(specJson) && /Rth 500 Ω/.test(specJson) && /I_N = 5 mA/.test(specJson),
+      '㉞③ 等效图上没写清 Vth / Rth / I_N');
+    const ideal = eq.ports.find((port) => Math.abs(port.rth) < 1e-9);
+    ok('㉞', !!ideal && ideal.inorton === null && !ideal.spec.nodes.some((n) => n.kind === 'res'),
+      '㉞③ 电源端 Rth≈0 没按「理想电压源」处理（画了个 0Ω 电阻或给了假 I_N）');
+    // 测试电流源必须 stamp 进同一份 MNA，且逐网 KCL 把它算进去。
+    const plus = netSolve(graph, { testCurrent: { net: mid.net, amps: 1 } });
+    const minus = netSolve(graph, { testCurrent: { net: mid.net, amps: -1 } });
+    ok('㉞', plus.ok && minus.ok &&
+      rel(plus.solution.nodeVoltages[mid.net], 2.5 - 500) < 1e-9 &&
+      rel(minus.solution.nodeVoltages[mid.net], 2.5 + 500) < 1e-9,
+      '㉞② ±1A 测试电流没按 V = Vth − I·Rth 生效');
+    ok('㉞', plus.ok && minus.ok && plus.solution.residual.kclMax < 1e-9 && minus.solution.residual.kclMax < 1e-9,
+      '㉞② 测试源没计入逐网 KCL，带测试解留了人造残差');
+    console.log('㉞① 自建 5V/1k/1k：Vout 端口优先 → Vth 2.5V · Rth 500Ω · I_N 5mA · 残差 0');
+    console.log('㉞② ±1A 测试电流与同一份 MNA 线性对账，KCL 残差 0');
+  }
+
+  // A3 骨架：输出电阻手算 Rc∥Rl∥ro，器件级 π 模型数值与 netSolve 同公式。
+  const a3Graph = freshSkeleton('A3', a3Spec);
+  const a3Solved = netSolve(a3Graph, { vsrcValues: { 'n-vs': 1 } });
+  ok('㉞', a3Solved.ok, `㉞④ A3 骨架被拒答：${a3Solved.ok ? '' : a3Solved.reason}`);
+  if (a3Solved.ok) {
+    const a3Eq = deriveCircuitEquivalent(a3Graph, a3Solved.solution);
+    const out = a3Eq.ports.find((port) => /Vo|Vout/.test(port.label)) ?? a3Eq.ports.find((port) => /Rc/.test(port.label));
+    const hand = 1 / (1 / 2000 + 1 / 10000 + 1 / 100000);
+    ok('㉞', !!out && rel(out.rth, hand) < 1e-9, `㉞④ A3 输出 Rth 应 = Rc∥Rl∥ro = ${hand}，实际 ${out?.rth}`);
+    ok('㉞', a3Eq.smallSignal.length === 1, `㉞④ A3 应给出 1 张器件级 π 模型，实际 ${a3Eq.smallSignal.length}`);
+    const model = a3Eq.smallSignal[0];
+    ok('㉞', !!model && model.rows.some((r) => /2\.6 kΩ/.test(r.value)) && model.rows.some((r) => /38\.462 mS/.test(r.value)) &&
+      model.spec.nodes.some((n) => n.kind === 'ctrlsrc') && !/NaN|Infinity/.test(JSON.stringify(model.spec)),
+      '㉞④ π 模型数值 / 三件套图元不对（gm=Ic/Vt、rπ=β/gm、ro=VA/Ic）');
+    console.log(`㉞④ A3：输出 Rth ${out?.rth} = Rc∥Rl∥ro，π 模型 rπ/gm/ro 与求解器同源`);
+  }
+
+  const eqSrc = readFileSync(join(root, 'src', 'core', 'lab', 'equivalent.ts'), 'utf8');
+  const nsSrc = readFileSync(join(root, 'src', 'core', 'lab', 'netSolve.ts'), 'utf8');
+  const genSrc4 = readFileSync(join(root, 'src', 'ui', 'GenericResult.tsx'), 'utf8');
+  const labSrc4 = readFileSync(join(root, 'src', 'pages', 'Lab.tsx'), 'utf8');
+  ok('㉞', /const rth = \(vm - vp\) \/ 2/.test(eqSrc) && /x:equiv-test/.test(nsSrc) && /testCurrent/.test(nsSrc),
+    '㉞⑤ 等效参数不是由同一份 MNA 的 ±1A 测试源解出的');
+  ok('㉞', genSrc4.includes('data-testid="equivalent-circuit"') && genSrc4.includes('data-testid="equivalent-port-select"') &&
+    genSrc4.includes('data-testid="equivalent-small-signal"') && genSrc4.includes('data-testid="equivalent-ac"'),
+    '㉞⑤ 通用结果卡没有自动等效电路区（端口等效 / 端口切换 / π 模型 / 整图微变等效）');
+  ok('㉞', /deriveCircuitEquivalent\(graph, route\.circuit\)/.test(labSrc4) && /equivalent=\{generic\.equivalent\}/.test(labSrc4),
+    '㉞⑤ 装配台没把等效结果接到通用结果卡');
+  console.log('㉞⑤ 源码护栏：同源 MNA 推导 / 端口切换 / π 模型 / 结果卡接线就位');
+}
+
+/* ── ㉟ 器件模型参数护栏（W24）：拒答「缺 gm / ro」必须有地方补 ──────────
+ *  变异哨兵：把 deviceParams.ts 的 required 删掉 → ① 红（扫不出缺参器件）；
+ *  把 setDeviceParams 从 UNDOABLE_OPS 拿掉 → ⑤ 红；把自动重解摘掉 → ⑦ 红。 */
+{
+  const a5Spec = JSON.parse(readFileSync(join(root, 'src', 'examples', 'A5.json'), 'utf8')).render_specs[0];
+  const solveG = (g) => netSolve(g, netSolveOptionsFor(g).options);
+  const good = freshSkeleton('A5', a5Spec);
+  const baseline = solveG(good);
+  const naked = structuredClone(good);
+  const mosId = naked.nodes.find((node) => node.kind === 'nmos').id;
+  delete naked.nodes.find((node) => node.id === mosId).params;
+
+  const refused = solveG(naked);
+  const missing = missingModelParams(naked);
+  ok('㉟', refused.ok === false && /缺小信号参数/.test(refused.reason ?? ''),
+    `㉟① 无 params 的 MOS 应被拒答：${refused.ok ? '居然解出了' : refused.reason}`);
+  ok('㉟', missing.length === 1 && missing[0].fields.map((f) => f.key).join(',') === 'gm,ro',
+    '㉟① 缺参扫描没列出 gm / ro（拒答时用户仍不知道要补什么）');
+
+  const filled = applyOp('A5', naked, { op: 'setDeviceParams', entries: [{ nodeId: mosId, params: { gm: 0.001, ro: 5e6 } }] });
+  ok('㉟', !filled.refused, `㉟② 补参 op 被拒：${filled.refused}`);
+  const after = solveG(filled.graph);
+  ok('㉟', baseline.ok && after.ok && Object.keys(baseline.solution.nodeVoltages).every(
+    (key) => Math.abs(after.solution.nodeVoltages[key] - baseline.solution.nodeVoltages[key]) < 1e-12,
+  ), '㉟② 补参后没解出，或与带 params 的原始图数值不一致');
+  ok('㉟', missingModelParams(filled.graph).length === 0, '㉟② 补完后仍被判缺参');
+
+  for (const [name, entry] of [
+    ['0', { nodeId: mosId, params: { gm: 0 } }],
+    ['负数', { nodeId: mosId, params: { gm: -1 } }],
+    ['未知字段', { nodeId: mosId, params: { nonsense: 1 } }],
+    ['不存在的器件', { nodeId: 'n-nope', params: { gm: 1 } }],
+  ]) {
+    const out = applyOp('A5', naked, { op: 'setDeviceParams', entries: [entry] });
+    ok('㉟', !!out.refused, `㉟③ 非法输入「${name}」没被挡住`);
+  }
+
+  const a3Spec2 = JSON.parse(readFileSync(join(root, 'src', 'examples', 'A3.json'), 'utf8')).render_specs[0];
+  const npnGraph = structuredClone(freshSkeleton('A3', a3Spec2));
+  const q = npnGraph.nodes.find((node) => node.kind === 'npn');
+  delete q.params;
+  q.value = undefined;
+  ok('㉟', solveG(npnGraph).ok === false && missingModelParams(npnGraph).some(
+    (item) => item.fields.map((f) => f.key).join(',') === 'value,beta,lambda',
+  ), '㉟④ npn 缺 Ic / β / VA 时没把三项都列出来');
+  const npnFilled = applyOp('A3', npnGraph, {
+    op: 'setDeviceParams',
+    entries: [{ nodeId: q.id, params: { beta: 100, lambda: 100 }, value: 1e-3 }],
+  });
+  ok('㉟', !npnFilled.refused && npnFilled.graph.nodes.find((n) => n.id === q.id).value === 1e-3 && solveG(npnFilled.graph).ok,
+    '㉟④ npn 的 Ic 没写进 node.value，或补齐后仍解不出');
+
+  let state = createUiState('A5', naked);
+  state = labUiStep('A5', state, { type: 'op', op: { op: 'setDeviceParams', entries: [{ nodeId: mosId, params: { gm: 0.001, ro: 5e6 } }] } });
+  const undoLen = state.undoStack.length;
+  state = labUiStep('A5', state, { type: 'undo' });
+  ok('㉟', undoLen === 1 && missingModelParams(state.graph).length === 1,
+    '㉟⑤ 补参数没进撤销栈，或撤销后没回到缺参状态');
+
+  const dpSrc = readFileSync(join(root, 'src', 'core', 'lab', 'deviceParams.ts'), 'utf8');
+  const typeSrc = readFileSync(join(root, 'src', 'core', 'lab', 'types.ts'), 'utf8');
+  const opsSrc = readFileSync(join(root, 'src', 'core', 'lab', 'ops.ts'), 'utf8');
+  const uiSrc = readFileSync(join(root, 'src', 'core', 'lab', 'ui.ts'), 'utf8');
+  const labSrc5 = readFileSync(join(root, 'src', 'pages', 'Lab.tsx'), 'utf8');
+  const nsSrc5 = readFileSync(join(root, 'src', 'core', 'lab', 'netSolve.ts'), 'utf8');
+  ok('㉟', DEVICE_PARAM_FIELDS.nmos.map((f) => f.key).join(',') === 'gm,ro' &&
+    DEVICE_PARAM_FIELDS.npn.map((f) => f.key).join(',') === 'value,beta,lambda' &&
+    DEVICE_PARAM_FIELDS.nmos.every((f) => f.required) && DEVICE_PARAM_FIELDS.npn.every((f) => f.required) &&
+    /required/.test(dpSrc) && /node\.params\?\.gm/.test(nsSrc5) && /node\.params\?\.ro/.test(nsSrc5),
+    '㉟⑥ 字段表与 netSolve 的硬拒答判据没对齐');
+  ok('㉟', /op: 'setDeviceParams'/.test(typeSrc) && /case 'setDeviceParams'/.test(opsSrc) &&
+    /'setDeviceParams'/.test(uiSrc) && /op\.entries\.length === 0/.test(opsSrc),
+    '㉟⑥ setDeviceParams 没接进 GraphOp / ops / 撤销栈');
+  ok('㉟', labSrc5.includes('data-testid="missing-params-panel"') && labSrc5.includes('data-testid="device-param-input"') &&
+    /pendingParamSolve/.test(labSrc5) && /void solveRef\.current\?\.\(\)/.test(labSrc5) &&
+    /applyMissingParams/.test(labSrc5) && /givenDefaults/.test(labSrc5),
+    '㉟⑦ 拒答条没有就地补参面板 / 器件行没有模型参数输入 / 补完没自动重解');
+  ok('㉟', /题面默认/.test(labSrc5) && /参考值不是题面值/.test(labSrc5) &&
+    /在「模型参数」里按题面补上/.test(nsSrc5),
+    '㉟⑦ 拒答文案没指路，或把参考量级冒充成题面值');
+  // ⑥⑧：器件行改 gm/ro/β 之后必须自动重算 —— 否则屏幕上还挂着旧增益，
+  // 用户会以为「改了没生效」（真机 M10 复现过）。onCommit 里要写 recomputeArmed。
+  ok('㉟', /onCommit=\{\(field, value\) => \{[\s\S]{0,900}?recomputeArmed\.current = true;/.test(labSrc5),
+    '㉟⑧ 器件行改模型参数后没触发自动重解（会显示旧增益）');
+  console.log('㉟ 模型参数：缺 gm/ro 可就地补 · 一项 op 写多器件 · 数值与原始逐位一致 · 可撤销 · 自动重解');
+}
+
+/* ── ㊱ 巡检修复护栏：白屏兜底 / 诚实复制 / 越界标红 / Esc 取消 ──────
+ * 这四条都是「用户能撞到、但以前没人测」的路：
+ *  - #/lab/t/<13 型不适用 id> 曾在渲染期抛 TypeError → React 卸根节点 → 纯白页；
+ *  - 分享只 `void navigator.clipboard…`，拒绝授权也提示「已复制」；
+ *  - 装配台确认框照收 1e15，点求解才报错（实验场却当场标红）；
+ *  - 恢复骨架 / 清空画布的确认条不响应 Esc。 */
+{
+  const labSrc6 = readFileSync(join(root, 'src', 'pages', 'Lab.tsx'), 'utf8');
+  const appSrc6 = readFileSync(join(root, 'src', 'App.tsx'), 'utf8');
+  const kbSrc6 = readFileSync(join(root, 'src', 'pages', 'KbIndex.tsx'), 'utf8');
+  const boundarySrc = readFileSync(join(root, 'src', 'ui', 'ErrorBoundary.tsx'), 'utf8');
+  const clipSrc = readFileSync(join(root, 'src', 'ui', 'clipboard.ts'), 'utf8');
+
+  ok('㊱', !/PICKS\[pickId\]\.family/.test(labSrc6) && /PICKS\[pickId\]\?\.family/.test(labSrc6),
+    '㊱① 装配台还在无守卫读 PICKS[pickId].family（不适用题型会白屏）');
+  ok('㊱', /data-testid="unknown-template-note"/.test(labSrc6) && /不在装配台可装配清单里/.test(labSrc6),
+    '㊱① 未知题型 id 没有提示，用户看到的是选题列表、不知道链接错了');
+  ok('㊱', /className="mx-auto flex min-h-screen w-full max-w-\[720px\]/.test(boundarySrc) &&
+    /getDerivedStateFromError/.test(boundarySrc) && /ErrorBoundary/.test(appSrc6) && /key=\{/.test(appSrc6),
+    '㊱② 没有渲染期错误边界（一页抛错整站白屏）');
+
+  ok('㊱', /copyText\(url\)/.test(labSrc6) && !/void navigator\.clipboard/.test(labSrc6),
+    '㊱③ 分享仍是无视结果的 clipboard 调用（拒绝授权也会提示已复制）');
+  ok('㊱', /setShareFallback\(url\)/.test(labSrc6) && /data-testid="share-fallback"/.test(labSrc6),
+    '㊱③ 复制失败没有兜底展示，用户拿不到链接');
+  ok('㊱', /execCommand\('copy'\)/.test(clipSrc) && /return false/.test(clipSrc),
+    '㊱③ 复制工具没有 execCommand 兜底 / 失败返回值');
+
+  ok('㊱', /aria-invalid=\{outOfRange \|\| undefined\}/.test(labSrc6) &&
+    /data-testid="param-range-flag"/.test(labSrc6) &&
+    /合法 \$\{param\.min \?\? '−∞'\}~\$\{param\.max \?\? '\+∞'\}/.test(labSrc6),
+    '㊱④ 装配台确认框越界不标红（与参数实验场口径不一致）');
+
+  ok('㊱', /event\.key === 'Escape' && \(resetArmed \|\| clearArmed \|\| pendingCandidate \|\| pendingDelete \|\| shareFallback \|\| candidatesOpen \|\| wrapPanel\)/.test(labSrc6),
+    '㊱⑤ 确认条 / 兜底条不响应 Esc');
+
+  ok('㊱', /peekTemplateId/.test(labSrc6) && !/href=\{`#\/t\/\$\{pickId\}`\}/.test(labSrc6),
+    '㊱⑦ 头部「看原题」还按 pickId 拼链接（不适用题型会得到 #/t/null 死链）');
+  ok('㊱', /Promise\.race/.test(clipSrc) && /1200/.test(clipSrc),
+    '㊱③ clipboard 没有超时兜底（权限提示挂住时用户半天看不到反馈）');
+
+  ok('㊱', /data-testid="kb-filter"/.test(kbSrc6) && /kb-filter-empty/.test(kbSrc6) && /hits\.length === 0/.test(kbSrc6),
+    '㊱⑥ 知识库索引没有就地过滤（59 条只能滚）');
+  console.log('㊱ 巡检修复：不适用题型白屏兜底 · 未知 id 提示 · 诚实复制 · 越界标红 · Esc 取消 · 知识库过滤');
+}
+
+/* ── ㊲ 源器件量值可以是 0 / 负值（无源件仍 (0, 1e12]） ──────────── */
+{
+  const a1json = JSON.parse(readFileSync(join(root, 'src/examples/A1.json'), 'utf8'));
+  const st0 = createUiState('A1', freshSkeleton('A1', a1json.render_specs[0]));
+  const zero = labUiStep('A1', st0, { type: 'op', op: { op: 'setDeviceValue', nodeId: 'n-src', value: 0 } });
+  ok('㊲', zero.refused === undefined, `㊲① 电压源设 0V 被拒：${zero.refused}`);
+  ok('㊲', zero.graph.nodes.find((node) => node.id === 'n-src')?.value === 0,
+    `㊲① 电压源设 0V 没写进图（value=${zero.graph.nodes.find((node) => node.id === 'n-src')?.value}）`);
+  ok('㊲', /Vs 0V/.test(zero.graph.nodes.find((node) => node.id === 'n-src')?.label ?? ''),
+    `㊲① 0V 的显示标签不对：${zero.graph.nodes.find((node) => node.id === 'n-src')?.label}`);
+  const neg = labUiStep('A1', st0, { type: 'op', op: { op: 'setDeviceValue', nodeId: 'n-src', value: -5 } });
+  ok('㊲', neg.graph.nodes.find((node) => node.id === 'n-src')?.value === -5, '㊲② 电压源设 -5V（反极性）被拒');
+  // 无源件仍不许 0 / 负
+  const resZero = labUiStep('A1', st0, { type: 'op', op: { op: 'setDeviceValue', nodeId: 'n-r', value: 0 } });
+  ok('㊲', resZero.graph === st0.graph && /\(0, 1e12\]/.test(resZero.note ?? ''), `㊲③ 电阻设 0 没被拒：${resZero.note}`);
+  const resNeg = labUiStep('A1', st0, { type: 'op', op: { op: 'setDeviceValue', nodeId: 'n-r', value: -100 } });
+  ok('㊲', resNeg.graph === st0.graph, '㊲③ 负电阻没被拒');
+  // 界面护栏：按 kind 判 + 红字说清（只红边不说话 = 静默失败）
+  const labSrc7 = readFileSync(join(root, 'src/pages/Lab.tsx'), 'utf8');
+  ok('㊲', /valueInRange\(kind,/.test(labSrc7) && /data-testid="device-value-hint"/.test(labSrc7) && /valueRangeHint\(kind\)/.test(labSrc7),
+    '㊲④ 数值框没有按 kind 判 / 不合法时不写「为什么不收」');
+  console.log('㊲  源器件 0V / -5V 可写（0=短路、负=反极性），电阻 0 / 负仍拒；界面按 kind 标红并给红字提示');
+}
+
 /* ── 汇总 ─────────────────────────────────────────────────────── */
 
 if (problems.length > 0) {
@@ -1278,5 +1634,5 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(
-  `PASS：${checks} 项（装配门禁：六个改一处用例 / W10-A UI 动作序列 / W10-B 点击连线与拖动 / 三候选 / ?p= 覆盖 / W11 九型往返与装配证据 / 13 张不适用卡 / W14 删后清理 / W16 设值·旋转·删线·拖动确认 / W17 删即合并·两组分离 / 六条变异）`,
+  `PASS：${checks} 项（装配门禁：六个改一处用例 / W10-A UI 动作序列 / W10-B 点击连线与拖动 / 三候选 / ?p= 覆盖 / W11 九型往返与装配证据 / 13 张不适用卡 / W14 删后清理 / W16 设值·旋转·删线·拖动确认 / W17 删即合并·两组分离 / ㉛ 难题体验 / ㉜ 从零自建 / ㉝ 自建图解 / ㉞ 自动等效电路 / ㉟ 器件模型参数 / ㊱ 巡检修复 / 六条变异）`,
 );

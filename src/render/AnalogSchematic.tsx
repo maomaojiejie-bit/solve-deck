@@ -149,7 +149,24 @@ export function AnalogSchematic({
   labels: ReadonlyMap<string, string>;
 }) {
   if (spec.nodes.length === 0) {
-    return <p className="p-6 text-sm text-muted">这张图没有 nodes</p>;
+    /** 清空画布后从零建力学模型：这里必须仍是一张可点的 SVG 白纸。
+     *  SpecGrid 靠 svg[role="img"] 做屏幕→世界坐标换算，只回一个 <p>
+     *  会让「结点 / 集中力」放置器在空画布上完全失灵。 */
+    return (
+      <svg
+        viewBox="0 60 800 580"
+        className="canvas-grid h-full w-full"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="空白画布：从零开始"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <text x="400" y="330" textAnchor="middle" fontSize="14">
+          画布已空 · 用左侧的放置器先放结点
+        </text>
+      </svg>
+    );
   }
 
   const positions = new Map(spec.nodes.map((node) => [node.id, node]));
@@ -320,6 +337,16 @@ export function AnalogSchematic({
           node.kind === 'arrow'
             ? labelOffset(side, hw, hh * 2 + 4)
             : labelOffset(side, hw, hh);
+        // R3 修复：水平集中力（→ / ←）画在梁上时，箭杆与梁线完全重合 ——
+        // 视觉上箭头「消失」了，用户以为方向改不动。教科书惯例：施加的
+        // 水平力整支抬到梁上方错开，虚线引回作用点；标签再往上让一截。
+        // 反力箭头（n-reaction- 前缀）保持贴轴画（它是支座反力，贴着支座才对）。
+        const lifted =
+          node.kind === 'arrow' &&
+          swap &&
+          !node.id.startsWith('n-reaction-') &&
+          !/^R_|^M_/.test((node.label ?? '').trim());
+        const lift = lifted ? -(def.hh + 14) : 0;
         const inside = def?.labelInside === true;
         return (
           <g
@@ -328,11 +355,28 @@ export function AnalogSchematic({
             transform={`translate(${node.x} ${node.y})`}
             color={stroke}
           >
-            <Glyph node={node} stroke={stroke} />
+            {lifted ? (
+              <>
+                <line
+                  x1={0}
+                  y1={lift + 5}
+                  x2={0}
+                  y2={-4}
+                  stroke={stroke}
+                  strokeWidth={0.8}
+                  strokeDasharray="3 2.5"
+                />
+                <g transform={`translate(0 ${lift})`}>
+                  <Glyph node={node} stroke={stroke} />
+                </g>
+              </>
+            ) : (
+              <Glyph node={node} stroke={stroke} />
+            )}
             {text ? (
               <text
                 x={inside ? 0 : off.x}
-                y={inside ? 4 : off.y}
+                y={inside ? 4 : off.y + lift - (lifted && off.anchor === 'middle' ? 4 : 0)}
                 textAnchor={inside ? 'middle' : off.anchor}
                 fontSize={11}
                 fill={active ? ACTIVE_TEXT : TEXT}

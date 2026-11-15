@@ -1,0 +1,399 @@
+/* ============================================================================
+   动效层（只给首页新视觉用；其它页面不引用任何这里的类）
+   ----------------------------------------------------------------------------
+   纪律：
+   - 每一条动效都必须能说清「它在交代什么」，装饰性抖动一律不做。
+   - 全部走 transform / opacity / clip，不改布局，不触发重排。
+   - prefers-reduced-motion 下整层失效（文件末尾一段兜住），不留半截状态。
+   - JS 只负责开关与指针数值，曲线与时长都写在 CSS 里，改手感不用碰 tsx。
+   ============================================================================ */
+
+:root {
+  --ease-draft: cubic-bezier(0.22, 1, 0.36, 1); /* 主曲线：起步快、收尾慢（纸张滑入） */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性：只给数字与磁吸回弹 */
+  --ease-out-quart: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --rv-distance: 18px;
+}
+
+/* ① 滚动显现 ---------------------------------------------------------------- */
+.rv {
+  opacity: 0;
+  transform: translate3d(0, var(--rv-distance), 0);
+  transition:
+    opacity 0.72s var(--ease-draft),
+    transform 0.72s var(--ease-draft);
+  transition-delay: var(--d, 0ms);
+}
+
+.rv[data-in='1'] {
+  opacity: 1;
+  transform: none;
+}
+
+/* 只淡入（用于已经有位移的容器，避免叠加两层 transform） */
+.rv-fade {
+  transform: none;
+}
+
+/* ② 鼠标聚光灯 -------------------------------------------------------------- */
+.spot {
+  position: relative;
+  isolation: isolate;
+}
+
+.spot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+  background: radial-gradient(
+    260px circle at var(--mx, 50%) var(--my, 0%),
+    color-mix(in srgb, var(--color-cyan) 14%, transparent),
+    transparent 68%
+  );
+}
+
+.spot:hover::after {
+  opacity: 1;
+}
+
+/* ③ 边缘流光（1px 环上跑一道高光） ---------------------------------------- */
+@property --edge-a {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.edge {
+  position: relative;
+}
+
+.edge::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--edge-a),
+    transparent 0deg,
+    transparent 296deg,
+    color-mix(in srgb, var(--color-cyan) 62%, white) 330deg,
+    color-mix(in srgb, var(--color-amber) 55%, white) 344deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: edge-run 7s linear infinite;
+}
+
+@keyframes edge-run {
+  to {
+    --edge-a: 360deg;
+  }
+}
+
+/* ④ 磁吸按钮 --------------------------------------------------------------- */
+.magnetic {
+  display: inline-flex;
+  transition: transform 0.5s var(--ease-spring);
+  will-change: transform;
+}
+
+.magnetic[data-move='1'] {
+  transition: transform 0.09s linear;
+}
+
+/* ⑤ 3D 倾斜 --------------------------------------------------------------- */
+.tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.65s var(--ease-draft);
+  will-change: transform;
+}
+
+.tilt[data-move='1'] {
+  transition: transform 0.1s linear;
+}
+
+/* ⑥ 流光扫过（鼠标掠过按钮：一道斜光扫过去，一次性） ---------------------- */
+.sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    104deg,
+    transparent 32%,
+    rgba(255, 255, 255, 0.42) 48%,
+    transparent 64%
+  );
+  transform: translateX(-130%);
+}
+
+.sheen:hover::after {
+  animation: sheen-sweep 0.86s var(--ease-out-quart);
+}
+
+@keyframes sheen-sweep {
+  to {
+    transform: translateX(130%);
+  }
+}
+
+/* ⑦ 文字解码：乱码态用等宽字，避免宽度跳动 ------------------------------- */
+.decode {
+  font-variant-ligatures: none;
+}
+
+.decode [aria-hidden='true'] {
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ⑧ 打字机 ----------------------------------------------------------------- */
+.tw-caret::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  vertical-align: -0.12em;
+  background: var(--color-cyan);
+  animation: tw-blink 1.05s steps(1, end) infinite;
+}
+
+.tw-caret[data-done='1']::after {
+  opacity: 0;
+  animation: none;
+}
+
+@keyframes tw-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ⑨ 数字递增：值一变，数字弹一下（弹性曲线，不抖两次） ------------------- */
+@keyframes num-bump {
+  0% {
+    transform: translateY(0);
+  }
+  45% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.num {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  animation: num-bump 0.46s var(--ease-spring);
+}
+
+/* ⑩ 悬停上浮 --------------------------------------------------------------- */
+@media (hover: hover) {
+  .float {
+    transition:
+      transform 0.4s var(--ease-draft),
+      border-color 0.3s ease-out,
+      background-color 0.3s ease-out,
+      box-shadow 0.4s var(--ease-draft);
+  }
+
+  .float:hover {
+    transform: translateY(-4px);
+  }
+}
+
+/* ⑪ 跑马灯 ----------------------------------------------------------------- */
+.marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-slide var(--speed, 42s) linear infinite;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-slide {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* ⑫ 视差 ------------------------------------------------------------------- */
+.parallax {
+  transform: translate3d(0, var(--py, 0px), 0);
+  will-change: transform;
+}
+
+/* ⑬ 滚动叙事：进度轨 ------------------------------------------------------- */
+.rail {
+  position: relative;
+  width: 1px;
+  background: var(--color-line);
+}
+
+.rail > i {
+  position: absolute;
+  inset: 0 0 auto 0;
+  display: block;
+  background: var(--color-cyan);
+  transform-origin: top center;
+  transform: scaleY(var(--p, 0));
+  transition: transform 0.18s linear;
+}
+
+.rail-dot {
+  position: absolute;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  translate: -50% -50%;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-2);
+  background: var(--color-bg);
+  transition:
+    background-color 0.3s ease-out,
+    border-color 0.3s ease-out,
+    scale 0.35s var(--ease-spring);
+}
+
+.rail-dot[data-on='1'] {
+  background: var(--color-cyan);
+  border-color: var(--color-cyan);
+  scale: 1.35;
+}
+
+/* ⑭ 制图零件（静态，不是动效：发丝线、刻度尺、编号、框注） ---------------- */
+.draft-grid {
+  background-image:
+    linear-gradient(var(--color-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+.draft-rule {
+  height: 1px;
+  background: var(--color-line);
+}
+
+.tag-mono {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-line-2);
+  border-radius: 3px;
+  padding: 3px 7px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  line-height: 1.3;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.sec-idx {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--color-cyan);
+}
+
+/* 框注：数字/结论旁边那根 2px 侧线，像图纸上的引出线 */
+.callout {
+  border-left: 2px solid var(--color-cyan);
+  padding-left: 12px;
+}
+
+/* ⑮ 条形计量：进场时从左边长出来 ----------------------------------------- */
+.bar {
+  position: relative;
+  display: block;
+  height: 3px;
+  background: var(--color-line);
+}
+
+.bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: block;
+  background: var(--color-ink);
+  transform-origin: left center;
+  animation: bar-grow 1.1s var(--ease-draft) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ⑯ 兜底：减少动态效果 ----------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .rv {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .spot::after,
+  .edge::before,
+  .sheen::after {
+    display: none !important;
+  }
+
+  .marquee-track {
+    animation: none !important;
+  }
+
+  .magnetic,
+  .tilt,
+  .parallax {
+    transform: none !important;
+  }
+
+  .num {
+    animation: none !important;
+  }
+
+  .bar > i {
+    animation: none !important;
+  }
+
+  .tw-caret::after {
+    display: none;
+  }
+
+  .rail > i {
+    transform: scaleY(1);
+  }
+}

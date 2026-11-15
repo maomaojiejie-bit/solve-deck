@@ -84,3 +84,70 @@ export function semanticCheck(templateId: string, graph: CanvasGraph): SemanticC
 export function effectiveSemantic(check: SemanticCheck): 'pass' | 'skipped' | 'fail' {
   return check.critical.length === 0 ? 'pass' : check.state;
 }
+
+/**
+ * 「按拓扑标全」：给一键按钮用的建议表，只按器件 id / 标签里的电路名推断。
+ *
+ * 这是**建议**，不是自动判定：它不写图、不改 semanticCheck 的判据，也不放宽
+ * gating —— 用户点一下才通过 setSemantic 逐个写进去，之后仍可手动改。
+ * 骨架本身依旧不带标签（N 档起步），门禁 ⑧/⑨ 的「未标 → N」语义不变。
+ */
+export interface SemanticSuggestion {
+  nodeId: string;
+  semantic: string;
+}
+
+/**
+ * 先按题型给精确 id（骨架节点名是稳定的），再用正则兜底。
+ * 纯正则会把 A7 的 feedback 标到 Rin、load 标到 Rout —— 标签虽能升 F，含义却是错的。
+ */
+const SUGGEST_BY_TEMPLATE: Record<string, Record<string, string[]>> = {
+  A3: { bias: ['n-rc'], coupling: ['n-rs'], load: ['n-rl'] },
+  A5: { bias: ['n-rd'], coupling: ['n-rs'], load: ['n-rl'] },
+  A7: { feedback: ['n-fb'], load: ['n-rl'] },
+  A1: { supply: ['n-src'], load: ['n-r'] },
+};
+
+const SUGGEST_PATTERN: Record<string, RegExp> = {
+  bias: /\b(rc|rd|rb|rbias|bias)\b|rc|rd|rb/i,
+  coupling: /\b(cb|cin|cout|rs|rg|cg|couple|coupling)\b|cb|cin|rs/i,
+  bypass: /\b(ce|re|bypass|css)\b|ce|re/i,
+  supply: /\b(vs|vdd|vcc|vin|supply|vsrc)\b|vs|vdd|vcc/i,
+  load: /\b(rl|load|rload)\b|rl|load/i,
+  feedback: /\b(rf|fb|feedback|rfb)\b|rf|fb/i,
+  stage_link: /\b(cstage|interstage|link|stage)\b|cstage|inter/i,
+};
+
+const RESISTOR_KINDS = ['res', 'resistor', 'r'];
+
+/** 只挑原生器件，且一个器件只领一个角色；找不到匹配就退到同类的第一个 / 最后一个。 */
+export function suggestSemantics(templateId: string, graph: CanvasGraph): SemanticSuggestion[] {
+  const critical = CRITICAL_SEMANTICS[templateId] ?? [];
+  if (critical.length === 0) return [];
+  /* block 也参与：A7 的 β 反馈块 n-fb 就是 block，排除它会退到 Rin 上。 */
+  const nodes = graph.nodes.filter(
+    (node) => !node.compositeId && !['text', 'dot', 'gnd'].includes(node.kind),
+  );
+  const resistors = nodes.filter((node) => RESISTOR_KINDS.includes(node.kind));
+  const sources = nodes.filter((node) => /vsrc|source|vdd|vcc/i.test(node.kind));
+  const caps = nodes.filter((node) => /cap/i.test(node.kind));
+  const used = new Set<string>();
+  const out: SemanticSuggestion[] = [];
+  for (const tag of critical) {
+    const pattern = SUGGEST_PATTERN[tag];
+    const exactIds = SUGGEST_BY_TEMPLATE[templateId]?.[tag] ?? [];
+    const haystack = (node: { id: string; label?: string }) => `${node.id} ${node.label ?? ''}`;
+    const fallback =
+      tag === 'supply' ? sources[0]
+        : tag === 'coupling' ? caps[0] ?? resistors[1] ?? resistors[0]
+          : tag === 'load' ? resistors[resistors.length - 1]
+            : resistors[0];
+    const hit = nodes.find((node) => !used.has(node.id) && exactIds.includes(node.id))
+      ?? nodes.find((node) => !used.has(node.id) && pattern && pattern.test(haystack(node)))
+      ?? [fallback, ...nodes].find((node) => node && !used.has(node.id));
+    if (!hit) continue;
+    used.add(hit.id);
+    out.push({ nodeId: hit.id, semantic: tag });
+  }
+  return out;
+}

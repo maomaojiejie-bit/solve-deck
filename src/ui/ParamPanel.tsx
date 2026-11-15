@@ -1,5 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import type { ParamSpec, ParamValue } from '../core/templates/registry';
-import { formatScalar } from '../core/format.ts';
+import { formatScalar, isInfiniteValue } from '../core/format.ts';
 
 interface ParamPanelProps {
   params: readonly ParamSpec[];
@@ -9,6 +10,10 @@ interface ParamPanelProps {
   onChange: (key: string, value: ParamValue) => void;
   onReset: (key: string) => void;
   onResetAll: () => void;
+  /** R-36 A9：同页可能有两份参数实验场（装配台右栏 + 嵌入讲解稿各一份），
+   *  标题与读屏名必须能区分开，不然学生改错面板、读屏两条同名播报。 */
+  title?: string;
+  ariaPrefix?: string;
 }
 
 /** W21-B B5：右栏与左栏 / 画布同一个格式器（100kΩ / 2.00 m / 30.0 MPa）。 */
@@ -48,12 +53,42 @@ export function ParamPanel({
   onChange,
   onReset,
   onResetAll,
+  title = '参数实验场',
+  ariaPrefix = '',
 }: ParamPanelProps) {
+  const labelled = (label: string) => (ariaPrefix ? `${ariaPrefix}·${label}` : label);
+  /**
+   * R-38：滑杆连续拖动时 `onChange` 会按像素逐次触发，而每次改值在装配台里
+   * 都是一次 `applyParams` → 整图归约预览 → 撤销栈入栈。这里做 120ms 节流：
+   * 窗口内只提交第一个值，松手前后只补一次最终值（trailing 不丢用户意图）。
+   */
+  const commitSlots = useRef<Record<string, { timer: number; last: ParamValue }>>({});
+  useEffect(() => () => {
+    for (const slot of Object.values(commitSlots.current)) window.clearTimeout(slot.timer);
+  }, []);
+  // R3 修复：数值框以前是纯受控（value={Number}），清空的那一瞬 onChange('')
+  // 会算成 0 并立刻回填 —— 用户「全选 → 重输」被打断，还会看到「06」这类前导零。
+  // 现在打字期间留本地草稿，只有「写完了的数」才提交；失焦丢草稿回到真实值。
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const throttledChange = (key: string, value: ParamValue) => {
+    const slot = commitSlots.current[key];
+    if (slot) {
+      slot.last = value;
+      return;
+    }
+    onChange(key, value);
+    const timer = window.setTimeout(() => {
+      const pending = commitSlots.current[key];
+      delete commitSlots.current[key];
+      if (pending && pending.last !== value) onChange(key, pending.last);
+    }, 120);
+    commitSlots.current[key] = { timer, last: value };
+  };
   return (
     <section data-testid="param-panel" className="no-print rounded-xl border border-line bg-panel">
       {/* W21-B B6：标题独占一行，「全部恢复默认」在下一行右对齐，不再压着小标题。 */}
       <header className="flex flex-col items-stretch gap-1 border-b border-line px-3 py-2 text-[11px]">
-        <span className="text-ink">参数实验场</span>
+        <span className="text-ink">{title}</span>
         <span className="flex items-center justify-end gap-2">
           {typeof solveMs === 'number' ? (
             <span className="text-muted">{solveMs.toFixed(1)} ms</span>
@@ -70,7 +105,7 @@ export function ParamPanel({
       </header>
       <div className="space-y-1 p-2">
         <p className="px-1 pb-1 text-[10px] leading-4 text-muted">
-          拖动后 80 ms 重算；当前步骤不重置。
+          拖动松手后生效（120 ms 节流，避免连续触发归约预览）；改值会让该项回到未确认 —— 重新确认后自动重算（当前步骤不重置）。
         </p>
         {params.map((param) => {
           const raw = values[param.key];
@@ -84,7 +119,7 @@ export function ParamPanel({
                     type="button"
                     onClick={() => onReset(param.key)}
                     title="恢复默认"
-                    aria-label={`恢复 ${param.label} 默认值`}
+                    aria-label={labelled(`恢复 ${param.label} 默认值`)}
                     className="rounded px-1 text-[11px] text-muted hover:text-cyan"
                   >
                     ↺
@@ -124,69 +159,94 @@ export function ParamPanel({
             );
           }
           const value = typeof raw === 'number' ? raw : (param.defaultValue as number);
+          // P0：1e12 = 归约的「此件不存在」哨兵（Rc→∞ / Rl 空载）。它不该显示成
+          // 1000000000000 + 越界红条，也不该夹取 —— 显示成 ∞，区间提示换成人话。
+          const infinite = isInfiniteValue(value);
           // W22-R P0-E3：越界不夹取 —— 框里如实显示用户的值并标红给区间，
           // 拒绝计算交给结果区的红条（「面板参数 === 求解参数」不破）。
           const outOfRange =
-            (param.min !== undefined && value < param.min) ||
-            (param.max !== undefined && value > param.max);
+            !infinite &&
+            ((param.min !== undefined && value < param.min) || (param.max !== undefined && value > param.max));
           return (
-            <div key={param.key} className="flex items-center gap-1.5 py-0.5">
-              <span className="w-12 shrink-0 text-[11px] text-muted" title={param.label}>
-                {param.label}
-              </span>
-              <input
-                type="range"
-                min={0}
-                max={1000}
-                step={1}
-                value={sliderOf(param, value)}
-                onChange={(event) => onChange(param.key, valueOf(param, Number(event.target.value)))}
-                aria-label={param.label}
-                // W22-D F11：读屏要听到工程值与单位（「2000 Ω」），不是归一化刻度 0–1000。
-                // 内部 value 仍走归一化映射（sliderOf / valueOf），只把语义翻给 AT。
-                aria-valuenow={value}
-                aria-valuetext={formatValue(param, value)}
-                data-param={param.key}
-                data-role="slider"
-                className="h-1 min-w-0 flex-1 accent-cyan"
-              />
-              <input
-                type="number"
-                min={param.min}
-                max={param.max}
-                step={param.step}
-                value={value}
-                onChange={(event) => {
-                  const next = Number(event.target.value);
-                  if (!Number.isFinite(next)) return;
-                  // 不夹取：原值上交，越界由红边 + 结果区红条点名（承诺：越界标红、不夹取）。
-                  onChange(param.key, next);
-                }}
-                aria-label={`${param.label} 数值`}
-                aria-invalid={outOfRange || undefined}
-                data-param-input={param.key}
-                className={`w-[76px] shrink-0 rounded border bg-panel-2 px-1 py-0.5 text-right text-[11px] tabular-nums text-ink ${
-                  outOfRange ? 'border-danger text-danger' : 'border-line'
-                }`}
-              />
-              <span className="w-8 shrink-0 text-[9px] text-muted">{param.unit ?? ''}</span>
-              <span className="w-14 shrink-0 text-right text-[9px] tabular-nums text-muted">
-                {formatValue(param, value)}
-              </span>
-              {outOfRange ? (
-                <span className="w-[72px] shrink-0 text-[9px] leading-3 text-danger" data-testid="param-range-flag">
-                  合法 {param.min ?? '−∞'}~{param.max ?? '+∞'}
+            // R-36：一行塞不下 7 个元素（303px 栏宽里恢复按钮被压到 16px、滑杆被挤没）。
+            // 拆两行：上行 = 标签 + 滑杆 + 恢复；下行 = 数值框 + 单位 + 工程值 + 区间提示。
+            <div key={param.key} className="py-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="w-12 shrink-0 text-[11px] text-muted" title={param.label}>
+                  {param.label}
                 </span>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => onReset(param.key)}
-                title="恢复默认"
-                aria-label={`恢复 ${param.label} 默认值（滑杆）`}
-                className="w-4 shrink-0 rounded text-[11px] text-muted hover:text-cyan"
-              >
-                ↺
-              </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={1000}
+                  step={1}
+                  value={sliderOf(param, value)}
+                  onChange={(event) => throttledChange(param.key, valueOf(param, Number(event.target.value)))}
+                  aria-label={labelled(param.label)}
+                  // W22-D F11：读屏要听到工程值与单位（「2000 Ω」），不是归一化刻度 0–1000。
+                  // 内部 value 仍走归一化映射（sliderOf / valueOf），只把语义翻给 AT。
+                  aria-valuenow={value}
+                  aria-valuetext={formatValue(param, value)}
+                  data-param={param.key}
+                  data-role="slider"
+                  className="h-1 min-w-0 flex-1 accent-cyan"
+                />
+                <button
+                  type="button"
+                  onClick={() => onReset(param.key)}
+                  title="恢复默认"
+                  aria-label={labelled(`恢复 ${param.label} 默认值（滑杆）`)}
+                  className="h-5 w-5 shrink-0 rounded border border-line text-[11px] leading-none text-muted hover:border-cyan/60 hover:text-cyan"
+                >
+                  ↺
+                </button>
+              </div>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <span className="w-12 shrink-0" aria-hidden="true" />
+                <input
+                  type="number"
+                  min={param.min}
+                  max={param.max}
+                  step={param.step}
+                  value={drafts[param.key] ?? (infinite ? '' : String(value))}
+                  placeholder={infinite ? '∞' : undefined}
+                  onChange={(event) => {
+                    const text = event.target.value;
+                    setDrafts((current) => ({ ...current, [param.key]: text }));
+                    const next = Number(text);
+                    // 不夹取：原值上交，越界由红边 + 结果区红条点名（承诺：越界标红、不夹取）。
+                    // 打到一半（'' / '-' / '0.'）先不提交，草稿留在框里。
+                    if (text.trim() !== '' && Number.isFinite(next)) onChange(param.key, next);
+                  }}
+                  onBlur={() => {
+                    setDrafts((current) => {
+                      const copy = { ...current };
+                      delete copy[param.key];
+                      return copy;
+                    });
+                  }}
+                  aria-label={labelled(`${param.label} 数值`)}
+                  aria-invalid={outOfRange || undefined}
+                  data-param-input={param.key}
+                  className={`w-[76px] shrink-0 rounded border bg-panel-2 px-1 py-0.5 text-right text-[11px] tabular-nums text-ink ${
+                    outOfRange ? 'border-danger text-danger' : 'border-line'
+                  }`}
+                />
+                <span className="w-8 shrink-0 text-[9px] text-muted">{param.unit ?? ''}</span>
+                <span className="w-14 shrink-0 text-right text-[9px] tabular-nums text-muted">
+                  {formatValue(param, value)}
+                </span>
+                {outOfRange ? (
+                  <span className="w-[72px] shrink-0 text-[9px] leading-3 text-danger" data-testid="param-range-flag">
+                    合法 {param.min ?? '−∞'}~{param.max ?? '+∞'}
+                  </span>
+                ) : null}
+                {infinite ? (
+                  <span className="w-[72px] shrink-0 text-[9px] leading-3 text-muted" data-testid="param-infinite-flag">
+                    ∞ · 按规则当作不存在
+                  </span>
+                ) : null}
+              </div>
             </div>
           );
         })}

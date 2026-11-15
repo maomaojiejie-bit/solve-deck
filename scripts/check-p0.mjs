@@ -477,11 +477,14 @@ function walk(dir) {
 check('源码层：零 http(s) 运行时请求（唯一白名单 ai/config.ts）', () => {
   const whitelist = 'src/core/ai/config.ts';
   const files = [join(root, 'index.html'), ...walk(join(root, 'src'))];
+  /* XML 命名空间是标识符，不是请求：`createElementNS('http://www.w3.org/2000/svg')`
+     不会发任何包。剥掉再判，否则导出 SVG 这条正当用法会被误伤。 */
+  const XML_NAMESPACE = /https?:\/\/www\.w3\.org\/[\w./-]*/g;
   for (const file of files) {
     const name = relative(root, file).replace(/\\/g, '/');
     if (name === whitelist) continue;
     const text = readFileSync(file, 'utf8');
-    must(!/https?:\/\//.test(text), `${name} 含外部 URL（白名单只有 ${whitelist}）`);
+    must(!/https?:\/\//.test(text.replace(XML_NAMESPACE, '')), `${name} 含外部 URL（白名单只有 ${whitelist}）`);
   }
   must(existsSync(join(root, whitelist)), '白名单指向的 config.ts 不存在');
   const config = readFileSync(join(root, whitelist), 'utf8');

@@ -211,9 +211,14 @@ export function graphToBeam(graph: CanvasGraph): BeamModel {
     if (member && (!jointNear || type === 'udl')) {
       const a = joints.find((j) => j.id === member.from);
       const b = joints.find((j) => j.id === member.to);
-      if (a && b && b.x !== a.x) {
+      // R-38：沿杆方向投影求 t，不再要求 b.x !== a.x —— 竖直 / 斜杆上的载荷
+      // 之前会因为分母为零被整个跳过，归约里就成了「没有这个力」。
+      const dx = a && b ? b.x - a.x : 0;
+      const dy = a && b ? b.y - a.y : 0;
+      const len2 = dx * dx + dy * dy;
+      if (a && b && len2 > 0) {
         const clamp = (v: number) => Math.min(1, Math.max(0, v));
-        t = clamp((node.x - a.x) / (b.x - a.x));
+        t = clamp(((node.x - a.x) * dx + (node.y - a.y) * dy) / len2);
         at = member.id;
       }
     }

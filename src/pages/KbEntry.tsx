@@ -13,6 +13,9 @@ const SUBJECT_LABEL: Record<Subject, string> = {
   digital: '数字逻辑',
   mechanics: '材料力学',
   statics: '理论力学',
+  physics: '大学物理',
+  math: '高等数学',
+  programming: '程序设计 · C/C#',
 };
 
 function Figure({ figure }: { figure: KbFigure }) {

@@ -8,10 +8,21 @@ import { CIRCUIT } from './entries/circuit.ts';
 import { DIGITAL } from './entries/digital.ts';
 import { MECHANICS } from './entries/mechanics.ts';
 import { STATICS } from './entries/statics.ts';
+import { PHYSICS } from './entries/physics.ts';
+import { MATH } from './entries/math.ts';
+import { PROGRAMMING } from './entries/programming.ts';
 import type { KnowledgeEntry } from './types.ts';
 
-/** 全部 52 条（四科按账本顺序拼接）。 */
-export const KB: KnowledgeEntry[] = [...CIRCUIT, ...DIGITAL, ...MECHANICS, ...STATICS];
+/** 全部条目：工科四科按账本顺序在前，基础扩展（大物/高数/C·C#）在后。 */
+export const KB: KnowledgeEntry[] = [
+  ...CIRCUIT,
+  ...DIGITAL,
+  ...MECHANICS,
+  ...STATICS,
+  ...PHYSICS,
+  ...MATH,
+  ...PROGRAMMING,
+];
 
 /** id → 条目。 */
 export const KB_BY_ID: Record<string, KnowledgeEntry> = Object.fromEntries(KB.map((entry) => [entry.id, entry]));

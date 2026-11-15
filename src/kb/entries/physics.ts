@@ -1,0 +1,193 @@
+/** R-36d 基础扩展 · 大学物理（concept-only：只讲不挂求解模板）。 */
+import type { KnowledgeEntry } from '../types.ts';
+
+export const PHYSICS: KnowledgeEntry[] = [
+  {
+    id: 'physics.newton-laws',
+    subject: 'physics',
+    chapter: '质点力学',
+    title: '牛顿运动定律与受力分析',
+    aliases: ['牛顿第二定律', '受力分析', '隔离法'],
+    oneLine: '隔离体受力列 F=ma，加速度方向定坐标轴正方向。',
+    approach: [
+      '明确研究对象，把它从系统中隔离出来逐个画力。',
+      '建坐标系：以加速度方向为正方向，斜面问题沿斜面分解。',
+      '对每个方向列 ΣF = ma，未知力设正方向待定。',
+      '联立约束关系（绳张力相等、接触面法向力）解方程组。',
+    ],
+    formulas: [
+      { tex: '\\sum \\vec{F} = m\\vec{a}', note: '牛顿第二定律（矢量式）' },
+      { tex: 'F_{12} = -F_{21}', note: '作用力与反作用力' },
+    ],
+    points: [
+      '受力分析只画真实力：重力、弹力、摩擦力，惯性力不算在内。',
+      '绳跨滑轮两侧张力大小相等，前提是绳与滑轮质量可忽略。',
+      '摩擦力方向与相对滑动趋势相反，先假设再验证。',
+      '正方向一旦约定，全题方程必须同向，混向必出错。',
+    ],
+    pitfalls: [
+      '把 ma 当成一根画在受力图上的力，多画一个假力。',
+    ],
+    related: ['statics.dynamics', 'statics.rigid-body'],
+  },
+  {
+    id: 'physics.momentum-energy',
+    subject: 'physics',
+    chapter: '质点力学',
+    title: '动量守恒与机械能守恒',
+    aliases: ['动量守恒', '机械能守恒', '碰撞问题'],
+    oneLine: '内力不改变系统总动量；只有保守力做功时机械能守恒。',
+    approach: [
+      '划系统：把碰撞或爆炸的双方框进同一个系统。',
+      '判守恒条件：合外力为零（或内力远大于外力）用动量守恒。',
+      '弹性碰撞联立动量与动能两守恒式；完全非弹性碰撞共速。',
+      '有摩擦或非保守力做功时改用动能定理，别硬套守恒。',
+    ],
+    formulas: [
+      { tex: 'm_1 v_1 + m_2 v_2 = m_1 v_1\' + m_2 v_2\'', note: '动量守恒（一维）' },
+      { tex: '\\tfrac12 m v^2 + mgh = \\text{const}', note: '机械能守恒' },
+      { tex: 'e = \\frac{v_2\' - v_1\'}{v_1 - v_2}', note: '恢复系数（0 完全非弹，1 弹性）' },
+    ],
+    points: [
+      '动量守恒是矢量式，分方向列；能量守恒只有标量式。',
+      '完全非弹性碰撞动能损失最大，但动量仍守恒。',
+      '守恒条件逐条核对：外力是否为零、保守力之外有没有做功。',
+      '二体问题常先换质心系，碰撞前后动量在质心系里归零。',
+    ],
+    pitfalls: [
+      '子弹打木块当弹性碰撞算，动能白白守恒出一组无解方程。',
+    ],
+    related: ['statics.dynamics'],
+  },
+  {
+    id: 'physics.rigid-rotation',
+    subject: 'physics',
+    chapter: '刚体力学',
+    title: '刚体定轴转动与角动量',
+    aliases: ['转动惯量', '角动量守恒', '定轴转动'],
+    oneLine: '转动问题把 m 换成 J、F 换成 M：M=Jα，角动量守恒同形。',
+    approach: [
+      '求转动惯量：J = Σm r²，常见形体背结果（细棒 1/12 m L²）。',
+      '平行轴定理移轴：J = J_c + m d²，别对非质心轴硬积。',
+      '对轴列 M = Jα，重力的力矩臂是质心到轴的距离。',
+      '合外力矩为零时角动量 L = Jω 守恒，花样滑冰收臂加速即此。',
+    ],
+    formulas: [
+      { tex: 'M = J\\alpha', note: '定轴转动定律' },
+      { tex: 'L = J\\omega = \\text{const}', note: '角动量守恒' },
+      { tex: 'J = J_c + md^2', note: '平行轴定理' },
+    ],
+    points: [
+      '转动惯量只对给定轴有意义，换轴必须重算或用平行轴定理。',
+      '滚动物体机械能含 1/2 Jω²，纯滚动时摩擦不做功。',
+      '角动量守恒的前提是合外力矩为零，不是合外力为零。',
+    ],
+    related: ['statics.rigid-body'],
+  },
+  {
+    id: 'physics.simple-harmonic',
+    subject: 'physics',
+    chapter: '振动与波',
+    title: '简谐振动与单摆',
+    aliases: ['简谐振动', '单摆周期', '弹簧振子'],
+    oneLine: '回复力与位移成正比反向即简谐：x=A cos(ωt+φ)，周期只看系统。',
+    approach: [
+      '判谐：证明合力满足 F = −kx（或力矩 M = −κθ）。',
+      '写标准解 x = A cos(ωt+φ)，由初条件定 A 与 φ。',
+      '弹簧振子 ω=√(k/m)；单摆 ω=√(g/L)，只在小角度成立。',
+      '能量在动能与势能间轮换，总能量 E = 1/2 k A² 与振幅平方成正比。',
+    ],
+    formulas: [
+      { tex: 'x = A\\cos(\\omega t + \\varphi)', note: '简谐振动标准解' },
+      { tex: 'T = 2\\pi\\sqrt{\\tfrac{m}{k}}', note: '弹簧振子周期' },
+      { tex: 'T = 2\\pi\\sqrt{\\tfrac{L}{g}}', note: '单摆周期（小角度）' },
+    ],
+    points: [
+      '周期与振幅无关（小角度），阻尼与驱动才会改变它。',
+      '单摆大角度时周期变长，5° 内误差小于千分之一。',
+      '同方向同频振动叠加用旋转矢量合成，相位差定加强减弱。',
+    ],
+    related: ['statics.vibration', 'circuit.resonance'],
+  },
+  {
+    id: 'physics.coulomb-gauss',
+    subject: 'physics',
+    chapter: '电磁学',
+    title: '库仑定律与高斯定理',
+    aliases: ['库仑定律', '高斯定理', '电场强度'],
+    oneLine: '点电荷平方反比；对称分布用高斯面一步求 E，别硬积分。',
+    approach: [
+      '先看对称性：球、柱、面三类对称才用高斯定理取场。',
+      '选高斯面让 E 垂直或平行于面，E 为常数的那部分好算。',
+      'Φ = q_enc/ε₀ 只数面内电荷，面外电荷对净通量无贡献。',
+      '叠加原理求多电荷合成场：先分量再矢量合成。',
+    ],
+    formulas: [
+      { tex: 'F = \\frac{1}{4\\pi\\varepsilon_0}\\frac{q_1 q_2}{r^2}', note: '库仑定律' },
+      { tex: '\\oint \\vec{E}\\cdot d\\vec{A} = \\frac{q_{enc}}{\\varepsilon_0}', note: '高斯定理' },
+      { tex: 'E = \\frac{\\sigma}{2\\varepsilon_0}', note: '无限大均匀带电平面' },
+    ],
+    points: [
+      '高斯定理恒成立，但只有对称分布才能直接解出 E。',
+      '导体内部 E=0，电荷分布在表面；空腔屏蔽内场。',
+      '电场叠加是矢量叠加，先分量后合成，别把模长直接相加。',
+    ],
+    pitfalls: [
+      '把高斯面上的 E 全当成 q_enc 产生，忽略外部电荷的贡献。',
+    ],
+    related: ['physics.magnetic-force'],
+  },
+  {
+    id: 'physics.magnetic-force',
+    subject: 'physics',
+    chapter: '电磁学',
+    title: '安培力与洛伦兹力',
+    aliases: ['安培力', '洛伦兹力', '左手定则'],
+    oneLine: '电流元受 BIL sinθ，运动电荷受 qvB，方向一律用左手或叉乘。',
+    approach: [
+      '先定 B 与 I（或 v）的夹角，力大小按 sinθ 折算。',
+      '方向用左手定则或 F = qv×B 叉乘，拇指即受力方向。',
+      '洛伦兹力不做功：只改方向不改速率，圆周运动半径 r=mv/qB。',
+      '载流线圈在匀场中受磁力矩 M = m×B，m 为磁矩 NIS。',
+    ],
+    formulas: [
+      { tex: 'd\\vec{F} = I\\,d\\vec{l}\\times\\vec{B}', note: '安培力（微分形式）' },
+      { tex: '\\vec{F} = q\\vec{v}\\times\\vec{B}', note: '洛伦兹力' },
+      { tex: 'r = \\frac{mv}{qB}', note: '圆周运动半径' },
+    ],
+    points: [
+      '洛伦兹力恒垂直速度，永不改变动能，只当向心力。',
+      '安培力方向用叉乘，正负电荷的 v 方向决定受力反向。',
+      '带电粒子进匀强场：平行分量匀速、垂直分量圆周，合成为螺旋线。',
+    ],
+    pitfalls: [
+      '正负电荷用同一只手不换 v 方向，方向判定全反。',
+    ],
+    related: ['physics.coulomb-gauss', 'physics.emi'],
+  },
+  {
+    id: 'physics.emi',
+    subject: 'physics',
+    chapter: '电磁学',
+    title: '电磁感应与楞次定律',
+    aliases: ['电磁感应', '法拉第定律', '楞次定律'],
+    oneLine: '磁通变化率给电动势 ε=−dΦ/dt，方向由楞次定律的「阻碍」定。',
+    approach: [
+      '选定回路法线正方向，按右手螺旋约定 Φ 的正负。',
+      '算 Φ(t) 或 B·L·v，求导得 ε；n 匝串联乘 n。',
+      '方向用楞次定律：感应电流的效果总阻碍磁通变化。',
+      '动生电动势用 ε = BLv（B、L、v 两两垂直时），别重复计算。',
+    ],
+    formulas: [
+      { tex: '\\varepsilon = -\\frac{d\\Phi}{dt}', note: '法拉第电磁感应定律' },
+      { tex: '\\varepsilon = BLv', note: '动生电动势（三垂直）' },
+      { tex: 'q = \\frac{\\Delta \\Phi}{R}', note: '感应电量只看磁通变化' },
+    ],
+    points: [
+      '负号是楞次定律的数学化：方向问题用阻碍判断更稳。',
+      '感生场是涡旋场，不能引入电势概念，别画「感应电势差」。',
+      '导轨滑杆问题先列 ε=BLv 再进电路方程，配合安培力反馈。',
+    ],
+    related: ['physics.magnetic-force', 'circuit.transient-first-order'],
+  },
+];

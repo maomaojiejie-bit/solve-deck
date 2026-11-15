@@ -4,7 +4,7 @@ import { getTemplateRoute, type ParamValue } from '../core/templates/registry';
 import { CONTRACT_VERSION, type RenderSpec, type Solution } from '../core/types';
 import { graphToSpec } from '../core/lab/graphFromSpec';
 import { PICKS, SUPPORTED_IDS, applyParams, findDevice, findLoads, valueFromLabel } from '../core/lab/picks';
-import { CIRCUIT_KINDS, KIND_LABEL, memberLabel, applyOp, UNIT_OF } from '../core/lab/ops';
+import { CIRCUIT_KINDS, KIND_LABEL, memberLabel, applyOp, UNIT_OF, valueInRange, valueRangeHint } from '../core/lab/ops';
 import { reduce } from '../core/lab/reduce';
 import {
   allComposites,
@@ -17,7 +17,7 @@ import {
 } from '../core/lab/composite';
 import { BUILTIN_COMPOSITES } from '../core/lab/compositeBuiltin';
 import { registeredComposites } from '../core/lab/compositeStore';
-import { SEMANTIC_OPTIONS, SEMANTIC_LABEL } from '../core/lab/semantics';
+import { SEMANTIC_OPTIONS, SEMANTIC_LABEL, suggestSemantics } from '../core/lab/semantics';
 import { defaultValues, freshSkeleton, isParametricSkeleton, labSkeletonSpec } from '../core/lab/skeleton';
 import { notApplicableView, type NotApplicableView } from '../core/lab/coverage';
 import { clickableAnchors, anchorsOfNode } from '../core/lab/pins.ts';
@@ -64,9 +64,13 @@ import { beamCapabilities, filterWarningsByCapability, type Measure } from '../c
 import type { CircuitSolution } from '../core/lab/netSolve';
 import type { FrameSolution } from '../core/lab/frameSolve';
 import { GenericResult } from '../ui/GenericResult';
+import { deriveCircuitEquivalent, type CircuitEquivalent } from '../core/lab/equivalent';
+import { displayLabels } from '../core/lab/display';
+import { deviceParamFields, deviceParamValue, missingModelParams, type DeviceParamField } from '../core/lab/deviceParams';
+import { deriveAcEquivalent, type AcEquivalentResult } from '../core/lab/acEquivalent';
 import { GraphMeasures } from '../ui/GraphMeasures';
 import { confidenceSummary } from '../ui/confidenceSummary';
-import { formatScalar } from '../core/format.ts';
+import { formatScalar, isInfiniteValue } from '../core/format.ts';
 import { ParamPanel } from '../ui/ParamPanel';
 import { prepareImages } from '../ui/imagePipeline';
 import { ThemeToggle } from '../ui/ThemeToggle';
@@ -78,6 +82,31 @@ import { validateLive } from '../confidence/live';
 import { SpecGrid } from '../render/SpecGrid';
 import { Result } from './Result';
 import type { CanvasGraph, GraphOp } from '../core/lab/types';
+import { buildStandaloneSvg, downloadBlob, findGraphSvg, graphFileName, svgToPngBlob } from '../ui/exportGraph';
+import { UnitModeSelect } from '../ui/UnitModeSelect.tsx';
+import { copyText } from '../ui/clipboard.ts';
+import { templateZeroForceInfo, zeroForceMembers, type ZeroForceInfo } from '../core/lab/zeroForce';
+import { slantedMemberNote } from '../core/lab/geometry';
+import {
+  addFavorite,
+  clearHistory,
+  libraryHref,
+  loadLibrary,
+  loadLibrarySort,
+  makeSavedGraph,
+  parseTags,
+  relativeTime,
+  removeFavorite,
+  renameFavorite,
+  saveLibrary,
+  saveLibrarySort,
+  setFavoriteTags,
+  sortFavorites,
+  touchHistory,
+  type LabLibrary,
+  type LibrarySort,
+  type SavedGraph,
+} from '../core/lab/library';
 
 const CARD = 'rounded-xl border border-line bg-panel';
 const EYEBROW = 'text-[11px] text-cyan';
@@ -129,6 +158,199 @@ interface LabProps {
   onToast: (message: string) => void;
 }
 
+interface LibraryPanelProps {
+  library: LabLibrary;
+  sort: LibrarySort;
+  onSortChange: (sort: LibrarySort) => void;
+  onStart: (hash: string) => void;
+  onRemoveFavorite: (id: string) => void;
+  onRenameFavorite: (entry: SavedGraph, name: string) => void;
+  onSetTags: (entry: SavedGraph, tags: string[]) => void;
+  onClearHistory: () => void;
+}
+
+/** R-36：装配台首页的「最近使用 / 我的收藏」。空库整块不渲染（不占位、不教育用户）。 */
+function LibraryPanel({
+  library,
+  sort,
+  onSortChange,
+  onStart,
+  onRemoveFavorite,
+  onRenameFavorite,
+  onSetTags,
+  onClearHistory,
+}: LibraryPanelProps) {
+  const [editing, setEditing] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [tags, setTags] = useState('');
+
+  const beginEdit = (entry: SavedGraph) => {
+    setEditing(entry.id);
+    setName(entry.title);
+    setTags((entry.tags ?? []).join(', '));
+  };
+  const commitEdit = (id: string) => {
+    const entry = library.favorites.find((item) => item.id === id);
+    if (!entry) return;
+    onRenameFavorite(entry, name);
+    onSetTags(entry, parseTags(tags));
+    setEditing(null);
+  };
+
+  if (library.history.length === 0 && library.favorites.length === 0) return null;
+
+  return (
+    <section data-testid="library-panel" className="mb-6 space-y-4">
+      {library.history.length > 0 ? (
+        <div>
+          <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h3 className="text-[12px] font-medium text-ink">最近使用</h3>
+            <span className="text-[10px] text-faint">改过的图会自动记在这里（每型只留最新）</span>
+            <button
+              type="button"
+              data-testid="library-clear-history"
+              onClick={onClearHistory}
+              className="focus-ring ml-auto rounded border border-line px-1.5 py-0.5 text-[10px] text-muted hover:border-cyan/50"
+            >
+              清空
+            </button>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {library.history.slice(0, 8).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                data-testid="library-open"
+                data-template-id={item.templateId}
+                onClick={() => onStart(libraryHref(item))}
+                className="card focus-ring rounded-lg px-3 py-2 text-left"
+              >
+                <p className="id-mono text-faint">
+                  最近 · {item.templateId} · {relativeTime(item.at)}
+                </p>
+                <p className="mt-0.5 truncate text-[12px] leading-5 text-ink">{item.title}</p>
+                <p className="mt-0.5 text-[10px] text-muted">{item.dirty ? '已改动 · 带回装配图' : '骨架'}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {library.favorites.length > 0 ? (
+        <div>
+          <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h3 className="text-[12px] font-medium text-ink">我的收藏</h3>
+            <select
+              data-testid="library-sort"
+              aria-label="收藏排序"
+              value={sort}
+              onChange={(event) => onSortChange(event.target.value as LibrarySort)}
+              className="rounded border border-line bg-bg px-1 py-0.5 text-[10px] text-muted"
+            >
+              <option value="recent">最近收藏</option>
+              <option value="name">按名称</option>
+              <option value="template">按题型</option>
+            </select>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {sortFavorites(library.favorites, sort).map((item) => (
+              <div key={item.id} className="card rounded-lg px-3 py-2">
+                <button
+                  type="button"
+                  data-testid="library-open"
+                  data-template-id={item.templateId}
+                  onClick={() => onStart(libraryHref(item))}
+                  className="focus-ring block w-full text-left"
+                >
+                  <p className="id-mono text-faint">
+                    收藏 · {item.templateId} · {relativeTime(item.at)}
+                  </p>
+                  <p className="mt-0.5 truncate text-[12px] leading-5 text-ink">{item.title}</p>
+                  <p className="mt-0.5 text-[10px] text-muted">{item.dirty ? '已改动 · 带回装配图' : '骨架'}</p>
+                </button>
+                {item.tags && item.tags.length > 0 ? (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {item.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        data-testid="favorite-tag"
+                        className="rounded bg-cyan/10 px-1 text-[10px] leading-4 text-cyan"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    data-testid="favorite-edit"
+                    aria-label={`编辑收藏 ${item.title}`}
+                    onClick={() => beginEdit(item)}
+                    className="focus-ring rounded border border-line px-1.5 py-0.5 text-[10px] text-muted hover:border-cyan/60"
+                  >
+                    改名 / 标签
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="library-unfavorite"
+                    aria-label={`取消收藏 ${item.title}`}
+                    onClick={() => onRemoveFavorite(item.id)}
+                    className="focus-ring rounded border border-line px-1.5 py-0.5 text-[10px] text-muted hover:border-danger/60"
+                  >
+                    取消收藏
+                  </button>
+                </div>
+                {editing === item.id ? (
+                  <div data-testid="favorite-edit-form" className="mt-1.5 space-y-1 border-t border-line pt-1.5">
+                    <input
+                      type="text"
+                      data-testid="favorite-edit-name"
+                      aria-label="收藏名称"
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      className="w-full rounded border border-line bg-bg px-1 py-0.5 text-[11px] text-ink outline-none focus:border-cyan/60"
+                    />
+                    <input
+                      type="text"
+                      data-testid="favorite-edit-tags"
+                      aria-label="收藏标签"
+                      placeholder="标签用逗号分隔，如 分压, 作业"
+                      value={tags}
+                      onChange={(event) => setTags(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') commitEdit(item.id);
+                        if (event.key === 'Escape') setEditing(null);
+                      }}
+                      className="w-full rounded border border-line bg-bg px-1 py-0.5 text-[11px] text-ink outline-none focus:border-cyan/60"
+                    />
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        data-testid="favorite-edit-save"
+                        onClick={() => commitEdit(item.id)}
+                        className="focus-ring rounded border border-cyan/60 px-1.5 py-0.5 text-[10px] text-cyan"
+                      >
+                        保存
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditing(null)}
+                        className="focus-ring rounded border border-line px-1.5 py-0.5 text-[10px] text-muted"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   const [pickId, setPickId] = useState<string | null>(templateId ?? null);
   const [stage, setStage] = useState<Stage>(templateId && PICKS[templateId] ? 'editing' : 'idle');
@@ -147,8 +369,32 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   const [visionNote, setVisionNote] = useState('');
   const [visionBusy, setVisionBusy] = useState(false);
   /** W15-S4：骨架不符但拓扑合法 → 通用求解结果（与模板 solution 互斥）。 */
-  const [generic, setGeneric] = useState<{ family: 'circuit' | 'beam'; circuit?: CircuitSolution; frame?: FrameSolution; notices: string[]; measures: Measure[]; reason: 'skeleton' | 'unmodeled' | 'healed' } | null>(null);
+  const [generic, setGeneric] = useState<{
+    family: 'circuit' | 'beam';
+    circuit?: CircuitSolution;
+    frame?: FrameSolution;
+    notices: string[];
+    measures: Measure[];
+    reason: 'skeleton' | 'unmodeled' | 'healed';
+    /** ㉞⑤：等效电路（戴维南 / 小信号）跟着这次求解一起算，结果卡直接面板化显示。 */
+    equivalent?: CircuitEquivalent;
+    acEquivalent?: AcEquivalentResult;
+  } | null>(null);
   const [resetArmed, setResetArmed] = useState(false);
+  /** R-36：装配台首页的最近使用 / 我的收藏（落 localStorage）。 */
+  const [library, setLibrary] = useState<LabLibrary>(() => loadLibrary());
+  const [librarySort, setLibrarySort] = useState<LibrarySort>(() => loadLibrarySort());
+  /** R-36：☆ 收藏 → 起名字的表单。 */
+  const [favoriteOpen, setFavoriteOpen] = useState(false);
+  const [favoriteName, setFavoriteName] = useState('');
+  /** R-37：导出图菜单 + 清空画布确认条 + 零杆高亮开关。 */
+  const [exportOpen, setExportOpen] = useState(false);
+  /** ㊱③：剪贴板被拒时把链接摊在页面上，用户还能手动复制。 */
+  const [shareFallback, setShareFallback] = useState<string | null>(null);
+  /** ㉟⑦：刚补完模型参数 → 立刻用新数重算一次（否则屏幕上还挂着旧增益）。 */
+  const [pendingParamSolve, setPendingParamSolve] = useState<string | null>(null);
+  const [clearArmed, setClearArmed] = useState(false);
+  const [showZeroMembers, setShowZeroMembers] = useState(false);
   const [candidatesOpen, setCandidatesOpen] = useState(false);
   const [peeked, setPeeked] = useState<string | null>(null);
   /** `?p=` 覆盖到的键：参数行标「题面」来源角标（仍需逐个点确认）。 */
@@ -209,6 +455,20 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   const capabilities = useMemo(() => (graph ? beamCapabilities(graph) : []), [graph]);
   const route = pickId ? getTemplateRoute(pickId) : undefined;
   const entry = route?.entry;
+  /** 图上显示的名字 = 题型标题（收藏 / 最近使用 / 导出都用它）。 */
+  const labTitle = entry?.title ?? pickId ?? '';
+  /** 画布上还剩几个真图元（清空画布按钮的 disabled 判据）。 */
+  const canvasFigureCount = graph ? graph.nodes.filter((node) => node.kind !== 'text').length : 0;
+  const canvasEmpty = canvasFigureCount === 0;
+  /** R-38 ⑤：非水平构件提示（S5 / S3 的斜杆是合法的，纯函数里已白名单）。 */
+  const slantedNote = graph ? slantedMemberNote(graph) : null;
+  /** R-39 ②：模板解（S5）也透出零杆判据；通用解仍按杆端轴力相对阈值。 */
+  const zeroInfo: ZeroForceInfo = useMemo(() => {
+    const fromFrame = zeroForceMembers(generic?.frame ?? null);
+    if (fromFrame.source === 'frame' && generic?.frame) return fromFrame;
+    return templateZeroForceInfo(solution) ?? fromFrame;
+  }, [generic, solution]);
+  const zeroFromTemplate = zeroInfo.source === 'template';
   const params = entry?.params ?? [];
 
   /** 路由 → 状态：#/lab/t/<id> 变化（含换题型）必须清空重建，不叠加。 */
@@ -645,6 +905,30 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     setPlaceGhost(null);
   };
 
+  /**
+   * Esc 总闸（㊱⑤）：确认条 / 兜底条 / 浮层都要能被 Esc 关掉 ——
+   * 以前只有放置器吃 Esc，恢复骨架/清空画布的确认条只能靠鼠标点「取消」。
+   */
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      /** 两个候选咬得很近时「Tab 待选的那一个」—— Esc 也要能把它放掉。 */
+      const pendingCandidate = placeAmbiguous ? placeAlt : null;
+      if (event.key === 'Escape' && (resetArmed || clearArmed || pendingCandidate || pendingDelete || shareFallback || candidatesOpen || wrapPanel)) {
+        setResetArmed(false);
+        setClearArmed(false);
+        setPendingDelete(null);
+        setShareFallback(null);
+        setCandidatesOpen(false);
+        setWrapPanel(null);
+        setFavoriteOpen(false);
+        setExportOpen(false);
+        if (pendingCandidate) setPlaceAlt(0);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [resetArmed, clearArmed, pendingDelete, shareFallback, candidatesOpen, wrapPanel, favoriteOpen, exportOpen, placeAmbiguous, placeAlt]);
+
   /** Esc：退出放置器（拖到一半也一并放掉）。 */
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -792,6 +1076,95 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
 
   const allConfirmed = params.length > 0 && params.every((p) => confirmed[p.key]);
 
+  /** R-36：收藏 = 把当前张图存成一条 SavedGraph（首页可一键载回）。 */
+  const openFavorite = () => {
+    if (!pickId) return;
+    setFavoriteName(`${pickId} · ${labTitle}`);
+    setFavoriteOpen((open) => !open);
+  };
+  const saveFavorite = () => {
+    if (!pickId || !graph) return;
+    const entry = makeSavedGraph(pickId, graph, labTitle, ui?.dirty === true, favoriteName);
+    setLibrary((prev) => addFavorite(prev, entry));
+    setFavoriteOpen(false);
+    onToast(`已收藏「${entry.title}」—— 装配台首页可一键载入`);
+  };
+  const startFromLibrary = (hash: string) => {
+    onStart(hash);
+  };
+  const forgetFavorite = (id: string) => {
+    setLibrary((prev) => removeFavorite(prev, id));
+  };
+  const renameFavoriteEntry = (target: SavedGraph, name: string) => {
+    setLibrary((prev) => renameFavorite(prev, target.id, name));
+  };
+  const retagFavoriteEntry = (target: SavedGraph, tags: string[]) => {
+    setLibrary((prev) => setFavoriteTags(prev, target.id, tags));
+  };
+  const clearLibraryHistory = () => {
+    setLibrary((prev) => clearHistory(prev));
+    onToast('已清空最近使用');
+  };
+  const changeLibrarySort = (next: LibrarySort) => {
+    setLibrarySort(next);
+    saveLibrarySort(next);
+  };
+
+  /** R-37：导出装配图 —— 绘制层 svg 内联样式后存成独立文件。 */
+  const exportGraphImage = async (kind: 'svg' | 'png') => {
+    setExportOpen(false);
+    const source = findGraphSvg(document);
+    if (!source) {
+      onToast('没找到可导出的画布 —— 请先载入一个题型');
+      return;
+    }
+    try {
+      const { text, box } = buildStandaloneSvg(source);
+      const blob =
+        kind === 'svg'
+          ? new Blob([text], { type: 'image/svg+xml;charset=utf-8' })
+          : await svgToPngBlob(text, box);
+      downloadBlob(blob, graphFileName(pickId ?? 'graph', kind));
+      onToast(`已导出 ${kind.toUpperCase()} 装配图`);
+    } catch (error) {
+      onToast(`导出失败：${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  /** 清空画布：先亮确认条（可撤销），确认后整图清空、参数表与求解器保留。 */
+  const armClearCanvas = () => {
+    if (canvasEmpty) return;
+    setClearArmed(true);
+    onToast('会清掉画布上全部器件、导线与标注 —— 确认条里点「确认清空」（Ctrl+Z 可撤销）');
+  };
+  const confirmClearCanvas = () => {
+    mutate({ op: 'clearGraph' });
+    setClearArmed(false);
+    setResetArmed(false);
+    setSelectedIds([]);
+    setSelectedObject(null);
+    setSelectedMember(null);
+    setSolution(null);
+    setVerdict(null);
+    setGeneric(null);
+    setRefusal([]);
+    setStage('editing');
+    onToast('已清空画布：现在可以自己加器件 / 连线 / 加构件了（Ctrl+Z 可撤销）');
+  };
+
+  /** R-36：库一改就落盘（无 localStorage 时 saveLibrary 自己静默降级）。 */
+  useEffect(() => {
+    saveLibrary(library);
+  }, [library]);
+
+  /** R-36：改过的图自动记进「最近使用」（同一题型只留最新一条）。 */
+  useEffect(() => {
+    if (!pickId || !graph) return;
+    const dirty = ui?.dirty === true;
+    setLibrary((prev) => touchHistory(prev, makeSavedGraph(pickId, graph, labTitle, dirty)));
+    // graph 换一次（载入 / 撤销 / 拖动）记一次；title 随题型变。
+  }, [graph, pickId, labTitle, ui?.dirty]);
+
   /**
    * `force` = 参数实验场的重算：结构没动、只改了数字。
    * W21-A A2.3：确认是真闸门 —— force 也不绕过，未逐项确认时撤下结果、撤下
@@ -824,7 +1197,18 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     if (route.kind === 'generic') {
       setSolution(null);
       setRefusal([]);
-      setGeneric({ family: route.family, circuit: route.circuit, frame: route.frame, notices: route.notices, measures: route.measures, reason: route.reason });
+      // ㉞⑤：等效电路与「这张图的值」同源 —— 都用这一份归约解推，不另算一套。
+      const equivalent = deriveCircuitEquivalent(graph, route.circuit);
+      setGeneric({
+        family: route.family,
+        circuit: route.circuit,
+        frame: route.frame,
+        notices: route.notices,
+        measures: route.measures,
+        reason: route.reason,
+        equivalent,
+        acEquivalent: deriveAcEquivalent(graph),
+      });
       setVerdict(genericVerdict(route.family));
       setSolveMs(performance.now() - started);
       setStage('solved');
@@ -970,6 +1354,65 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     }
   };
 
+  /** ㉟⑦：通用解会硬拒答、但补几个数就能解的器件 —— 就地列出可填的字段。 */
+  const missingParams = useMemo(() => missingModelParams(graph), [graph]);
+
+  /**
+   * ㉟⑦：仍停在「参考量级」的字段（现值恰好等于字段表里的 example）——
+   * 这些数只是输入框灰字提示，**不是题面值**；界面上必须标出来，免得用户当成答案。
+   */
+  const givenDefaults = useMemo(() => {
+    const out = new Set<string>();
+    for (const node of graph?.nodes ?? []) {
+      for (const field of deviceParamFields(node)) {
+        if (deviceParamValue(node, field) === field.example) out.add(`${node.id}:${field.key}`);
+      }
+    }
+    return out;
+  }, [graph]);
+  /** ㉟⑦：补一个模型参数就写进图（一项 op，避免逐字段基于同一份闭包互相覆盖）。 */
+  const applyMissingParams = (nodeId: string, field: DeviceParamField, value: number) => {
+    if (!(Number.isFinite(value) && value > 0)) return;
+    const entry = field.source === 'value' ? { nodeId, value } : { nodeId, params: { [field.key]: value } };
+    mutate({ op: 'setDeviceParams', entries: [entry as { nodeId: string; value?: number; params?: Record<string, number> }] });
+    setPendingParamSolve(nodeId);
+  };
+  /** ㉛④：一键标全语义 —— 按题型拓扑给建议，逐个 setSemantic 写进去（可撤销）。 */
+  const markAllSemantics = () => {
+    if (!pickId || !graph) return;
+    const suggestions = suggestSemantics(pickId, graph);
+    if (suggestions.length === 0) {
+      onToast('这张图的拓扑没给出可标的语义 —— 手动在器件行选吧');
+      return;
+    }
+    for (const suggestion of suggestions) {
+      mutate({ op: 'setSemantic', nodeId: suggestion.nodeId, semantic: suggestion.semantic });
+    }
+    onToast(`已按拓扑标全 ${suggestions.length} 个关键语义（可撤销）`);
+  };
+
+  /** ㉟⑧：补完模型参数就自动重解 —— 屏幕上不再挂旧增益。 */
+  useEffect(() => {
+    if (!pendingParamSolve) return;
+    setPendingParamSolve(null);
+    void solveRef.current?.();
+  }, [pendingParamSolve]);
+  /** ㉛④：一键确认全部 —— 默认值也要点一次，这是真闸门。 */
+  const confirmAllParams = () => {
+    const bad = params.filter((param) => {
+      const value = displayValues[param.key];
+      return typeof value === 'number' && ((param.min !== undefined && value < param.min) || (param.max !== undefined && value > param.max));
+    });
+    if (bad.length > 0) {
+      onToast(`${bad.map((param) => param.label ?? param.key).join('、')} 超出合法范围，先改回再确认`);
+      return;
+    }
+    const next: Record<string, boolean> = { ...confirmed };
+    for (const param of params) next[param.key] = true;
+    setConfirmed(next);
+    onToast(`已确认全部 ${params.length} 项，可以求解了`);
+  };
+
   const shareLink = () => {
     if (!graph) return;
     // W13 §5：图里引用了自定义复合器件时，定义必须随链接走 —— 否则别人的
@@ -979,16 +1422,25 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     // base64 里的 `+` 会被 URLSearchParams 解成空格（W15-S4 截图流程踩出来的
     // 潜伏 bug：带 + 的分享链接会静默回落骨架）——这里显式百分号编码。
     const hash = `#/lab/t/${pickId}?g=${encodeURIComponent(encoded)}`;
-    void navigator.clipboard?.writeText(`${window.location.origin}${window.location.pathname}${hash}`).catch(() => undefined);
-    onToast(payload.defs.length > 0 ? `分享链接已生成并复制（含 ${payload.defs.length} 个自定义模块定义）` : '分享链接已生成并复制');
+    const url = `${window.location.origin}${window.location.pathname}${hash}`;
+    void copyText(url).then((ok) => {
+      if (ok) {
+        setShareFallback(null);
+        onToast(payload.defs.length > 0 ? `分享链接已复制（含 ${payload.defs.length} 个自定义模块定义）` : '分享链接已复制');
+      } else {
+        setShareFallback(url);
+        onToast('浏览器没给剪贴板权限 —— 链接已显示在页面上，手动复制即可');
+      }
+    });
   };
 
-  const title = entry?.title ?? pickId ?? '';
   const devices = graph?.nodes.filter((node) => !['text', 'dot'].includes(node.kind)) ?? [];
   /* W22-A：恢复骨架 / 载入候选自增 meta.resetAt —— 画布与列表树以此为 key
      强制 remount，不给「reconciliation 收敛不干净留旧行」任何机会。 */
   const resetKey = `${pickId}:${graph?.meta.resetAt ?? 0}`;
-  const isBeam = pickId ? PICKS[pickId].family === 'beam' : false;
+  const isBeam = pickId ? PICKS[pickId]?.family === 'beam' : false;
+  /** ㊱⑦：只有真在可装配清单里的题型才有「看原题」；空 id / 未知 id 不给死链。 */
+  const peekTemplateId = pickId && PICKS[pickId] ? pickId : null;
   /** W17-C：力学「物件」组含结点（dot 是自由度载体，可删、连带杆先确认）；
    *  电路维持「器件」组（dot 不可按器件删）。行来源 = inspect 分组函数。
    *  R3-1 A1：支座行是结点子行（无自己的节点）—— 选中 / 删除都落到父结点上。 */
@@ -1034,22 +1486,28 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
             </button>
             <span className="shrink-0 whitespace-nowrap text-muted">{row.kindLabel}</span>
             {(['A', 'I', 'E'] as const).map((key) => (
-              <input
-                key={`${edge.id}-${key}`}
-                data-testid={`member-${key.toLowerCase()}`}
-                data-edge={edge.id}
-                type="number"
-                defaultValue={edge[key] ?? 1}
-                step="any"
-                title={`${key}（相对比例，EA=E·A / EI=E·I）`}
-                onBlur={(event) => {
-                  const value = Number(event.target.value);
-                  if (Number.isFinite(value) && value > 0 && value !== (edge[key] ?? 1)) {
-                    mutate({ op: 'setMemberProps', edgeId: edge.id, [key]: value });
-                  }
-                }}
-                className="w-9 min-w-0 rounded border border-line bg-bg px-0.5 text-right text-[10px] text-ink"
-              />
+              <label key={`${edge.id}-${key}`} className="flex shrink-0 items-center gap-0.5">
+                {/* 三个框原来只有 title，屏幕上就是一排光秃秃的数字（P0：看不出哪个是 A/I/E）。 */}
+                <span className="text-[9px] leading-none text-muted" aria-hidden="true">
+                  {key}
+                </span>
+                <input
+                  data-testid={`member-${key.toLowerCase()}`}
+                  data-edge={edge.id}
+                  type="number"
+                  defaultValue={edge[key] ?? 1}
+                  step="any"
+                  aria-label={`构件 ${row.name} 的 ${key}（相对比例，EA=E·A / EI=E·I）`}
+                  title={`${key}（相对比例，EA=E·A / EI=E·I）`}
+                  onBlur={(event) => {
+                    const value = Number(event.target.value);
+                    if (Number.isFinite(value) && value > 0 && value !== (edge[key] ?? 1)) {
+                      mutate({ op: 'setMemberProps', edgeId: edge.id, [key]: value });
+                    }
+                  }}
+                  className="w-9 min-w-0 rounded border border-line bg-bg px-0.5 text-right text-[10px] text-ink"
+                />
+              </label>
             ))}
             <button
               type="button"
@@ -1080,13 +1538,17 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
           <span className="font-serif text-[13px] text-ink">装配台</span>
           <span className="hidden text-[11px] text-faint sm:inline">改结构，不改求解器</span>
           <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
-          <a
-            href={`#/t/${pickId}`}
-            onClick={(e) => { e.preventDefault(); if (pickId) onStart(`#/t/${pickId}`); }}
-            className="focus-ring ml-auto text-[11px] text-muted transition-colors hover:text-ink"
-          >
-            看原题
-          </a>
+          {peekTemplateId ? (
+            <a
+              href={`#/t/${peekTemplateId}`}
+              onClick={(e) => { e.preventDefault(); onStart(`#/t/${peekTemplateId}`); }}
+              className="focus-ring ml-auto text-[11px] text-muted transition-colors hover:text-ink"
+            >
+              看原题
+            </a>
+          ) : (
+            <span className="ml-auto text-[11px] text-faint">看原题（当前题型不在装配台清单里）</span>
+          )}
           <ThemeToggle />
         </div>
       </header>
@@ -1096,6 +1558,15 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
           <NotApplicableCard view={naView} />
         ) : stage === 'idle' || !graph || !pickId || !ui ? (
           <section>
+            {templateId && !PICKS[templateId] ? (
+              <p
+                data-testid="unknown-template-note"
+                className="mb-3 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-[11px] leading-5 text-danger"
+              >
+                「{templateId}」不在装配台可装配清单里 —— 链接可能拼错了，或这个题型只在解题页可看。
+                下面是能装配的题型，点一张从它的骨架开始。
+              </p>
+            ) : null}
             <h2 className="text-[20px] font-medium leading-tight text-ink">
               选一个题型，载入它的骨架
             </h2>
@@ -1119,6 +1590,16 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                 );
               })}
             </div>
+            <LibraryPanel
+              library={library}
+              sort={librarySort}
+              onSortChange={changeLibrarySort}
+              onStart={startFromLibrary}
+              onRemoveFavorite={forgetFavorite}
+              onRenameFavorite={renameFavoriteEntry}
+              onSetTags={retagFavoriteEntry}
+              onClearHistory={clearLibraryHistory}
+            />
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-5">
               <a
                 data-testid="lab-digital-entry"
@@ -1139,7 +1620,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
           <>
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="id-mono text-xs text-cyan">{pickId}</span>
-              <span className="text-[11px] text-muted">{title}</span>
+              <span className="text-[11px] text-muted">{labTitle}</span>
               <span className="rounded border border-line px-1.5 py-0.5 text-[10px] text-muted">
                 {ui.dirty ? '已改动' : '骨架' } · {stage === 'editing' ? '装配中' : stage === 'solving' ? '求解中…' : stage === 'solved' ? '已求解' : '已拒答'}
               </span>
@@ -1212,10 +1693,96 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   </button>
                 ) : null}
                 <button type="button" data-testid="reset-skeleton" onClick={resetSkeleton} className={`focus-ring whitespace-nowrap rounded-md border px-2 py-1 text-[11px] ${resetArmed || loadedFromLink || ui.dirty ? 'border-amber/60 bg-amber/10 text-amber' : 'border-line text-muted hover:border-cyan/50'}`}>
-                  {resetArmed ? '确认恢复？' : '恢复骨架'}
+                  {resetArmed ? '恢复骨架 · 待确认' : '恢复骨架'}
+                </button>
+                <button
+                  type="button"
+                  data-testid="clear-canvas"
+                  onClick={armClearCanvas}
+                  disabled={canvasEmpty}
+                  title={canvasEmpty ? '画布已经是空的' : '清掉全部图元，从零自己搭电路 / 模型（可撤销）'}
+                  className="focus-ring whitespace-nowrap rounded-md border border-line px-2 py-1 text-[11px] text-muted hover:border-cyan/50 disabled:opacity-30"
+                >
+                  清空画布
                 </button>
                 <button type="button" onClick={shareLink} className="focus-ring whitespace-nowrap rounded-md border border-line px-2 py-1 text-[11px] text-muted hover:border-cyan/50">
                   分享此图
+                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    data-testid="export-toggle"
+                    aria-expanded={exportOpen}
+                    aria-label="导出装配图"
+                    onClick={() => setExportOpen((open) => !open)}
+                    className="focus-ring whitespace-nowrap rounded-md border border-line px-2 py-1 text-[11px] text-muted hover:border-cyan/50"
+                  >
+                    导出图 ▾
+                  </button>
+                  {exportOpen ? (
+                    <div
+                      data-testid="export-menu"
+                      className="absolute right-0 top-full z-40 mt-1 w-44 rounded-lg border border-line bg-panel p-1 shadow-lg"
+                    >
+                      <button
+                        type="button"
+                        data-testid="export-svg"
+                        onClick={() => void exportGraphImage('svg')}
+                        className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
+                      >
+                        存为 SVG · 矢量
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="export-png"
+                        onClick={() => void exportGraphImage('png')}
+                        className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
+                      >
+                        存为 PNG · 2 倍图
+                      </button>
+                      <p className="px-2 py-1 text-[10px] leading-4 text-faint">白底深线，不受深色主题影响</p>
+                    </div>
+                  ) : null}
+                </div>
+                <UnitModeSelect testId="unit-mode-lab" label="装配台读数单位制" />
+                {generic?.frame || zeroFromTemplate ? (
+                  <>
+                    <button
+                      type="button"
+                      data-testid="zero-member-toggle"
+                      aria-pressed={showZeroMembers}
+                      disabled={zeroInfo.ids.length === 0}
+                      title={
+                        zeroFromTemplate
+                          ? `模板解按课本节点判据：${zeroInfo.reason}。模板的杆名与画布边 id 不是同一套，这里不假装能高亮；自建桁架走通用解时可一键高亮。`
+                          : zeroInfo.noLoad
+                            ? '本图没有可判定的荷载，零杆判据不适用'
+                            : `按杆端轴力相对最大轴力判定，共 ${zeroInfo.total} 根杆`
+                      }
+                      onClick={() => setShowZeroMembers((on) => !on)}
+                      className="focus-ring whitespace-nowrap rounded-md border border-line px-2 py-1 text-[11px] text-muted hover:border-cyan/50 disabled:opacity-40"
+                    >
+                      {zeroFromTemplate ? `零杆判据 · ${zeroInfo.total} 根` : showZeroMembers ? '隐藏零杆' : `零杆高亮 · ${zeroInfo.ids.length} 根`}
+                    </button>
+                    {zeroFromTemplate ? (
+                      <span
+                        data-testid="zero-member-note"
+                        title={zeroInfo.reason}
+                        className="max-w-[260px] truncate text-[10px] leading-4 text-faint"
+                      >
+                        {zeroInfo.reason}
+                      </span>
+                    ) : null}
+                  </>
+                ) : null}
+                <button
+                  type="button"
+                  data-testid="favorite-toggle"
+                  onClick={openFavorite}
+                  title="把当前装配图存进收藏（装配台首页可一键载入）"
+                  className="focus-ring whitespace-nowrap rounded-md border border-line px-2 py-1 text-[11px] text-muted hover:border-cyan/50"
+                >
+                  ☆ 收藏
                 </button>
                 <button
                   type="button"
@@ -1255,6 +1822,79 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   取消
                 </button>
               </div>
+            ) : null}
+
+            {favoriteOpen ? (
+              <div
+                data-testid="favorite-form"
+                className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-cyan/40 bg-cyan/5 px-3 py-2 text-[11px] leading-5"
+              >
+                <span className="text-ink">给这张图起个名字：</span>
+                <input
+                  type="text"
+                  data-testid="favorite-name"
+                  aria-label="收藏名称"
+                  value={favoriteName}
+                  onChange={(event) => setFavoriteName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') saveFavorite();
+                    if (event.key === 'Escape') setFavoriteOpen(false);
+                  }}
+                  className="w-56 rounded border border-line bg-bg px-1.5 py-0.5 text-[11px] text-ink outline-none focus:border-cyan/60"
+                />
+                <button
+                  type="button"
+                  data-testid="favorite-save"
+                  onClick={saveFavorite}
+                  className="focus-ring rounded border border-cyan/60 px-2 py-0.5 font-medium text-cyan hover:bg-cyan/15"
+                >
+                  保存
+                </button>
+                <button
+                  type="button"
+                  data-testid="favorite-cancel"
+                  onClick={() => setFavoriteOpen(false)}
+                  className="focus-ring rounded border border-line px-2 py-0.5 text-muted hover:border-cyan/50"
+                >
+                  取消
+                </button>
+              </div>
+            ) : null}
+
+            {clearArmed ? (
+              <div
+                data-testid="clear-canvas-confirm"
+                role="alertdialog"
+                aria-label="确认清空画布"
+                className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber/50 bg-amber/10 px-3 py-2 text-[11px] leading-5 text-amber"
+              >
+                <span>清空会删掉画布上全部器件、导线、结点与标注（参数表与本题求解器保留）—— 确认吗？</span>
+                <button
+                  type="button"
+                  data-testid="clear-canvas-yes"
+                  onClick={confirmClearCanvas}
+                  className="focus-ring rounded border border-amber/60 px-2 py-0.5 font-medium text-amber hover:bg-amber/20"
+                >
+                  确认清空
+                </button>
+                <button
+                  type="button"
+                  data-testid="clear-canvas-no"
+                  onClick={() => setClearArmed(false)}
+                  className="focus-ring rounded border border-line px-2 py-0.5 text-muted hover:border-cyan/50"
+                >
+                  取消
+                </button>
+              </div>
+            ) : null}
+
+            {slantedNote ? (
+              <p
+                data-testid="slanted-member-note"
+                className="mb-3 rounded-lg border border-amber/40 bg-amber/10 px-3 py-2 text-[11px] leading-5 text-amber"
+              >
+                {slantedNote}
+              </p>
             ) : null}
 
             {isParametricSkeleton(pickId) ? (
@@ -1337,7 +1977,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
             ) : (
               <div className="grid gap-3 lg:grid-cols-[316px_minmax(0,1fr)_320px] lg:items-start">
                 {/* 左：装配操作（N-04：min-w-0 + overflow-x-hidden，消灭底部横向滚动条） */}
-                <section className={`${CARD} min-w-0 max-h-[70vh] overflow-x-hidden overflow-y-auto p-3`}>
+                <section data-testid="col-left" className={`${CARD} min-w-0 max-h-[70vh] overflow-x-hidden overflow-y-auto p-3`}>
                   <h2 className="text-xs text-ink">装配（白名单内）</h2>
                   <p className="mt-1 text-[10px] leading-4 text-muted">
                     {isBeam
@@ -1497,7 +2137,39 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                             </select>
                           </div>
                         ) : null}
-                        {!isBeam && CIRCUIT_KINDS.includes(device.kind) ? (
+                        {/* W24 ㉟⑦：选中器件时把「模型参数」（gm / ro / β / VA…）摊在行内 ——
+                            这些数不在参数表里，缺了就拒答；填完立刻重解。 */}
+                        {!isBeam && selectedIds.includes(device.id) && deviceParamFields(device).length > 0 ? (
+                          <div data-testid="device-param-row" className="ml-auto flex shrink-0 items-center gap-1">
+                            {deviceParamFields(device).map((field) => (
+                              <span key={field.key} className="flex items-center gap-0.5" title={field.hint}>
+                                <span className="text-[10px] text-faint">{field.key}</span>
+                                {deviceParamValue(device, field) !== undefined ? (
+                                  <span className="flex items-center gap-0.5">
+                                    <span className="text-[10px] text-muted">{deviceParamValue(device, field)}</span>
+                                    {givenDefaults.has(`${device.id}:${field.key}`) ? (
+                                      <span
+                                        data-testid="device-param-default"
+                                        className="rounded bg-amber/15 px-1 text-[9px] text-amber"
+                                        title="这只是参考量级，不是题面值 —— 题面给了就改"
+                                      >
+                                        参考
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                ) : (
+                                  <ModelParamInput
+                                    field={field}
+                                    onCommit={(field, value) => {
+                                      applyMissingParams(device.id, field, value);
+                                      if (stage === 'solved') recomputeArmed.current = true;
+                                    }}
+                                  />
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}                        {!isBeam && CIRCUIT_KINDS.includes(device.kind) ? (
                           <select
                             data-testid="kind-select"
                             value={device.kind}
@@ -1844,15 +2516,30 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                 </section>
 
                 {/* 中：画布 */}
-                <section className={`${CARD} p-3`}>
+                <section data-testid="col-canvas" className={`${CARD} relative p-3`}>
                   <h2 className="text-xs text-ink">画布（骨架 + 装配结果）</h2>
+                  {/* ㉜③：清空之后画布上什么都没有了 —— 直接给一眼能照做的下一步。 */}
+                  {canvasEmpty ? (
+                    <p
+                      data-testid="empty-canvas-hint"
+                      className="absolute left-1/2 top-1/2 z-10 w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-dashed border-line bg-panel/90 px-3 py-2 text-center text-[11px] leading-5 text-muted"
+                    >
+                      {isBeam
+                        ? '画布已空 · 左侧「结点」放两个端点 →「加构件」连成跨 → 加支座 →「集中力」点在跨内'
+                        : '画布已空 · 左侧「加入器件」开始自建（+R / +V / +C / +接地）'}
+                      <br />
+                      想回原题图点顶部「恢复骨架」。
+                    </p>
+                  ) : null}
                   <SpecGrid
                     key={resetKey}
                     specs={[graphToSpec(graph, specType)]}
                     stepIndex={-1}
                     editable
                     canvas={{
-                      family: PICKS[pickId].family,
+                      family: PICKS[pickId]?.family ?? 'beam',
+                      /** R-39 ②：零杆高亮（模板解没有可高亮的边 id，按钮本身就是禁用的）。 */
+                      highlightWires: showZeroMembers ? zeroInfo.ids : undefined,
                       pins: clickableAnchors(graph).map((anchor) => ({
                         key: anchor.key,
                         x: anchor.x,
@@ -2037,6 +2724,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                             支座
                             <select
                               data-testid="selection-support"
+                              aria-label="支座类型"
                               value={selectedJointNode.support.type}
                               onChange={(event) => mutate({ op: 'setSupport', nodeId: selectedJointNode.id, type: event.target.value as 'pin' | 'roller' | 'fixed' })}
                               className="rounded border border-line bg-bg px-1 text-[10px] text-ink"
@@ -2083,11 +2771,17 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                               ))}
                             </span>
                           ) : null}
+                          {selectedLoadNode.kind === 'udl' ? (
+                            <span data-testid="load-span-note" className="text-[10px] text-muted">
+                              整跨均布 · 铺满该段（位置固定在跨上，不能拖到跨内某一点）
+                            </span>
+                          ) : null}
                           <span className="flex items-center gap-1" data-testid="load-spot" title="跨内相对位置：0 / 1 = 落到两端结点">
                             {loadSpotText(graph, selectedLoadNode)}
                             <input
                               type="number"
                               data-testid="load-t"
+                              aria-label="跨内相对位置 t"
                               step="0.05"
                               min="0"
                               max="1"
@@ -2123,7 +2817,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                 </section>
 
                 {/* 右：参数确认 + 归约预览 */}
-                <section className={`${CARD} max-h-[70vh] space-y-3 overflow-y-auto p-3`}>
+                <section data-testid="col-known" className={`${CARD} max-h-[70vh] space-y-3 overflow-y-auto p-3`}>
                   <h2 className="text-xs text-ink">确认已知量</h2>
                   {QUICKFILL_TEMPLATES.includes(pickId) ? (
                     <QuickFill
@@ -2135,7 +2829,60 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     />
                   ) : null}
                   <p className="text-[10px] leading-4 text-muted">每个参数都要点一次「确认」（默认值也要）；改动后自动回到未确认。</p>
-                  {/* W21-A A2.3：确认是真闸门，把还差几项直接写在屏幕上。 */}
+                  <p data-testid="known-source-note" className="text-[10px] leading-4 text-faint">
+                    下面是本题的参数表（默认取骨架值）：画布上新增 / 删除的载荷<strong>不会自动写回</strong>这里；
+                    改器件数值请用左栏输入框。
+                  </p>
+                  {/* ㊱③：剪贴板被拒（file:// / 权限策略）时把链接摊在页面上 —— 用户拿得到、能手动复制。 */}
+                  {shareFallback ? (
+                    <div data-testid="share-fallback" className="rounded-lg border border-line bg-panel-2 p-2">
+                      <p className="text-[10px] leading-4 text-muted">
+                        浏览器没给剪贴板权限 —— 链接在这里，手动全选复制即可（Esc 关掉这条）。
+                      </p>
+                      <input
+                        readOnly
+                        data-testid="share-fallback-url"
+                        value={shareFallback}
+                        onFocus={(event) => event.currentTarget.select()}
+                        className="mt-1 w-full rounded border border-line bg-bg px-1.5 py-0.5 text-[10px] text-ink"
+                      />
+                    </div>
+                  ) : null}                  {/* ㉟⑦：拒答原因在「缺 gm / ro / Ic·β·VA」时，就地给补参面板 ——
+                      面板只列 required 字段；灰字是参考量级，绝不冒充题面值。 */}
+                  {missingParams.length > 0 ? (
+                    <div
+                      data-testid="missing-params-panel"
+                      className="rounded-lg border border-amber/50 bg-amber/10 p-2"
+                    >
+                      <p className="text-[11px] text-amber">补模型参数（{missingParams.length} 个器件缺必填项）</p>
+                      <p className="mt-0.5 text-[10px] leading-4 text-amber/80">
+                        这些数不在参数表里 —— 缺一项通用解就拒答。输入框里的灰字是<strong>参考值不是题面值</strong>，
+                        只作量级提示；题面默认给了就按题面填。填一项即写进图，补完自动重解。
+                      </p>
+                      {missingParams.map((item) => (
+                        <div key={item.nodeId} className="mt-1.5 border-t border-amber/20 pt-1">
+                          <p className="text-[10px] text-ink">
+                            {item.label} · {item.kind}
+                          </p>
+                          {item.fields.map((field) => (
+                            <div key={field.key} className="mt-0.5 flex items-center gap-1 text-[10px] text-muted">
+                              <span className="w-24 shrink-0">{field.label}</span>
+                              <ModelParamInput
+                                field={field}
+                                onCommit={(field, value) => {
+                                  applyMissingParams(item.nodeId, field, value);
+                                  if (stage === 'solved') recomputeArmed.current = true;
+                                }}
+                              />
+                              <span className="min-w-0 flex-1 truncate text-faint" title={field.hint}>
+                                {field.hint}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}                  {/* W21-A A2.3：确认是真闸门，把还差几项直接写在屏幕上。 */}
                   {!allConfirmed ? (
                     <p data-testid="confirm-gate-note" className="text-[11px] font-medium leading-4 text-danger">
                       还有 {params.filter((one) => !confirmed[one.key]).length} 项没确认 —— 未确认前不求解、不给校验章
@@ -2143,10 +2890,30 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   ) : (
                     <p data-testid="confirm-gate-note" className="text-[11px] leading-4 text-ok">全部已确认 · 三处数值都取自归约结果</p>
                   )}
+                  {!allConfirmed ? (
+                    <button
+                      type="button"
+                      data-testid="confirm-all"
+                      onClick={confirmAllParams}
+                      title="默认值也要你点一次 —— 这一下就是「我看过这些数了」的签收"
+                      className="focus-ring rounded border border-cyan/50 px-2 py-1 text-[10px] text-cyan hover:border-cyan"
+                    >
+                      一键确认全部（{params.filter((one) => !confirmed[one.key]).length} 项）
+                    </button>
+                  ) : null}
                   <ul className="space-y-1.5">
                     {params.map((param) => {
                       const value = displayValues[param.key];
-                      const isDefault = String(value) === String(param.defaultValue);
+                      /* P0：1e12 是归约的「此件不存在」哨兵（Rc→∞ / Rl 空载），
+                         别把它当越界数值摆出来 —— 显示 ∞ + 一句规则，不标红。 */
+                      const infinite = isInfiniteValue(value);
+                      /* 哨兵值来自归约规则（不是用户填的），徽标也照实写「归约」。 */
+                      const isDefault = String(value) === String(param.defaultValue) || infinite;
+                      /* ㊱④：越界就当场标红 —— 不等到求解才报「参数不合法」。 */
+                      const outOfRange =
+                        !infinite &&
+                        typeof value === 'number' &&
+                        ((param.min !== undefined && value < param.min) || (param.max !== undefined && value > param.max));
                       return (
                         <li key={param.key} data-testid="param-row" data-param={param.key} className="flex items-center gap-2 text-[11px]">
                           <input
@@ -2160,13 +2927,27 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                           <input
                             type="number"
                             aria-label={`${param.label ?? param.key}（确认框输入值）`}
+                            aria-invalid={outOfRange || undefined}
                             data-testid={`confirm-input-${param.key}`}
-                            value={typeof value === 'number' ? value : 0}
+                            value={typeof value === 'number' && !infinite ? value : infinite ? '' : 0}
+                            placeholder={infinite ? '∞' : undefined}
                             step="any"
                             onChange={(event) => onParamChange(param.key, Number(event.target.value))}
-                            className="w-20 rounded border border-line bg-bg px-1.5 py-0.5 text-right text-ink"
+                            className={`w-20 rounded border bg-bg px-1.5 py-0.5 text-right text-ink ${
+                              outOfRange ? 'border-danger' : 'border-line'
+                            }`}
                           />
                           <span className="text-[10px] text-muted">{param.unit ?? ''}</span>
+                          {outOfRange ? (
+                            <span data-testid="param-range-flag" className="shrink-0 rounded bg-danger/15 px-1 text-[10px] text-danger">
+                              超出 {`合法 ${param.min ?? '−∞'}~${param.max ?? '+∞'}`}
+                            </span>
+                          ) : null}
+                          {infinite ? (
+                            <span data-testid="param-infinite-flag" className="shrink-0 rounded bg-panel-2 px-1 text-[10px] text-muted">
+                              ∞ · 图上没有它，按规则当作不存在
+                            </span>
+                          ) : null}
                           <span
                             data-testid={derivedKeys.includes(param.key) ? 'derived-source' : pKeys.includes(param.key) ? 'p-source' : undefined}
                             className={`ml-auto shrink-0 whitespace-nowrap text-[10px] ${
@@ -2245,7 +3026,19 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                         <p className="mt-1 text-[10px] leading-4 text-muted">
                           关键语义：{critical.map((tag) => SEMANTIC_LABEL[tag] ?? tag).join(' / ')}
                           {preview.semantic.missing.length > 0 ? ` · 还缺 ${preview.semantic.missing.map((tag) => SEMANTIC_LABEL[tag] ?? tag).join(' / ')}` : ' · 已标全'}
+                          {preview.semantic.missing.length > 0 ? ' —— 在归约预览点「按拓扑标全」（还缺 ' + preview.semantic.missing.length + ' 项）即可升 F 档看等效电路' : ''}
                         </p>
+                      ) : null}
+                      {critical.length > 0 && preview.semantic.missing.length > 0 ? (
+                        <button
+                          type="button"
+                          data-testid="mark-all-semantics"
+                          onClick={markAllSemantics}
+                          title="按题型拓扑把关键语义（偏置 / 耦合 / 负载 / 电源）标到对应器件上；标完等效图才通"
+                          className="focus-ring mt-1 rounded border border-cyan/50 px-2 py-0.5 text-[10px] text-cyan hover:border-cyan"
+                        >
+                          按拓扑标全（还缺 {preview.semantic.missing.length} 项）
+                        </button>
                       ) : null}
                       {preview.appliedRules.length > 0 ? (
                         <ul className="mt-1 space-y-0.5 text-[10px] leading-4 text-amber">
@@ -2338,7 +3131,20 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
 
             {stage === 'solved' && generic ? (
               <section className="mt-4">
-                <GenericResult family={generic.family} circuit={generic.circuit} frame={generic.frame} notices={generic.notices} measures={generic.measures} reason={generic.reason} />
+                {/* ㉝①/㊱④：把当前画布（不只是归约参数）一并交给通用结果卡 ——
+                    图上改一个截面 / 换一根构件，结果卡里的力学量就能跟着重算。 */}
+                <GenericResult
+                  family={generic.family}
+                  circuit={generic.circuit}
+                  frame={generic.frame}
+                  notices={generic.notices}
+                  measures={generic.measures}
+                  reason={generic.reason}
+                  graphSpec={graph ? graphToSpec(graph, specType) : null}
+                  labels={graph ? displayLabels(graph) : {}}
+                  equivalent={generic.equivalent}
+                  acEquivalent={generic.acEquivalent}
+                />
               </section>
             ) : null}
 
@@ -2602,6 +3408,43 @@ function WrapPanel({
  * W16 器件数值输入：失焦 / 回车提交（不逐键 reduce）；范围 (0, 1e12]，
  * 非法值红边不提交。单位按 kind 固定显示 —— 单位不可编辑，不给填错的机会。
  */
+/** ㉟⑦：器件「模型参数」输入框（gm / ro / β / VA / Ic…）。
+ *  placeholder 是**参考量级**，不是题面值；空着不写，填了才 commit，0 / 负数不收。 */
+function ModelParamInput({
+  field,
+  onCommit,
+}: {
+  field: DeviceParamField;
+  onCommit: (field: DeviceParamField, value: number) => void;
+}) {
+  const [draft, setDraft] = useState('');
+  const commit = () => {
+    const value = Number(draft);
+    if (draft.trim() === '' || !(Number.isFinite(value) && value > 0)) return;
+    onCommit(field, value);
+    setDraft('');
+  };
+  return (
+    <span className="flex items-center gap-1">
+      <input
+        type="number"
+        step="any"
+        data-testid="device-param-input"
+        aria-label={`${field.label}（${field.unit}）`}
+        placeholder={`参考 ${field.example}${field.unit && field.unit !== '—' ? ' ' + field.unit : ''}`}
+        title={field.hint}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
+        }}
+        className="w-24 rounded border border-line bg-bg px-1.5 py-0.5 text-right text-[10px] text-ink"
+      />
+      <span className="text-[10px] text-muted">{field.unit}</span>
+    </span>
+  );
+}
 function ValueInput({ kind, value, onCommit }: { kind: string; value: number | undefined; onCommit: (value: number) => void }) {
   const [text, setText] = useState(value === undefined ? '' : String(value));
   const [invalid, setInvalid] = useState(false);
@@ -2609,14 +3452,16 @@ function ValueInput({ kind, value, onCommit }: { kind: string; value: number | u
     setText(value === undefined ? '' : String(value));
     setInvalid(false);
   }, [value]);
-  /** W22-R P0-E2：边打字边校验 —— 负电阻、0、超限当场红边，不等失焦。 */
+  /** W22-R P0-E2：边打字边校验 —— 负电阻、0、超限当场红边，不等失焦。
+   *  ㊲④：判据统一问 ops 的 valueInRange —— 源器件允许 0 / 负（0 = 短路、负 = 反极性），
+   *  电阻 / 电容 / 电感必须落在 (0, 1e12]。以前这里一律 `<= 0` 就红，把 0 V 源判成非法。 */
   const check = (raw: string) => {
     const parsed = Number(raw);
-    setInvalid(raw.trim() !== '' && (!Number.isFinite(parsed) || parsed <= 0 || parsed > 1e12));
+    setInvalid(raw.trim() !== '' && !valueInRange(kind, parsed));
   };
   const commit = () => {
     const parsed = Number(text);
-    if (text.trim() === '' || !Number.isFinite(parsed) || parsed <= 0 || parsed > 1e12) {
+    if (text.trim() === '' || !valueInRange(kind, parsed)) {
       setInvalid(true);
       return;
     }
@@ -2643,10 +3488,15 @@ function ValueInput({ kind, value, onCommit }: { kind: string; value: number | u
           if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
         }}
         className={`min-w-[64px] w-full max-w-[104px] rounded border bg-bg px-1 text-[10px] outline-none focus:border-cyan/60 ${invalid ? 'border-danger' : 'border-line'}`}
-        title="器件数值（失焦提交；范围 (0, 1e12]）"
+        title={`器件数值（失焦提交；${valueRangeHint(kind)}）`}
       />
       {/* W21-B B5：编辑框留原始数字方便改，旁边的读数是与画布 / 右栏同一个格式器。 */}
       <span data-testid="device-value-formatted" className="text-[10px] text-muted">{shown || unit}</span>
+      {invalid ? (
+        <span data-testid="device-value-hint" className="text-[10px] text-danger">
+          {valueRangeHint(kind)}
+        </span>
+      ) : null}
     </span>
   );
 }

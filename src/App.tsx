@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { getTemplateRoute } from './core/templates/registry';
 import { Home } from './pages/Home';
+import { ErrorBoundary } from './ui/ErrorBoundary';
 
 const Result = lazy(() =>
   import('./pages/Result').then((module) => ({ default: module.Result })),
@@ -127,6 +128,8 @@ export function App() {
             </div>
           }
         >
+          {/* 换路由重挂边界：一页崩了不拖累整站，也不会一直停在错误页。 */}
+          <ErrorBoundary key={`${route.page}:${'templateId' in route ? route.templateId : ''}`}>
           {route.page === 'about' ? (
             <About onBack={backHome} />
           ) : route.page === 'wizard' ? (
@@ -136,7 +139,14 @@ export function App() {
           ) : route.page === 'scope' ? (
             <Scope onBack={backHome} />
           ) : route.page === 'lab' ? (
-            <Lab templateId={route.templateId} onBack={backHome} onStart={navigate} onToast={showToast} />
+            <Lab
+              templateId={route.templateId}
+              /* 题型页的「← 返回」回装配台列表，不是回首页 —— 首页要再点一次才到
+                 「装配台」，层级对不上（2026-11-14 巡检 D8）。 */
+              onBack={route.templateId ? () => navigate('#/lab') : backHome}
+              onStart={navigate}
+              onToast={showToast}
+            />
           ) : route.page === 'kb' ? (
             <KbIndex />
           ) : route.page === 'kbEntry' ? (
@@ -151,6 +161,7 @@ export function App() {
               onToast={showToast}
             />
           )}
+          </ErrorBoundary>
         </Suspense>
       )}
       {toast ? (

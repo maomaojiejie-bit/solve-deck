@@ -217,7 +217,7 @@ export function addTargetOf(graph: CanvasGraph, selectionId: string | null | und
   if (ATTACH_CONFIG.preferSelection) {
     return {
       nodeId: null,
-      reason: '先在画布或左栏点一个结点（选中它），再加支座 / 载荷 —— 不许替你猜是哪个点。',
+      reason: '先选中一个结点，再加支座 / 载荷。',
     };
   }
   const first = graph.nodes.find(isJoint);

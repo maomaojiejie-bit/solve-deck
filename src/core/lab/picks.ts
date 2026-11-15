@@ -10,6 +10,7 @@
 import type { ParamValue } from '../templates/registry.ts';
 import { formatCompact } from '../format.ts';
 import { normalizeDeviceId } from './graphFromSpec.ts';
+import { deviceName } from './labels.ts';
 import { supportRefs } from './attach.ts';
 import type { CanvasGraph, CanvasNode } from './types.ts';
 
@@ -101,8 +102,16 @@ export function loadT(graph: CanvasGraph, node: CanvasNode): number | null {
   if (!member) return null;
   const a = graph.nodes.find((n) => n.id === member.from);
   const b = graph.nodes.find((n) => n.id === member.to);
-  if (!a || !b || b.x === a.x) return null;
-  return Math.min(1, Math.max(0, (node.x - a.x) / (b.x - a.x)));
+  if (!a || !b) return null;
+  // R-38：沿构件方向做参数化投影，而不是只看 x。原来 `b.x === a.x` 就返回
+  // null，竖直 / 斜杆上所有载荷的 t 全丢，归约读不到力 —— 水平杆时 dy=0，
+  // 这里精确退化回原来的 (node.x-a.x)/(b.x-a.x)，逐字兼容既有快照。
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return null;
+  const t = ((node.x - a.x) * dx + (node.y - a.y) * dy) / len2;
+  return Math.min(1, Math.max(0, t));
 }
 
 /** 标注文字里的第一个数（VCC 12V / T = 1 kN·m）；严格模型里对应 meta 兜底。 */
@@ -279,7 +288,7 @@ export const PICKS: Record<string, TemplatePicks> = {
       { key: 'q', sources: [{ src: 'load', type: 'udl' }], missing: 0 },
     ],
     rejects: [
-      exactly(['pinSupport', 'rollerSupport'], '简支梁需要恰好一个固定铰 + 一个可动铰：支座数量不对，去装配送回，或换 M3 悬臂 / 去 #/scope 走一遍判别。'),
+      exactly(['pinSupport', 'rollerSupport'], '简支梁需要恰好一个固定铰 + 一个可动铰：支座配置不对（类型或个数），去装配台补回，或换 M3 悬臂 / 用顶部「范围」页走一遍判别。'),
       (graph) => {
         const points = findLoads(graph, 'point');
         if (points.length > 1) {
@@ -299,7 +308,7 @@ export const PICKS: Record<string, TemplatePicks> = {
       { key: 'q', sources: [{ src: 'load', type: 'udl' }], missing: 0 },
     ],
     rejects: [
-      exactly(['fixedSupport'], '悬臂梁需要恰好一个固定端：支座数量不对，去装配送回，或换 M3 简支。'),
+      exactly(['fixedSupport'], '悬臂梁需要恰好一个固定端：支座配置不对（类型或个数），去装配台补回，或换 M3 简支。'),
       (graph) => {
         const up = findLoads(graph, 'point').find((node) => node.rot === 180);
         return up ? '集中力箭头朝上：本题型按向下集中力建模，请把载荷改回向下，或换题型。' : null;
@@ -406,7 +415,7 @@ export const PICKS: Record<string, TemplatePicks> = {
       { key: 'kind', sources: [{ src: 'meta' }], missing: 'bar' },
     ],
     rejects: [
-      supportCount({ pinSupport: 1, rollerSupport: 1 }, '轴向拉杆需要一个固定铰 + 一个可动铰：支座数量不对，恢复骨架或改题型。'),
+      supportCount({ pinSupport: 1, rollerSupport: 1 }, '轴向拉杆需要一个固定铰 + 一个可动铰：支座配置不对（类型或个数），恢复骨架或改题型。'),
       mainSpan(['beam'], '轴向拉杆需要恰好一段主跨：删掉构件后结构不成立，补回这一段或点「恢复骨架」。'),
       pointLoads(1, '轴向拉杆只支持一个轴向集中力：多删少补都要先回到一个 P'),
     ],
@@ -422,7 +431,7 @@ export const PICKS: Record<string, TemplatePicks> = {
       { key: 'kind', sources: [{ src: 'meta' }], missing: 'shaft' },
     ],
     rejects: [
-      supportCount({ fixedSupport: 1 }, '圆轴扭转需要一个固定端：支座数量不对，恢复骨架或改题型。'),
+      supportCount({ fixedSupport: 1 }, '圆轴扭转需要一个固定端：支座配置不对（类型或个数），恢复骨架或改题型。'),
       mainSpan(['shaft'], '圆轴扭转需要恰好一段轴：删掉轴段后结构不成立，补回这一段或点「恢复骨架」。'),
     ],
   },
@@ -437,7 +446,7 @@ export const PICKS: Record<string, TemplatePicks> = {
       { key: 'allow', sources: [{ src: 'meta' }], required: true },
     ],
     rejects: [
-      supportCount({ pinSupport: 1, rollerSupport: 1 }, '简支梁需要一个固定铰 + 一个可动铰：支座数量不对，恢复骨架或改题型。'),
+      supportCount({ pinSupport: 1, rollerSupport: 1 }, '简支梁需要一个固定铰 + 一个可动铰：支座配置不对（类型或个数），恢复骨架或改题型。'),
       mainSpan(['beam'], '简支梁需要恰好一段主跨：删掉构件后结构不成立，补回这一段或点「恢复骨架」。'),
       pointLoads(1, '弯曲应力只支持跨内一个集中力：先删掉多余载荷或补回被删的那个'),
     ],
@@ -453,7 +462,7 @@ export const PICKS: Record<string, TemplatePicks> = {
       { key: 'E', sources: [{ src: 'meta' }], required: true },
     ],
     rejects: [
-      supportCount({ pinSupport: 1, rollerSupport: 1 }, '简支梁需要一个固定铰 + 一个可动铰：支座数量不对，恢复骨架或改题型。'),
+      supportCount({ pinSupport: 1, rollerSupport: 1 }, '简支梁需要一个固定铰 + 一个可动铰：支座配置不对（类型或个数），恢复骨架或改题型。'),
       mainSpan(['beam'], '简支梁需要恰好一段主跨：删掉构件后结构不成立，补回这一段或点「恢复骨架」。'),
       pointLoads(1, '挠度只支持跨内一个集中力：先删掉多余载荷或补回被删的那个'),
     ],
@@ -485,7 +494,7 @@ export const PICKS: Record<string, TemplatePicks> = {
       { key: 'P2', sources: [{ src: 'load', type: 'point', index: 1 }], required: true, unit: 'kN' },
     ],
     rejects: [
-      supportCount({ pinSupport: 1, rollerSupport: 1 }, '简支梁需要一个固定铰 + 一个可动铰：支座数量不对，恢复骨架或改题型。'),
+      supportCount({ pinSupport: 1, rollerSupport: 1 }, '简支梁需要一个固定铰 + 一个可动铰：支座配置不对（类型或个数），恢复骨架或改题型。'),
       mainSpan(['beam'], '简支梁需要恰好一段主跨：删掉构件后结构不成立，补回这一段或点「恢复骨架」。'),
       pointLoads(2, '平面任意力系这一型要两个集中力（P1 / P2）：删多了或加了第三个都要先回到两个'),
     ],
@@ -569,15 +578,24 @@ export function applyParams(templateId: string, graph: CanvasGraph, values: Reco
       continue;
     }
     for (const source of pick.sources) {
-      if (source.src === 'device' || (source.src === 'deviceParam' && pick.sources.length === 1)) {
+      if (source.src === 'device' || source.src === 'deviceParam') {
         const device = findDevice(next, source.device);
+        /* A3/A5 的 gm / ro 有 M、Q 两个备选器件（sources.length === 2）。
+           旧条件写死「只有单源才写」，多源参数被静默丢掉 —— 参数表改了 gm，
+           图里没变、求解仍是旧值。多源时找到谁写谁，找不到再试下一个备选。 */
+        if (!device && pick.sources.length > 1) continue;
         if (device) {
           if (source.src === 'device') {
             device.value = value;
-            device.label = `${pick.key} ${fmt(value)}`;
+            /* 只换数值，名字照旧：以前写 `${pick.key} …`，于是 A3 的晶体管
+               被改名成「VA 100」（pick.key 是参数键，不是器件名），锚点变成
+               「VA 基极 b」，还会跟着 ?g= / 导出 / 收藏一起固化。 */
+            device.label = `${deviceName(device.label, device.kind)} ${fmt(value)}`;
           } else {
             device.params = { ...(device.params ?? {}), [source.field]: value };
-            device.label = `${pick.key} ${fmt(value)}`;
+            /* 参数（β / λ / Vth / Kn）不是器件的主数值：**不动 label**。
+               主数值由 device.value 那一行走 rewriteLabel，标注里再塞参数名
+               只会把「Q」改成「beta 120」。 */
           }
         }
         break;

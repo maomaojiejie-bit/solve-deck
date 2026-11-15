@@ -54,7 +54,7 @@ const CHILD = process.env.KB_CHILD === '1';
 }
 
 /* ── ② schema ───────────────────────────────────────────────────── */
-const SUBJECTS = ['circuit', 'digital', 'mechanics', 'statics'];
+const SUBJECTS = ['circuit', 'digital', 'mechanics', 'statics', 'physics', 'math', 'programming'];
 {
   const seen = new Set();
   const emptyEntries = [];
@@ -199,7 +199,8 @@ const SUBJECTS = ['circuit', 'digital', 'mechanics', 'statics'];
 /* ── × 索引体积 ─────────────────────────────────────────────────── */
 {
   const size = Buffer.byteLength(JSON.stringify(KB_INDEX), 'utf8');
-  ok('×', size < 120 * 1024, `× 索引过大（先看分词）：${(size / 1024).toFixed(1)} KB ≥ 120 KB`);
+  // R-36d：基础扩展三科入场后条目 59→80，索引线性涨；上限 120→220 KB（仍是防炸护栏）。
+  ok('×', size < 220 * 1024, `× 索引过大（先看分词）：${(size / 1024).toFixed(1)} KB ≥ 220 KB`);
   console.log(`×  索引体积：${(size / 1024).toFixed(1)} KB（< 120 KB，${KB_INDEX.length} 个 term）`);
 }
 

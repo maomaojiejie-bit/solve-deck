@@ -235,7 +235,8 @@ await confirmAll();
 await solve();
 const cant = await snapshot();
 ok('② 标题 / 结果 solver 行同为 M3-cantilever', cant.entryId === 'M3-cantilever' && cant.solverLine.includes('solver: M3-cantilever'), `${cant.entryId} / ${cant.solverLine}`);
-ok('② 结果表是悬臂（MA=10 / Mmax=10 / x=0）', /MA\n10/.test(cant.resultTable) && /Mmax\n10/.test(cant.resultTable) && /MmaxX\n0/.test(cant.resultTable) && cant.resultTable.includes('@ x=0.000 m'), cant.resultTable.replace(/\n/g, ' ').slice(0, 160));
+/* 结果表按展示名断言：D1 起内部键 MmaxX 显示为「Mmax 位置 x」（原始键不再给人看）。 */
+ok('② 结果表是悬臂（MA=10 / Mmax=10 / x=0）', /MA\n10/.test(cant.resultTable) && /Mmax\n10/.test(cant.resultTable) && /Mmax 位置 x\n0/.test(cant.resultTable) && !/MmaxX/.test(cant.resultTable) && cant.resultTable.includes('@ x=0.000 m'), cant.resultTable.replace(/\n/g, ' ').slice(0, 160));
 ok('② 主图是悬臂（固定端，没有可动铰）', cant.canvasText.includes('固定端') && !cant.canvasText.includes('可动铰'), cant.canvasText.slice(0, 160));
 ok('② 结论卡按图给出 |M|max=10 @ x=0', cant.cards.some((line) => /\|M\|max = 10(?: |$)/.test(line) && /x = 0/.test(line)), JSON.stringify(cant.cards));
 const cantPairs = previewPairs(cant.paramsLine);
