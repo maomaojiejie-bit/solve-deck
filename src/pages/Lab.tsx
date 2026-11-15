@@ -1444,6 +1444,9 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   const mechElement = (pickId && PICKS[pickId]?.element) ?? 'beam';
   const axialElement = mechElement === 'bar';
   const shaftElement = mechElement === 'shaft';
+  /** P1：电路题的器件白名单（picks.ts 里本来就有，给 rejects 用的那一份）。
+   *  只有白名单里的种类才摆「加入器件」——运放页不给晶体管，二极管页不给 MOSFET。 */
+  const circuitWhitelist = (pickId && PICKS[pickId]?.whitelist) ?? null;
   /** ㊱⑦：只有真在可装配清单里的题型才有「看原题」；空 id / 未知 id 不给死链。 */
   const peekTemplateId = pickId && PICKS[pickId] ? pickId : null;
   /** W17-C：力学「物件」组含结点（dot 是自由度载体，可删、连带杆先确认）；
@@ -2418,7 +2421,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   ) : null}
                   <div className="mt-1 flex flex-wrap gap-1">
                     {!isBeam
-                      ? CIRCUIT_ADDS.map((item) => (
+                      ? /* P1：按题型给器件 —— A6 运放页原来也摆着「+ Q2 / + M2」晶体管，
+                          点了只会被 circuitReject 拒。归约表里本来就有 whitelist，直接用它裁。 */
+                        CIRCUIT_ADDS.filter(
+                          (item) => !circuitWhitelist || circuitWhitelist.includes(item.kind),
+                        ).map((item) => (
                           <button
                             key={item.label}
                             type="button"
@@ -2455,8 +2462,29 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                               ))
                             : null}
                           {shaftElement ? (
+                            /* P1：扭转页原来一个按钮都没有（面板像坏了）。扭矩箭头是引擎
+                               早就能 stamp 的载荷（LOAD_KIND_OF.torqueArrow = 'torque'），
+                               归约表的 T 现在也认它 —— 所以这里给两个方向的真按钮。 */
+                            ([
+                              { label: '扭矩 T ↻（右手螺旋 +x）', dir: 90 },
+                              { label: '扭矩 T ↺（反向）', dir: 270 },
+                            ] as const).map((item) => (
+                              <button
+                                key={item.dir}
+                                type="button"
+                                data-testid={`add-load-torque-${item.dir}`}
+                                disabled={!addTarget.nodeId}
+                                title={addTarget.nodeId ? `在选中的结点上加${item.label}，进扭矩图 T(x)` : addTarget.reason}
+                                onClick={() => addTarget.nodeId && mutate({ op: 'addLoad', atNodeId: addTarget.nodeId, type: 'torque', value: 1, dir: item.dir })}
+                                className="focus-ring rounded border border-line px-2 py-0.5 text-[10px] text-ink hover:border-cyan/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line"
+                              >
+                                + {item.label}
+                              </button>
+                            ))
+                          ) : null}
+                          {shaftElement ? (
                             <span data-testid="element-adds-note" className="text-[10px] leading-4 text-muted">
-                              扭矩 T 取自骨架里的扭矩标注（右栏参数表可改）；这里只加轴段，加横向载荷对扭转题没有意义。
+                              圆轴扭转：载荷是扭矩 T（右栏参数表也能直接改值）；加第二个扭矩会按叠加算总扭矩，横向载荷对扭转题没有意义。
                             </span>
                           ) : null}
                         </div>

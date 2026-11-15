@@ -431,7 +431,7 @@ export const PICKS: Record<string, TemplatePicks> = {
     picks: [
       { key: 'L', sources: [{ src: 'spanText' }, { src: 'meta' }], required: true, unit: 'm' },
       { key: 'd', sources: [{ src: 'meta' }], required: true },
-      { key: 'T', sources: [{ src: 'textValue', nodeId: 'n-moment-0' }, { src: 'meta' }], required: true, unit: 'kN·m' },
+      { key: 'T', sources: [{ src: 'load', type: 'torque' }, { src: 'textValue', nodeId: 'n-moment-0' }, { src: 'meta' }], required: true, unit: 'kN·m' },
       { key: 'G', sources: [{ src: 'meta' }], required: true },
       { key: 'allow', sources: [{ src: 'meta' }], required: true },
       { key: 'kind', sources: [{ src: 'meta' }], missing: 'shaft' },
@@ -546,7 +546,15 @@ export function seedGraph(templateId: string, values: Record<string, ParamValue>
       if (source.src === 'load') {
         const index = source.index ?? 0;
         out.seeds[`LOAD-${index}`] = { ...out.seeds[`LOAD-${index}`], value };
-        break;
+        // 链条后面还有 meta / 标注文字来源时不在这里 break：同一个值再种进 meta，
+        // 严格模型入口（BeamModel / Netlist 不带文字图元）才有兜底。
+        // 例：M2 的 T 首源是扭矩载荷，骨架里只有「T = 1」那行标注 → 只种 LOAD-0 会让
+        // reduceBeam 读不到 T。
+        const alsoInMeta = pick.sources.some(
+          (other) => other.src === 'meta' || other.src === 'spanText' || other.src === 'textValue',
+        );
+        if (!alsoInMeta) break;
+        continue;
       }
       if (source.src === 'meta' || source.src === 'spanText' || source.src === 'textValue') {
         // 骨架级参数 / 标注文字的数值都种进 meta：严格模型（Netlist / BeamModel）
