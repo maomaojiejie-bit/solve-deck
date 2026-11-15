@@ -2397,7 +2397,27 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                             {PLACE_TOOLS.find((one) => one.tool === placeTool)?.hint}　Esc 退出
                           </span>
                         </div>
-                      ) : (
+                      ) : null}
+                      {placeTool === 'point' && isBeam && !axialElement && !shaftElement ? (
+                        <div className="mt-1 flex flex-wrap items-center gap-1 text-[10px] text-muted" data-testid="place-dir">
+                          落点方向
+                          {LOAD_DIRECTIONS.map((dir) => (
+                            <button
+                              key={dir}
+                              type="button"
+                              data-testid={`place-dir-${dir}`}
+                              aria-pressed={loadDir === dir}
+                              onClick={() => setLoadDir(dir)}
+                              title={`单击落点用 ${LOAD_DIR_LABEL[dir]}（${dir}°）`}
+                              className={`focus-ring rounded border px-1.5 ${loadDir === dir ? 'border-cyan/60 bg-cyan/10 text-cyan' : 'border-line text-ink hover:border-cyan/50'}`}
+                            >
+                              {LOAD_DIR_LABEL[dir]}
+                            </button>
+                          ))}
+                          <span className="ml-1 leading-4">单击 = 这个方向；按住往受力方向拖一下 = 按拖动方向</span>
+                        </div>
+                      ) : null}
+                      {placeTool !== 'off' ? null : (
                         <p data-testid="place-mode-hint" className="mt-1 text-[10px] leading-4 text-muted">
                           现在点画布 = 选中 / 拖动。选一个放置器，点一下就把条件落到图上（不必先选中再点按钮）。
                         </p>

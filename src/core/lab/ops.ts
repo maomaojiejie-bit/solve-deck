@@ -909,6 +909,10 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
       const semanticDir = op.type === 'point' ? normalizeDir(op.dir ?? 0) : 0;
       const dir = op.type === 'point' ? glyphRotOf(semanticDir) : 0;
       const id = freeId(nodes, `n-load-${nodes.filter((node) => LOAD_NODE_KINDS.has(node.kind)).length}`);
+      // 同一根杆上连着加好几个箭头时，标签会叠成一团（「P P 2020NN…」）：
+      // 交替翻上/下，至少让每个标签都有自己的位置。
+      const siblings = nodes.filter((node) => node.kind === kind).length;
+      const alternateSide = kind === 'arrow' && siblings % 2 === 1 ? ('down' as const) : undefined;
       next.nodes = [
         ...nodes,
         {
@@ -917,6 +921,7 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
           y,
           kind,
           rot: dir,
+          ...(alternateSide ? { labelSide: alternateSide } : {}),
           // R-36：均布是「铺满整段」的整跨载荷（BeamModel 只有整跨 q），
           // 标签里再挂一个 t=0.47 会让人误以为是局部段 —— 命中点只用来选杆，不是区间起点。
           label: op.type === 'udl' && atMemberId
