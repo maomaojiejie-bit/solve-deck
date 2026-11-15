@@ -12,6 +12,7 @@ export type { ReduceResult };
 import { allComposites, expandComposites, type CompositeDef } from './composite.ts';
 import { findDevice, findLoads, labelNumber, loadT, PICKS, spanTextValueOf, valueFromLabel } from './picks.ts';
 import { anchorsOfNode, type Anchor } from './pins.ts';
+import { rotToDir } from './attach.ts';
 import { anchorDisplay } from './pinNames.ts';
 
 /**
@@ -89,6 +90,20 @@ function openPinProblems(graph: CanvasGraph): { blocking: string[]; warnings: st
   return { blocking: problems, warnings };
 }
 
+/**
+ * 载荷方向 → 带符号的值。方向是真的：箭头朝反方向就是负值。
+ *  - 梁（beam）：↓ = +，↑ = −（向上托）。
+ *  - 杆 / 轴（bar / shaft）：→ = +（拉），← = −（压）。
+ * 其余组合（梁上的水平箭头、杆上的竖向箭头）不该由模板读，
+ * resolve.unmodeledBeamLoads 会把它们判成「未建模」并走刚架通用解。
+ */
+function signedLoadValue(raw: number, load: CanvasNode, element: string | undefined): number {
+  if (load.kind !== 'arrow') return raw;
+  const dir = rotToDir(load.rot);
+  if (element === 'bar' || element === 'shaft') return dir === 270 ? -raw : raw;
+  return dir === 180 ? -raw : raw;
+}
+
 /** 从归约表跑一遍：结构判据 → 逐键取数 → 兜底 / 拒答。 */
 export function reduce(
   templateId: string,
@@ -164,7 +179,7 @@ export function reduce(
         if (load) {
           const raw = load.value ?? valueFromLabel(load.label);
           if (raw !== null && Number.isFinite(raw)) {
-            value = raw;
+            value = signedLoadValue(raw, load, picks.element);
             break;
           }
         }

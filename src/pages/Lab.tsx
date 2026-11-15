@@ -887,7 +887,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     const hit = placeHit(ui.graph, down.x, down.y, placeAlt);
     const opts: PlaceOptions = {
       value: placeValue,
-      dir: placeTool === 'point' ? dirFromDrag(x - down.x, y - down.y) : loadDir,
+      dir: placeTool === 'point' ? dirFromDrag(x - down.x, y - down.y, loadDir) : loadDir,
     };
     const plan = placePlan(ui.graph, placeTool, hit, opts);
     if (plan.refused || plan.ops.length === 0) {
@@ -2531,7 +2531,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                         })
                       : null}
                   </div>
-                  {isBeam ? (
+                  {isBeam && !axialElement && !shaftElement ? (
                     <div className="mt-1 flex items-center gap-1 text-[10px] text-muted" data-testid="load-dir">
                       方向
                       {LOAD_DIRECTIONS.map((dir) => (
@@ -2540,13 +2540,13 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                           type="button"
                           data-testid={`load-dir-${dir}`}
                           onClick={() => setLoadDir(dir)}
-                          title={`新集中力方向 ${dir}°`}
+                          title={`新集中力方向 ${dir}°（放置器单击也用它）`}
                           className={`focus-ring rounded border px-1.5 ${loadDir === dir ? 'border-cyan/60 bg-cyan/10 text-cyan' : 'border-line text-ink hover:border-cyan/50'}`}
                         >
                           {LOAD_DIR_LABEL[dir]}
                         </button>
                       ))}
-                      <span className="ml-1">选中一个构件 → 载荷落跨内 t=0.50（选中条可改）</span>
+                      <span className="ml-1">选中构件 → 载荷落跨内 t=0.50；放置器里单击就用这个方向，拖一下则按拖动方向</span>
                     </div>
                   ) : null}
 

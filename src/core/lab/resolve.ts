@@ -17,7 +17,7 @@
  */
 
 import { PICKS, valueFromLabel } from './picks.ts';
-import { supportRefs } from './attach.ts';
+import { supportRefs, rotToDir } from './attach.ts';
 import { reduce } from './reduce.ts';
 import { isBlockingProblem } from './composite.ts';
 import { interpretQuestion, type Measure } from './measures.ts';
@@ -151,11 +151,32 @@ function unmodeledBeamLoads(graph: CanvasGraph, picks: NonNullable<(typeof PICKS
     }
   }
   const kindOf: Record<string, string> = { arrow: 'point', udl: 'udl', momentArrow: 'moment', torqueArrow: 'torque' };
+  const element = picks.element ?? 'beam';
+  const axialElement = element === 'bar' || element === 'shaft';
   const seen = new Set<string>();
   const problems: string[] = [];
   for (const node of graph.nodes) {
     const type = kindOf[node.kind];
     if (!type) continue;
+    // 方向必须跟元素对得上：梁的读法只有竖向（↓ / ↑），杆 / 轴的读法只有沿轴（→ 拉 / ← 压）。
+    // 对不上的不让模板硬算 —— 交给刚架通用解（它按 rot 真的分成 fx / fy），
+    // 否则画布画的是水平箭头、讲解稿按竖向 P 解，画与算相反。
+    if (type === 'point' && consumed.has(type)) {
+      const dir = rotToDir(node.rot);
+      const along = dir === 90 || dir === 270;
+      if (axialElement && !along) {
+        problems.push(
+          `载荷「${node.label || node.id}」是竖向的：${templateId} 是轴力题，只认沿杆轴的集中力（→ 拉力 / ← 压力）。竖向箭头按刚架通用解算，讲解稿不再适用。`,
+        );
+        continue;
+      }
+      if (!axialElement && along) {
+        problems.push(
+          `载荷「${node.label || node.id}」是水平的：${templateId} 的讲解稿只认竖向集中力（↓ 向下 / ↑ 向上）。水平箭头按刚架通用解算（轴力、剪力都有），讲解稿不再适用。`,
+        );
+        continue;
+      }
+    }
     if (consumed.has(type) || seen.has(type)) continue;
     seen.add(type);
     problems.push(

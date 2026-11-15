@@ -357,11 +357,14 @@ export function pinsOfNode(graph: CanvasGraph, nodeId: string): { key: string; x
 }
 
 /**
- * 松手方向：位移够大就取「最近的四分之一方向」，否则垂直向下。
+ * 松手方向：位移够大就取「最近的四分之一方向」，否则用 fallback（默认垂直向下）。
  * 语义角：↓0 / →90 / ↑180 / ←270（与 LOAD_DIR_LABEL 同一套）。
+ *
+ * fallback 是给「先点方向按钮、再单击落条件」的人留的：只单击不拖的时候，
+ * 应该落在「你刚才选的方向」上，而不是默默回到 ↓（否则方向按钮看起来完全没反应）。
  */
-export function dirFromDrag(dx: number, dy: number): number {
-  if (Math.hypot(dx, dy) < PLACE_CONFIG.dragThreshold) return 0;
+export function dirFromDrag(dx: number, dy: number, fallback = 0): number {
+  if (Math.hypot(dx, dy) < PLACE_CONFIG.dragThreshold) return fallback;
   const angle = (90 - (Math.atan2(dy, dx) * 180) / Math.PI + 360) % 360;
   return ((Math.round(angle / 90) * 90) % 360 + 360) % 360;
 }

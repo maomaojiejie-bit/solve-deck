@@ -904,7 +904,10 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
       } else {
         return { graph, rules, refused: '先选中结点或构件。' };
       }
-      const dir = op.type === 'point' ? glyphRotOf(op.dir ?? 0) : 0;
+      // 对外一律语义角（↓0/→90/↑180/←270），图元角只在落盘那一刻算；
+      // 规则文案里也必须写语义角，否则选了「→」的人会看到「方向 270°」。
+      const semanticDir = op.type === 'point' ? normalizeDir(op.dir ?? 0) : 0;
+      const dir = op.type === 'point' ? glyphRotOf(semanticDir) : 0;
       const id = freeId(nodes, `n-load-${nodes.filter((node) => LOAD_NODE_KINDS.has(node.kind)).length}`);
       next.nodes = [
         ...nodes,
@@ -938,8 +941,8 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
       }
       rules.push(
         atMemberId
-          ? `载荷落在 ${where} 上：${op.type === 'point' ? '集中力' : op.type === 'udl' ? '均布载荷' : '力偶'} ${op.value} ${unit}${op.type === 'point' ? `，方向 ${dir}°` : ''}`
-          : `已加${op.type === 'point' ? '集中力' : op.type === 'udl' ? '均布载荷' : '力偶'} ${op.value} ${unit}（${spot}${op.type === 'point' ? `，方向 ${dir}°` : ''}）`,
+          ? `载荷落在 ${where} 上：${op.type === 'point' ? '集中力' : op.type === 'udl' ? '均布载荷' : '力偶'} ${op.value} ${unit}${op.type === 'point' ? `，方向 ${LOAD_DIR_LABEL[semanticDir]}（${semanticDir}°）` : ''}`
+          : `已加${op.type === 'point' ? '集中力' : op.type === 'udl' ? '均布载荷' : '力偶'} ${op.value} ${unit}（${spot}${op.type === 'point' ? `，方向 ${LOAD_DIR_LABEL[semanticDir]}（${semanticDir}°）` : ''}）`,
       );
       return { graph: next, rules };
     }
