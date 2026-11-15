@@ -303,7 +303,15 @@ function formatResultValue(
   family: 'analog' | 'other',
   templateId: string,
 ): number | string {
-  if (typeof value === 'string') return RESULT_ZONE_LABELS[value] ?? value;
+  if (typeof value === 'string') {
+    // P1：A3/A5 的输入电阻是无穷大时 result 里给字符串 '∞'，原来直接印成
+    // `Ri∞`（没有单位，和隔壁 `Ro 1.96kΩ` 不是一个样子）。有单位就带上。
+    if (value === '∞') {
+      const infUnit = unitsFor(templateId, family)?.[key];
+      return infUnit ? `∞ ${infUnit}` : value;
+    }
+    return RESULT_ZONE_LABELS[value] ?? value;
+  }
   if (!Number.isFinite(value)) return value;
   // 自锁是 0/1 判据，不是量；给它一句人话，别在表里留个孤零零的 1。
   if (key === 'selfLock') return value !== 0 ? '自锁' : '不自锁';

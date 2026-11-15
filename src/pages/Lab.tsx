@@ -1595,6 +1595,13 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                 );
               })}
             </div>
+            {/* P1：最近使用 / 我的收藏都为空时 LibraryPanel 整块 return null ——
+                新人永远不知道这里会长出这两个功能。空态留一句话，功能才有被发现的机会。 */}
+            {library.history.length === 0 && library.favorites.length === 0 ? (
+              <p data-testid="library-empty-hint" className="mt-4 text-[11px] leading-5 text-faint">
+                用过的题型会出现在这里（最近使用 + 我的收藏）；右上角「☆ 收藏」可以给一张图起名留存。
+              </p>
+            ) : null}
             <LibraryPanel
               library={library}
               sort={librarySort}
@@ -3616,7 +3623,9 @@ function TwoClickHelper({
         </select>
         <select value={mode} onChange={(event) => setMode(event.target.value as 'wire' | 'member')} className="rounded border border-line bg-bg px-1 text-[10px]" title="动作">
           <option value="wire">连线</option>
-          <option value="member">加构件</option>
+          {/* P1：电路页根本加不了「构件」（那是有力学骨架才有的东西），
+              下拉里留着这一项只会让人点出一个必被拒的动作。 */}
+          {beam ? <option value="member">加构件</option> : null}
         </select>
       </div>
       {showSearch ? (
