@@ -105,7 +105,7 @@ export function ParamPanel({
         <span className="flex items-center justify-end gap-2">
           <label
             className="flex items-center gap-1 text-[10px] text-muted"
-            title="实时：拖动/改值就跟着重算，并把这一项当作你已确认（已确认的标记不撤）。关掉则改值回到未确认，需要重新确认后才重算。"
+            title="实时：拖动 / 改值马上重算，这一项也算你确认过了（确认标记不撤）。关掉的话，改完值还得重新确认才会重算。"
             hidden={!onLiveChange}
           >
             <input

@@ -71,7 +71,7 @@ const STEPS = [
   {
     id: '02',
     title: '建模',
-    body: '支座、载荷、截面落到同一个模型上：跨度以米记，力以千牛记，截面尺寸以米记。模型错了，后面每一步都错，所以这一步先摆到画布上给你看。',
+    body: '支座、载荷、截面落到同一个模型上：跨度按米、力按千牛、截面也是米。模型错了后面全错——所以先把它摆到画布上给你看。',
     sample: 'MechSpec → supports[pin@0, roller@L] · loads[point_force@L/2] · section[rect b×h]',
   },
   {

@@ -736,7 +736,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
         });
         if (missed.length > 0) {
           onToast(
-            `?p= 的 ${missed.map((key) => `${key}:${seeded.values[key]}`).join('、')} 没生效（画布上的几何 / 载荷没跟上）—— 这些键以画布为准，请在画布上改或恢复骨架`,
+            `?p= 的 ${missed.map((key) => `${key}:${seeded.values[key]}`).join('、')} 没生效（画布上的几何 / 载荷没跟上）—— 这些键以画布为准。想改就到画布上改，或者点「恢复骨架」`,
           );
         }
       }
@@ -2002,7 +2002,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   {
                     id: '02',
                     title: '改结构',
-                    body: '删器件、加构件、拖结点、改参数。每一次改动逐条记进改动台账，撤销 / 重做都跟得上 —— 改错了能退回去。',
+                    body: '删器件、加构件、拖结点、改参数。动了什么，台账记一条；改错了 Ctrl+Z 就回去了。',
                   },
                   {
                     id: '03',

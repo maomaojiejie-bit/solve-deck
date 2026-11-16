@@ -204,7 +204,7 @@ export function QuickFill({ templateId, values, writableKeys, testId = 'quickfil
             把这句提到最显眼处（原来藏在按钮下方），免得改了 Ic 以为 Av 会跟着变。 */}
         <p data-testid="quick-scope-note" className="rounded border border-amber/40 bg-amber/10 px-2 py-1 text-[10px] leading-4 text-amber">
           {mode === 'fromQ'
-            ? '仅换算、不参与求解：这里改 Ic 只更新 gm / rπ / ro 的显示，参数表与 Av 不会变；要真改求解请到右侧参数表改 Ic / VA，或点下方「倒推」写入。'
+            ? '仅换算、不参与求解：这里改 Ic 只更新 gm / rπ / ro 的显示，参数表与 Av 不会变。真要改求解，去右边参数表改 Ic / VA，或点下面「倒推」写入。'
             : '只有点「写入参数表」后，倒推出的 Ic / VA 才会进入求解；在此之前本区数值与结果无关。'}
         </p>
         <p data-testid="quick-summary" className="text-[10px] leading-4 text-muted">{result.summary}</p>
