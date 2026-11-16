@@ -25,5 +25,6 @@ taste-skill/
 *.qoder.site
 
 # 历史重写 / 临时文件
+.git-rewrite/
 git-rewrite/
 tmp/

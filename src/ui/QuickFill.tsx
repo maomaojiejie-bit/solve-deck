@@ -165,7 +165,11 @@ export function QuickFill({ templateId, values, writableKeys, testId = 'quickfil
                   type="number"
                   step="any"
                   value={text}
+                  // 剩余漏洞 1.5：Vt 是热电压常数（≈26 mV），参与 Ic↔gm 换算但不写回求解器；
+                  // 做成可编辑框会让人以为能改模型，改成只读展示（Salomon 常数一览）。
+                  readOnly={key === 'Vt'}
                   onChange={(event) => {
+                    if (key === 'Vt') return;
                     const raw = event.target.value;
                     setDraft((current) => ({ ...current, [key]: raw }));
                     change(key, raw);
@@ -175,11 +179,12 @@ export function QuickFill({ templateId, values, writableKeys, testId = 'quickfil
                     delete copy[key];
                     return copy;
                   })}
+                  onFocus={(event) => { if (key === 'Vt') event.currentTarget.select(); }}
                   className={`w-full min-w-0 rounded border bg-bg px-1 py-0.5 text-right text-ink ${
-                    provenance === '推得' ? 'border-ok/50 bg-ok/5' : 'border-line'
+                    key === 'Vt' ? 'border-line/50 bg-panel-2 text-muted' : provenance === '推得' ? 'border-ok/50 bg-ok/5' : 'border-line'
                   }`}
-                  aria-label={`${QUICK_UNITS[key].label}${unit ? `（${unit}）` : ''}`}
-                  title={provenance === '推得' ? '自动算出；直接改会标成「手改」' : '输入值'}
+                  aria-label={`${QUICK_UNITS[key].label}${unit ? `（${unit}）` : ''}${key === 'Vt' ? '，只读常数' : ''}`}
+                  title={key === 'Vt' ? '热电压常数，只用于换算，不写回求解器' : provenance === '推得' ? '自动算出；直接改会标成「手改」' : '输入值'}
                 />
                 <span className="w-6 shrink-0 text-muted">{unit}</span>
                 <span
@@ -195,6 +200,13 @@ export function QuickFill({ templateId, values, writableKeys, testId = 'quickfil
           })}
         </div>
 
+        {/* 剩余漏洞 1.5：快速输入区是「独立换算器」，不写参数表就不影响求解 ——
+            把这句提到最显眼处（原来藏在按钮下方），免得改了 Ic 以为 Av 会跟着变。 */}
+        <p data-testid="quick-scope-note" className="rounded border border-amber/40 bg-amber/10 px-2 py-1 text-[10px] leading-4 text-amber">
+          {mode === 'fromQ'
+            ? '仅换算、不参与求解：这里改 Ic 只更新 gm / rπ / ro 的显示，参数表与 Av 不会变；要真改求解请到右侧参数表改 Ic / VA，或点下方「倒推」写入。'
+            : '只有点「写入参数表」后，倒推出的 Ic / VA 才会进入求解；在此之前本区数值与结果无关。'}
+        </p>
         <p data-testid="quick-summary" className="text-[10px] leading-4 text-muted">{result.summary}</p>
         <p
           data-testid="quick-consistency"

@@ -468,7 +468,9 @@ function beamMeasures(graph: CanvasGraph, frame: FrameSolution): Measure[] {
         title: '支座反力（全局坐标，y 向上；力偶逆时针为正）',
         rows: frame.reactions.map((reaction) => ({
           label: shownId(labels, reaction.nodeId),
-          value: `Fx ${fmtMeasure(reaction.fx)} · Fy ${fmtMeasure(reaction.fy)} · Mz ${fmtMeasure(reaction.mz)}`,
+          // 这张卡固定按题面单位（kN / kN·m）显示：反力三个分量都带单位，
+          // 不再出现“Fy 10”这种没有单位的数；顶部单位制只影响讲解稿 headline。
+          value: `Fx ${fmtMeasure(reaction.fx)} kN · Fy ${fmtMeasure(reaction.fy)} kN · Mz ${fmtMeasure(reaction.mz)} kN·m`,
         })),
       });
     }
@@ -483,8 +485,8 @@ function beamMeasures(graph: CanvasGraph, frame: FrameSolution): Measure[] {
       id: 'internal',
       title: '内力（N 拉为正 / Q 顺时针为正 / M 下侧受拉为正）',
       headline: hasBending
-        ? `|M|max = ${fmtMeasureUnit(frame.extremes.Mmax, 'kN·m', 4)} @ x = ${fmtMeasureUnit(frame.extremes.atX, 'm', 4)} · |Q|max = ${fmtMeasureUnit(frame.extremes.Qmax, 'kN', 4)}`
-        : `各构件轴力（桁架）：max |N| = ${fmtMeasureUnit(Math.max(...frame.memberEndForces.map((member) => Math.max(Math.abs(member.N[0]), Math.abs(member.N[1]))), 0), 'kN', 4)}`,
+        ? `|M|max = ${fmtMeasure(frame.extremes.Mmax, 4)} kN·m @ x = ${fmtMeasure(frame.extremes.atX, 4)} m · |Q|max = ${fmtMeasure(frame.extremes.Qmax, 4)} kN`
+        : `各构件轴力（桁架）：max |N| = ${fmtMeasure(Math.max(...frame.memberEndForces.map((member) => Math.max(Math.abs(member.N[0]), Math.abs(member.N[1]))), 0), 4)} kN`,
       rows: frame.memberEndForces.map((member) => ({
         label: shownMember(
           labels,
@@ -492,9 +494,10 @@ function beamMeasures(graph: CanvasGraph, frame: FrameSolution): Measure[] {
           members.find((item) => item.edgeId === member.edgeId),
         ),
         // 全覆盖 F8：桁架杆只传轴力，Q/M 列恒 0 还占地方 —— 只给 N；梁杆保持 N/Q/M 三列。
+        // 每列都带题面单位，和上方 headline 同一口径。
         value: hasTruss && !hasBending
-          ? `N ${fmtMeasure(member.N[0])}/${fmtMeasure(member.N[1])}`
-          : `N ${fmtMeasure(member.N[0])}/${fmtMeasure(member.N[1])} · Q ${fmtMeasure(member.Q[0])}/${fmtMeasure(member.Q[1])} · M ${fmtMeasure(member.M[0])}/${fmtMeasure(member.M[1])}`,
+          ? `N ${fmtMeasure(member.N[0])}/${fmtMeasure(member.N[1])} kN`
+          : `N ${fmtMeasure(member.N[0])}/${fmtMeasure(member.N[1])} kN · Q ${fmtMeasure(member.Q[0])}/${fmtMeasure(member.Q[1])} kN · M ${fmtMeasure(member.M[0])}/${fmtMeasure(member.M[1])} kN·m`,
       })),
       chart: internalChart(frame),
       note: '端值顺序：0 = 起点，L = 末端。',

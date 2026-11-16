@@ -1274,7 +1274,7 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
             查看自检
           </button>
           <span className="no-print hidden sm:inline-flex">
-            <UnitModeSelect testId="unit-mode-result" />
+            <UnitModeSelect testId="unit-mode-result" showScope />
           </span>
           <div className="no-print relative hidden sm:block">
             <button
@@ -1776,7 +1776,7 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
             <div className="no-print rounded-xl border border-danger/50 bg-danger/10 px-3 py-2 text-[11px] leading-5 text-danger">
               {rejection
                 ? `反例页：${solution.confidence.failedCount} 项校验未通过。`
-                : '结论不可用：六项校验未全部通过。'}
+                : `结论不可用：${solution.confidence.failedCount} 项校验未通过。`}
             </div>
           ) : (
             <div data-testid="conclusion-banner" className="no-print rounded-xl border border-ok/40 bg-ok/10 px-3 py-2 text-[11px] leading-5 text-ok">

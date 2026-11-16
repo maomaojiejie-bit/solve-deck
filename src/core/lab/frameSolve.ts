@@ -61,6 +61,13 @@ export const FRAME_SOLVE_CONFIG = {
   loadSnapPx: 12,
   /** 兜底：无论画布比例如何，最多吃杆长的 5%（防止坐标本来就是米时 12"像素"=12m）。 */
   loadSnapFraction: 0.05,
+  /**
+   * 内力曲线每个断点段的采样数。deflectionOf 把相邻样本之间的 M 当作线性
+   * 积分（v''=M）；均布段的 M 是二次的，只取首/中/末三点会把对称梁的
+   * δmax 算偏约 2%（P=20+q=5 时 3.313 mm vs 解析 3.250 mm），峰值位置也会
+   * 偏离跨中。加密到 16 段后误差约 0.03%，绘图也会更顺。
+   */
+  curveSubdivisions: 16,
 };
 
 /* ── 输出契约 ───────────────────────────────────────────────────── */
@@ -798,9 +805,13 @@ export function frameSolve(graph: CanvasGraph): FrameSolution {
         q -= jump;
       }
       if (h > 1e-12) {
-        const qMid = q - qDownLocal * h * 0.5;
-        const mMid = m + q * h * 0.5 - qDownLocal * h * h * 0.125;
-        push(x0 + h * 0.5, qMid, mMid);
+        // 段内 Q 线性、M 二次。给 deflectionOf 更密的采样，让它的「段内 M 线
+        // 性」积分假设在均布载荷下也足够精确；首/末样本位置保持不变。
+        const subdivisions = Math.max(1, FRAME_SOLVE_CONFIG.curveSubdivisions);
+        for (let k = 1; k < subdivisions; k += 1) {
+          const d = (h * k) / subdivisions;
+          push(x0 + d, q - qDownLocal * d, m + q * d - qDownLocal * d * d * 0.5);
+        }
         m += q * h - qDownLocal * h * h * 0.5;
         q -= qDownLocal * h;
       }

@@ -23,7 +23,12 @@ export interface LiveValidation {
 function relative(a: number, b: number): number {
   if (!Number.isFinite(a) && !Number.isFinite(b)) return 0;
   if (!Number.isFinite(a) || !Number.isFinite(b)) return Number.POSITIVE_INFINITY;
-  return Math.abs(a - b) / Math.max(1e-12, Math.abs(a), Math.abs(b));
+  const diff = Math.abs(a - b);
+  // 物理量为 0 时相对误差没有意义：A1 截止态的两条路径会给出 0 与 2e-16 A，
+  // 若直接除以 1e-12 会得到 2e-4，把正确的截止解判成「两条路径不一致」。
+  // 先按绝对容差归零，再对真实非零量算相对误差。
+  if (diff <= 1e-12) return 0;
+  return diff / Math.max(1e-12, Math.abs(a), Math.abs(b));
 }
 
 function maxRelative(pairs: [number, number][]): number {

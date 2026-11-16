@@ -7,8 +7,10 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type WheelEvent as ReactWheelEvent,
 } from 'react';
 import type { RenderSpec } from '../core/types';
+import { fittedViewBoxFor } from './AnalogSchematic';
 import type { PointerHit } from '../core/lab/pointer.ts';
 import type { PlaceGhost } from '../core/lab/place.ts';
 import { snapGrid } from '../core/lab/pins.ts';
@@ -180,6 +182,17 @@ function clientToWorld(svg: SVGSVGElement, clientX: number, clientY: number): [n
   return [local.x, local.y];
 }
 
+/** 在 fit viewBox 上叠加用户缩放：锚点是画面归一化坐标，保持锚点世界位置不动。 */
+function zoomBox(base: string, scale: number, anchorX = 0.5, anchorY = 0.5): [number, number, number, number] {
+  const [x, y, w, h] = base.split(/\s+/).map(Number);
+  if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) return [x, y, w, h];
+  const bw = w / scale;
+  const bh = h / scale;
+  return [x + w * anchorX - bw * anchorX, y + h * anchorY - bh * anchorY, bw, bh];
+}
+const boxText = (b: [number, number, number, number]) => `${b[0]} ${b[1]} ${b[2]} ${b[3]}`;
+const parseBox = (b: string): [number, number, number, number] => b.split(/\s+/).map(Number) as [number, number, number, number];
+
 type DragState = {
   pointerId: number;
   nodeId: string;
@@ -202,8 +215,13 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
   const wrapRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const [viewBox, setViewBox] = useState('');
-  /** 修复计划 T2.3：拖动期间冻结的 viewBox（起点那帧）。null = 未拖动，fit 正常。 */
-  const [dragViewBox, setDragViewBox] = useState<string | null>(null);
+  /** 用户视图（viewBox 四元组）。缩放/平移/fit 都写它；拖动时 spec 变而 view 不变 ⇒ 天然冻结。 */
+  const fitBox = fittedViewBoxFor(spec);
+  const [view, setView] = useState<[number, number, number, number]>(() => parseBox(fitBox));
+  const panRef = useRef<{ pointerId: number; startX: number; startY: number; from: [number, number, number, number] } | null>(null);
+  const [panning, setPanning] = useState(false);
+  const spaceRef = useRef(false);
+  const [spaceHeld, setSpaceHeld] = useState(false);
   const [cursor, setCursor] = useState<[number, number] | null>(null);
   const [hoverPin, setHoverPin] = useState<string | null>(null);
   /**
@@ -213,23 +231,53 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
    */
   const pinsInteractive = canvas.family !== 'beam' || Boolean(canvas.linkMode || canvas.wireFirst);
 
-  /** 主体 svg 的 viewBox 随节点坐标变化，overlay 必须同步，否则橡皮筋会偏。 */
+  /** 换题 → 视图回到新图 fit；同图内拖结点 / 缩放不被重置。 */
+  useEffect(() => {
+    setView(parseBox(fitBox));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spec.id]);
+
+  /** 主 svg 与 overlay 共用用户视图；拖动冻结靠 view 在拖动期间不变。 */
   useEffect(() => {
     const svg = wrapRef.current?.querySelector<SVGSVGElement>('svg[role="img"]');
     if (!svg) return;
-    // 修复计划 T2.3：拖动进行中冻结 viewBox —— fit 会跟着节点坐标每帧重算，
-    // 主 svg 的缩放一边变、clientToWorld 的换算比例就一边漂，拖 140px 不跟手 140px。
-    // 冻结 = 把拖动起点那帧的 viewBox 反复写回主 svg（压掉 fit 的更新），
-    // overlay 同步用同一份；松手 / Esc 后恢复 fit（React 在本次提交里写入终值）。
-    if (dragViewBox) {
-      svg.setAttribute('viewBox', dragViewBox);
-      setViewBox(dragViewBox);
-      return;
-    }
-    setViewBox(svg.getAttribute('viewBox') ?? '');
-  }, [spec, canvas.pins, dragViewBox]);
+    const vb = boxText(view);
+    svg.setAttribute('viewBox', vb);
+    setViewBox(vb);
+  }, [spec, view]);
+
+  /** 热区按屏幕像素保底：实测画布宽 366px 时 r=8 世界单位只有 ~4px 半径。 */
+  const [viewportSize, setViewportSize] = useState<[number, number]>([800, 500]);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const measure = () => setViewportSize([el.clientWidth || 800, el.clientHeight || 500]);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const pxPerWorld = Math.max(0.001, Math.min(viewportSize[0] / Math.max(1, view[2]), viewportSize[1] / Math.max(1, view[3])));
+  const pinHit = Math.max(8, 11 / pxPerWorld);
+  const wireHit = Math.max(6, 7 / pxPerWorld);
+  const nodeHit = Math.max(18, 14 / pxPerWorld);
 
   const mainSvg = () => wrapRef.current?.querySelector<SVGSVGElement>('svg[role="img"]') ?? null;
+
+  /** 滚轮以光标为锚缩放；Ctrl/⌘+滚轮留给浏览器。 */
+  const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    if (event.ctrlKey || event.metaKey) return;
+    const svg = mainSvg();
+    if (!svg) return;
+    event.preventDefault();
+    const rect = svg.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const fx = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const fy = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+    const next = zoomBox(boxText(view), event.deltaY < 0 ? 1.12 : 1 / 1.12, fx, fy);
+    if (next[2] > view[2] * 8 || next[2] < view[2] / 8) return;
+    setView(next);
+  };
 
   /** 放置器开着的时候，指针事件全归页面（选中 / 拖动 / 连线一律让路）。 */
   const placing = canvas.place !== undefined && canvas.place.tool !== 'off';
@@ -245,6 +293,13 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
     // R2-T1：只对画布区域拦掉原生拖选 / 文字选择（输入框在左栏，不受影响）——
     // 松手后浏览器拿选中文字去搜索（bing 搜索记录「固定铰 P = 150 kN」）就是这么来的。
     event.preventDefault();
+    // 中键 / 空格+左键 = 平移视图（不落器件、不拖结点）。
+    if (event.button === 1 || (event.button === 0 && spaceRef.current)) {
+      panRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, from: view };
+      setPanning(true);
+      try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* 合成事件 */ }
+      return;
+    }
     if (placing && canvas.place) {
       // R3-4 U1：按一下 = 落一个条件。命中判断统一按世界坐标走 place.ts，
       // 所以这里不查 data-pin / data-node（DOM 热区与几何口径两套会让「点哪算哪」失真）。
@@ -290,8 +345,7 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
         worldY: wy,
         moved: false,
       };
-      // 修复计划 T2.3：按下即冻结 viewBox（见同步 effect 里的说明）。
-      setDragViewBox(svg.getAttribute('viewBox'));
+      // 修复计划 T2.3：view 在拖动期间不变 → viewBox 天然冻结（跟手 1:1）。
       try {
         event.currentTarget.setPointerCapture(event.pointerId);
       } catch {
@@ -307,6 +361,14 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const svg = mainSvg();
     if (!svg) return;
+    const pan = panRef.current;
+    if (pan && pan.pointerId === event.pointerId) {
+      const rect = svg.getBoundingClientRect();
+      const dx = ((event.clientX - pan.startX) / Math.max(1, rect.width)) * pan.from[2];
+      const dy = ((event.clientY - pan.startY) / Math.max(1, rect.height)) * pan.from[3];
+      setView([pan.from[0] - dx, pan.from[1] - dy, pan.from[2], pan.from[3]]);
+      return;
+    }
     const [wx, wy] = clientToWorld(svg, event.clientX, event.clientY);
     if (placing && canvas.place) {
       canvas.place.onHover(wx, wy);
@@ -326,6 +388,12 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
   };
 
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (panRef.current) {
+      panRef.current = null;
+      setPanning(false);
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      return;
+    }
     if (placing && canvas.place) {
       const svg = mainSvg();
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -339,7 +407,6 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
     }
     const drag = dragRef.current;
     dragRef.current = null;
-    setDragViewBox(null);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -385,19 +452,36 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
     canvas.onAutoLayout();
   };
 
-  /** Esc 取消本次拖动，回到按下时的坐标。 */
+  /** Esc 取消拖动；空格按住 = 平移模式。 */
   useEffect(() => {
+    const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
     const onKey = (event: KeyboardEvent) => {
+      if (event.key === ' ' && !typing(event.target)) {
+        event.preventDefault();
+        spaceRef.current = true;
+        setSpaceHeld(true);
+      }
       if (event.key !== 'Escape') return;
+      spaceRef.current = false;
+      setSpaceHeld(false);
       const drag = dragRef.current;
       if (!drag) return;
       canvas.onNodeMoveCancel(drag.nodeId, drag.startX, drag.startY);
       dragRef.current = null;
-      setDragViewBox(null);
       setCursor(null);
     };
+    const onUp = (event: KeyboardEvent) => {
+      if (event.key === ' ') { spaceRef.current = false; setSpaceHeld(false); }
+    };
+    const onBlur = () => { spaceRef.current = false; setSpaceHeld(false); };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keyup', onUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onUp);
+      window.removeEventListener('blur', onBlur);
+    };
   }, [canvas]);
 
   const ghost = canvas.place?.ghost ?? null;
@@ -420,6 +504,35 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
     );
   })();
 
+/** 视图工具条：适应 / 缩放 / 全屏。 */
+  const zoomPercent = Math.round((parseBox(fitBox)[2] / view[2]) * 100);
+  const viewTools = (
+    <div
+      data-testid="canvas-view-tools"
+      className="pointer-events-auto absolute bottom-2 right-2 z-20 flex items-center gap-1 rounded-lg border border-line bg-panel/90 px-1 py-0.5 shadow"
+      onPointerDown={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => event.stopPropagation()}
+    >
+      <button type="button" aria-label="缩小画布" title="缩小" onClick={() => setView(zoomBox(boxText(view), 1 / 1.25))} className="h-5 w-5 rounded text-[12px] leading-none text-muted hover:bg-panel-2 hover:text-ink">−</button>
+      <span className="w-9 text-center font-mono text-[9px] tabular-nums text-muted" data-testid="canvas-zoom-level">{zoomPercent}%</span>
+      <button type="button" aria-label="放大画布" title="放大" onClick={() => setView(zoomBox(boxText(view), 1.25))} className="h-5 w-5 rounded text-[12px] leading-none text-muted hover:bg-panel-2 hover:text-ink">+</button>
+      <span className="mx-0.5 h-3 w-px bg-line" />
+      <button type="button" aria-label="适应画布" title="适应画布" onClick={() => setView(parseBox(fitBox))} className="rounded px-1 text-[10px] text-muted hover:bg-panel-2 hover:text-ink">适应</button>
+      <button
+        type="button"
+        aria-label="全屏画布"
+        title="全屏（Esc 退出）"
+        onClick={() => {
+          const el = wrapRef.current;
+          if (!el) return;
+          if (document.fullscreenElement) void document.exitFullscreen();
+          else void el.requestFullscreen?.();
+        }}
+        className="rounded px-1 text-[10px] text-muted hover:bg-panel-2 hover:text-ink"
+      >全屏</button>
+    </div>
+  );
+
   const first = canvas.wireFirst ? canvas.pins.find((pin) => pin.key === canvas.wireFirst) : undefined;
   // W17-C：力学族杆线体热区要画在节点拖动圆点**之下**（节点在杆的端点上，
   // 热区重叠时点节点必须选中物件而不是杆）；电路族维持 W16 顺序（引脚最上）。
@@ -429,7 +542,7 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
       key={`hit-${wire.id}`}
       d={`M ${wire.points.map(([x, y]) => `${x} ${y}`).join(' L ')}`}
       stroke="transparent"
-      strokeWidth={6}
+      strokeWidth={wireHit}
       fill="none"
       strokeLinejoin="round"
       strokeLinecap="round"
@@ -447,14 +560,16 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
   return (
     <div
       ref={wrapRef}
-      className="relative select-none"
+      className={`relative select-none ${panning || spaceHeld ? 'cursor-grab' : ''}`}
       style={{ touchAction: 'none', WebkitUserDrag: 'none' } as React.CSSProperties}
       // R2-T1：可拖元素是 SVG 图元（不走 HTML5 drag API，draggable 属性不适用），
       // 原生 dragstart 会冒泡到容器 —— 在容器上拦掉，配合 pointerdown preventDefault 双保险。
       onDragStart={(event) => event.preventDefault()}
+      onWheel={onWheel}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
       onPointerLeave={() => canvas.place?.onHoverEnd()}
       onDoubleClick={onDoubleClick}
     >
@@ -505,7 +620,7 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
               data-node={node.id}
               cx={node.x}
               cy={node.y}
-              r={18}
+              r={nodeHit}
               fill="transparent"
               className="pointer-events-auto cursor-move"
             />
@@ -621,7 +736,7 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
                 data-pin-name={pin.label ?? ''}
                 cx={pin.x}
                 cy={pin.y}
-                r={selected || hovered ? 9 : 8}
+                r={selected || hovered ? pinHit + 1 : pinHit}
                 fill={selected ? ACCENT : 'transparent'}
                 stroke={selected || hovered ? ACCENT : 'var(--schematic-idle)'}
                 strokeWidth={selected || hovered ? 2 : 1}
@@ -634,6 +749,26 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
               </circle>
             );
           })}
+          {/* 引脚名贴着引脚显示（hover / 已选起点），不再角落里孤零零一行。 */}
+          {canvas.pins
+            .filter((pin) => pin.key === hoverPin || pin.key === canvas.wireFirst)
+            .map((pin) => (
+              <g key={`tag-${pin.key}`} pointerEvents="none" data-testid="pin-tag">
+                <rect
+                  x={pin.x + pinHit + 3}
+                  y={pin.y - 9}
+                  width={Math.max(24, (pin.label ?? pin.key).length * 8 + 8)}
+                  height={17}
+                  rx={3}
+                  fill="var(--color-panel)"
+                  stroke={ACCENT}
+                  strokeWidth={0.7}
+                />
+                <text x={pin.x + pinHit + 7} y={pin.y + 3} fontSize={11} fill="var(--schematic-active-text)">
+                  {pin.label ?? pin.key}
+                </text>
+              </g>
+            ))}
         </svg>
       ) : null}
       {canvas.place && canvas.place.tool !== 'off' && canvas.place.ghost?.text ? (
@@ -645,10 +780,25 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
           {canvas.place.ghost.hint ? <span className="ml-1 text-muted">· {canvas.place.ghost.hint}</span> : null}
         </div>
       ) : null}
+      {viewTools}
+      {/* 剩余漏洞 1.3：hover 中文名从画布右上角改到贴着引脚。保留 pin-hover testid
+          让门禁 / 截图脚本照常找到它，但绝对定位到引脚附近。 */}
       {hoverPin ? (
-        <div data-testid="pin-hover" className="pointer-events-none absolute right-2 top-2 rounded-lg border border-cyan/50 bg-panel px-2 py-1 text-[11px] text-cyan shadow">
-          {canvas.pins.find((pin) => pin.key === hoverPin)?.label ?? hoverPin}
-        </div>
+        (() => {
+          const pin = canvas.pins.find((one) => one.key === hoverPin);
+          if (!pin) return null;
+          const left = Math.max(4, Math.min(viewportSize[0] - 100, (pin.x - view[0]) * pxPerWorld + 12));
+          const top = Math.max(4, Math.min(viewportSize[1] - 28, (pin.y - view[1]) * pxPerWorld - 26));
+          return (
+            <div
+              data-testid="pin-hover"
+              className="pointer-events-none absolute z-10 rounded border border-cyan/50 bg-panel px-2 py-1 text-[11px] text-cyan shadow"
+              style={{ left, top }}
+            >
+              {pin.label ?? hoverPin}
+            </div>
+          );
+        })()
       ) : null}
       {canvas.statusText ? (
         <div data-testid="pin-status" className="pointer-events-none absolute bottom-2 left-2 rounded-lg border border-cyan/50 bg-panel px-2 py-1 text-[11px] text-cyan shadow">

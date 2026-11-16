@@ -247,6 +247,27 @@ ok('⑪', cleared.meta.section === undefined
   `⑪ 清空截面后没退回 missing：stress「${measureOf(clearedMeasures, 'stress')?.headline ?? measureOf(clearedMeasures, 'stress')?.missing}」deflection「${measureOf(clearedMeasures, 'deflection')?.headline ?? measureOf(clearedMeasures, 'deflection')?.missing}」`);
 console.log(`⑪  清空截面 → stress / deflection 都回 missing（meta.section=${cleared.meta.section}）`);
 
+/* ── ⑭ 均布挠度：对称梁峰值必须在跨中，且逼近闭式解 ─────────────── */
+// P=20kN@2m + q=5kN/m 整跨：δ = PL³/48EI + 5qL⁴/384EI = 3.250 mm @ x=2.000 m。
+// 旧实现只采首/中/末三点，M 的二次段被当线性，δ 偏成 3.313 mm @ x=2.028 m。
+const udlBase = skeleton('M3');
+const udlGraph = applyOp('M3', udlBase, {
+  op: 'addLoad',
+  atMember: { edgeId: memberOf(udlBase).id, t: 0.5 },
+  type: 'udl',
+  value: 5,
+  dir: 0,
+}).graph;
+const udlFilled = applyOp('M3', udlGraph, { op: 'setSection', section: { b: 100, h: 200, E: 200 } }).graph;
+const udlMeasures = interpretQuestion(udlFilled, 'beam', { frame: frameSolve(udlFilled) });
+const udlDeflection = measureOf(udlMeasures, 'deflection');
+const udlDelta = Number(udlDeflection?.rows.find((row) => row.label === 'δmax')?.value ?? NaN);
+const udlAt = Number(udlDeflection?.rows.find((row) => row.label === '位置')?.value ?? NaN);
+const udlClosed = (20 * 4 ** 3) / (48 * 200e6 * I) * 1000 + (5 * 5 * 4 ** 4) / (384 * 200e6 * I) * 1000;
+ok('⑭', near(udlDelta, udlClosed, udlClosed * 0.0009) && near(udlAt, 2, 0.01),
+  `⑭ 均布挠度 δmax=${udlDelta} @${udlAt}m，闭式解应为 ${udlClosed} @2m`);
+console.log(`⑭  均布挠度 δmax = ${udlDelta} mm @ x=${udlAt} m（闭式解 ${udlClosed} @2 m）`);
+
 /* ── ⑫ W20 A7：点名到器件与位置，不许裸 unsupported ────────────── */
 
 const a7 = skeleton('A7');
@@ -279,4 +300,4 @@ if (problems.length > 0) {
   for (const problem of problems) console.error(`- ${problem}`);
   process.exit(1);
 }
-console.log(`PASS：${checks} 项（measures 与入口无关 / M5 有 δmax / M7 有 Pcr / A3·A5 gain 对账 / 拒答不变 / 载荷不被吸附 / 截面给与清 / A7 点名 / 文案按能力分支 / 两条变异）`);
+console.log(`PASS：${checks} 项（measures 与入口无关 / M5 有 δmax / M7 有 Pcr / A3·A5 gain 对账 / 拒答不变 / 载荷不被吸附 / 截面给与清 / 均布挠度对称 / A7 点名 / 文案按能力分支 / 两条变异）`);

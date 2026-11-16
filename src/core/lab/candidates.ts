@@ -82,7 +82,14 @@ export const CANDIDATES: Record<string, readonly Candidate[]> = {
 
 /** 电路叫「接法」，力学叫「结构」。 */
 export function candidateHeading(templateId: string): string {
-  return templateId.startsWith('A') ? '换三种接法' : '换三种结构';
+  // 剩余漏洞 2.2：第三个候选是禁用态（未覆盖），标题还写「三种」让人点进去才扑空。
+  // 按实际可用数写，并把禁用那条的原因摆到标题上。
+  const list = candidatesFor(templateId);
+  const usable = list.filter((item) => item.source.kind !== 'none').length;
+  const noun = templateId.startsWith('A') ? '接法' : '结构';
+  if (list.length === 0) return `换${noun}`;
+  if (usable === list.length) return `换${noun}（${usable} 种）`;
+  return `换${noun}：${usable} 个可用 · ${list.length - usable} 个未覆盖`;
 }
 
 export function candidatesFor(templateId: string): readonly Candidate[] {

@@ -95,7 +95,13 @@ const skeleton = (id) => freshSkeleton(id, specOf(id));
   ok('④ 反力表头带单位', generic.includes('Fx (kN)') && generic.includes('Mz (kN·m)'), '表头没有单位');
   ok('④ 电路表数值带单位文本', /fmtMeasure\([^)]*\)\s*} A</.test(generic) || generic.includes("} A</td>"), '电路电流列没有单位');
   const measures = readFileSync(join(root, 'src', 'core', 'lab', 'measures.ts'), 'utf8');
-  ok('④ 内力汇总行（轴标口径）同为 4 位', /fmtMeasureUnit\([^)]*'kN·m', 4\)/.test(measures), 'measures.ts:486 没带 4');
+  // P0（剩余漏洞清单 1.1 方案 B）：这张卡固定题面单位，改回 fmtMeasure(x, 4) + 字面单位，
+  // 不再跟随顶部 unitMode。两种写法都是 4 位精度，门禁按「4 位 + 单位固定」验收。
+  ok(
+    '④ 内力汇总行（轴标口径）同为 4 位',
+    /fmtMeasureUnit\([^)]*'kN·m', 4\)/.test(measures) || /fmtMeasure\([^)]*, 4\)\} kN·m/.test(measures),
+    'measures.ts 内力汇总行没带 4 位精度',
+  );
 }
 
 /* ── ⑤⑥⑦ CDP 真页面层 ────────────────────────────────────────── */

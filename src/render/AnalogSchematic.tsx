@@ -35,6 +35,34 @@ const FIT_BY_TYPE: Record<string, { padX: number; padY: number; ratio: number }>
 };
 const FIT_DEFAULT = { padX: 84, padY: 84, ratio: 1.6 };
 
+/**
+ * 进场 fit 的 viewBox —— SpecGrid 的缩放/平移层也用这一份，避免「画布自己算一套、
+ * overlay 读 DOM 一套」在 React 重渲染后错位。空画布保持和下方白纸 SVG 一致。
+ */
+export function fittedViewBoxFor(spec: RenderSpec): string {
+  if (spec.nodes.length === 0) return '0 60 800 580';
+  const xs: number[] = spec.nodes.flatMap((n) => [n.x]);
+  const ys: number[] = spec.nodes.flatMap((n) => [n.y]);
+  for (const edge of spec.edges) {
+    for (const p of edge.points ?? []) {
+      xs.push(p[0]);
+      ys.push(p[1]);
+    }
+  }
+  const fit = FIT_BY_TYPE[spec.type] ?? FIT_DEFAULT;
+  const minX = Math.min(...xs) - fit.padX;
+  const maxX = Math.max(...xs) + fit.padX;
+  const minY = Math.min(...ys) - fit.padY;
+  const maxY = Math.max(...ys) + fit.padY;
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  let boxW = maxX - minX;
+  let boxH = maxY - minY;
+  if (boxW / boxH < fit.ratio) boxW = boxH * fit.ratio;
+  else boxH = boxW / fit.ratio;
+  return `${cx - boxW / 2} ${cy - boxH / 2} ${boxW} ${boxH}`;
+}
+
 function toPath(points: Pt[]): string {
   return points
     .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0]} ${p[1]}`)
@@ -170,27 +198,7 @@ export function AnalogSchematic({
   }
 
   const positions = new Map(spec.nodes.map((node) => [node.id, node]));
-  const xs: number[] = spec.nodes.flatMap((n) => [n.x]);
-  const ys: number[] = spec.nodes.flatMap((n) => [n.y]);
-  for (const edge of spec.edges) {
-    for (const p of edge.points ?? []) {
-      xs.push(p[0]);
-      ys.push(p[1]);
-    }
-  }
-  const fit = FIT_BY_TYPE[spec.type] ?? FIT_DEFAULT;
-  const minX = Math.min(...xs) - fit.padX;
-  const maxX = Math.max(...xs) + fit.padX;
-  const minY = Math.min(...ys) - fit.padY;
-  const maxY = Math.max(...ys) + fit.padY;
-  const cx = (minX + maxX) / 2;
-  const cy = (minY + maxY) / 2;
-  let boxW = maxX - minX;
-  let boxH = maxY - minY;
-  // 把较短的一维补到目标比例：meet 之后图形才会尽量占满容器，而不是缩在中间。
-  if (boxW / boxH < fit.ratio) boxW = boxH * fit.ratio;
-  else boxH = boxW / fit.ratio;
-  const fittedViewBox = `${cx - boxW / 2} ${cy - boxH / 2} ${boxW} ${boxH}`;
+  const fittedViewBox = fittedViewBoxFor(spec);
 
   /** W21-B B1：文字标注重叠时逐条上移，并画细引线指回原位（不猜用户想看哪个）。 */
   const textShift = new Map<string, number>();

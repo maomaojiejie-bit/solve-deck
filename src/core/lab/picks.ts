@@ -649,9 +649,10 @@ export function applyParamsWithReport(
         const text = next.nodes.find((node) => node.kind === 'text' && /^L\s*=/.test(node.label ?? ''));
         if (text) {
           text.label = `L = ${Number(value.toPrecision(5))} m`;
-          written.push(pick.key);
         }
+        // 没有标注文字时 meta 就是这张图的跨长来源；它确实写进了图，台账要如实记。
         next.meta[pick.key] = value;
+        written.push(pick.key);
         break;
       }
       if (source.src === 'textValue' || source.src === 'meta') {

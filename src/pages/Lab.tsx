@@ -477,6 +477,9 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   const [loadDir, setLoadDir] = useState<number>(0);
   /** R3-4 U1 放置器：off = 老行为（选中 / 拖动 / 连线），其余 = 在图上指一下就落条件。 */
   const [placeTool, setPlaceTool] = useState<PlaceTool>('off');
+  /** 剩余漏洞 1.4：默认放一个就退出放置器，免得下一次点画布又落一个、再吃「只能一个」的报错。
+   *  要连续放同类件（多个结点）时显式勾这个开关。 */
+  const [placeContinuous, setPlaceContinuous] = useState(false);
   const [placeGhost, setPlaceGhost] = useState<PlaceGhost | null>(null);
   const [placeAlt, setPlaceAlt] = useState(0);
   const [placeAmbiguous, setPlaceAmbiguous] = useState(false);
@@ -540,9 +543,23 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
       }
       return rows;
     }
+    // 剩余漏洞 1.6：电路模式原来只列器件名（「· Vs / · Rs」），叫「实时读数」名不副实。
+    // 把器件主数值带上（V / A / Ω），读数来自图本身，改值即变；与确认表同一份真相。
     return graph.nodes
       .filter((node) => !['text', 'dot', 'gnd'].includes(node.kind))
-      .map((node) => (node.label ?? '').trim() || node.id);
+      .map((node) => {
+        const label = (node.label ?? '').trim() || node.id;
+        const value = (node as { value?: number | string }).value;
+        // label 多数已含数值（改器件时 applyParams 会写 `Rc 2.0k`）—— 不重复印。
+        // 只有 label 纯名字（新放、没改过的器件）才补一个「值 · 单位」。
+        if (typeof value !== 'number' || !Number.isFinite(value) || /\d/.test(label)) return label;
+        const unit = ['V', 'vsource', 'battery'].includes(node.kind) ? 'V'
+          : ['I', 'isource'].includes(node.kind) ? 'A'
+          : ['R', 'res'].includes(node.kind) ? 'Ω'
+          : ['C', 'cap'].includes(node.kind) ? 'F'
+          : ['L', 'ind'].includes(node.kind) ? 'H' : '';
+        return `${label} · ${Number(value.toPrecision(4)).toString()}${unit}`;
+      });
   }, [graph]);
   /**
    * W21-A A2：归约是唯一真相。确认栏 / 参数实验场 / 快填都读这一份 ——
@@ -813,6 +830,9 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     const E = Number(next.E);
     if (next.b !== '' && next.h !== '' && next.E !== '' && [b, h, E].every((one) => Number.isFinite(one) && one > 0)) {
       mutate({ op: 'setSection', section: { b, h, E } });
+      // 截面不在参数表里，但会改变这张图能算的量（σ / δ）与求解免责条。
+      // 已求解时改截面要静默重解一次，否则结果卡出了 δ、台账还写着“本题不计算变形”。
+      if (stage === 'solved') recomputeArmed.current = true;
     }
   };
 
@@ -1078,6 +1098,9 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     for (const op of plan.ops) mutate(op);
     onToast(preview.rules[preview.rules.length - 1] ?? '已落到图上');
     setPlaceGhost(null);
+    // 剩余漏洞 1.4：放完一个就退出（M3 只允许一个集中力，留着激活第二次点必吃报错）；
+    // 连续放同类件时由开关保活。
+    if (!placeContinuous) setPlaceTool('off');
   };
 
   /**
@@ -1266,6 +1289,9 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   // 修复计划 T1.1：写入目标不在画布上的参数（q：图上没有均布载荷）不参与确认闸 ——
   // 它本来就不进计算，卡着「未确认」只会让人以为机器坏了。
   const writableParams = params.filter((p) => (pickId ? paramWriteBlock(pickId, graph, p.key) === null : false));
+  /** 全部参数都因画布缺器件 / 载荷而只读：不能只显示“0 项没确认”把用户晾住。 */
+  const blockedParams = params.filter((p) => (pickId ? paramWriteBlock(pickId, graph, p.key) !== null : false));
+  const blockedLabels = blockedParams.map((p) => p.label ?? p.key).join('、');
   const allConfirmed = params.length > 0 && writableParams.length > 0 && writableParams.every((p) => confirmed[p.key]);
 
   /** R-36：收藏 = 把当前张图存成一条 SavedGraph（首页可一键载回）。 */
@@ -1394,7 +1420,8 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
       setRefusal(
         outOfRange.map(
           (param) =>
-            `${param.label ?? param.key} = ${displayValues[param.key]}${param.unit ? ` ${param.unit}` : ''} 超出合法区间 ${param.min ?? '−∞'} ~ ${param.max ?? '+∞'}${param.unit ? ` ${param.unit}` : ''}：改回区间后再求解`,
+            // 剩余漏洞 1.10：报错要印用户真输的值（草稿里的 5），不是被钳制后的模型值（4）。
+            `${param.label ?? param.key} = ${paramDrafts[param.key] ?? displayValues[param.key]}${param.unit ? ` ${param.unit}` : ''} 超出合法区间 ${param.min ?? '−∞'} ~ ${param.max ?? '+∞'}${param.unit ? ` ${param.unit}` : ''}：改回区间后再求解`,
         ),
       );
       setStage('refused');
@@ -1702,6 +1729,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
      强制 remount，不给「reconciliation 收敛不干净留旧行」任何机会。 */
   const resetKey = `${pickId}:${graph?.meta.resetAt ?? 0}`;
   const isBeam = pickId ? PICKS[pickId]?.family === 'beam' : false;
+  /**
+   * 剩余漏洞 1.7：跨长真相二选一 —— 本项目走「参数驱动几何」。图上没有 L 标注时，
+   * 跨长来自 meta / 参数表，拖结点只改布局；画布角标「示意 · 不按比例」明示这一点。
+   */
+  const spanFromMeta = isBeam && graph !== null && !graph.nodes.some((node) => node.kind === 'text' && /^L\s*=/.test(node.label ?? ''));
   /** P0-1：力学构件的真实种类。family 只管「力学 / 电路」两套机器，元素种类是另一根轴：
    *  轴向拉压（M1）与压杆稳定（M7）是 bar，扭转（M2）是 shaft，梁 / 框架才是 beam。 */
   const mechElement = (pickId && PICKS[pickId]?.element) ?? 'beam';
@@ -1902,8 +1934,23 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
               </p>
             </div>
 
-            {/* 题型卡：错峰进场 + 悬停上浮 + 3D 倾斜 + 流光扫过 */}
-            <div className="mt-10 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {/* 剩余漏洞 2.1：最近用过的不再埋在三步叙事之后 —— 卡片上方一条「继续上次」直通车。 */}
+            {library.history.length > 0 ? (
+              <div data-testid="continue-last" className="mt-8 flex flex-wrap items-center gap-2 rounded-[10px] border border-cyan/30 bg-cyan/5 px-3 py-2">
+                <span className="shrink-0 text-[11px] font-medium text-cyan">继续上次</span>
+                <button
+                  type="button"
+                  onClick={() => onStart(libraryHref(library.history[0]))}
+                  className="focus-ring min-w-0 flex-1 truncate rounded border border-line bg-bg/60 px-2 py-1 text-left text-[11px] text-ink hover:border-cyan/50"
+                >
+                  {library.history[0].templateId} · {library.history[0].title}
+                </button>
+                <span className="shrink-0 text-[10px] text-faint">{relativeTime(library.history[0].at)}</span>
+              </div>
+            ) : null}
+
+            {/* 题型卡：按学科分组排 + 错峰进场 + 悬停上浮 + 3D 倾斜 + 流光扫过 */}
+            <div className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {SUPPORTED_IDS.map((id, index) => {
                 const route2 = getTemplateRoute(id);
                 return (
@@ -2010,7 +2057,12 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
           </section>
         ) : (
           <>
-            <div className="mb-3 flex min-w-0 flex-wrap items-center gap-2 rounded-[10px] border border-line bg-panel/55 px-3 py-2 backdrop-blur-md">
+            {/* 剩余漏洞 1.9：确认在右栏底、求解在顶部、结果在画布下 —— 三个滚动容器来回找。
+                把这条「题号 + 校验档 + 求解」工具条钉在顶栏下方（top-60px），滚到画布 /
+                结果任何位置都能一键求解、随时看到校验结论。浮层（换结构 / 导出 / 收藏 /
+                清空确认）也挂在这里：backdrop-filter 生成 stacking context，显式 z-30
+                压住后面三栏的 later positioned 元素（候选卡点不到按钮的旧 bug）。 */}
+            <div data-testid="solve-toolbar" className="sticky top-[60px] z-30 mb-3 flex min-w-0 flex-wrap items-center gap-2 rounded-[10px] border border-line bg-bg/95 px-3 py-2 shadow-lg backdrop-blur-md">
               <span className="id-mono shrink-0 text-[11px] text-cyan">{pickId}</span>
               <span className="min-w-0 truncate text-[11.5px] text-ink">{labTitle}</span>
               <span className="shrink-0 whitespace-nowrap rounded-[3px] border border-line px-1.5 py-0.5 font-mono text-[10px] text-muted">
@@ -2049,7 +2101,8 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     verdict.tier === 'F' ? 'border-ok/40 bg-ok/10 text-ok' : verdict.tier === 'N' ? 'border-amber/40 bg-amber/10 text-amber' : 'border-danger/40 bg-danger/10 text-danger'
                   }`}
                 >
-                  {verdict.tier} · {verdict.headline}
+                  {/* 剩余漏洞 1.11：字母含义也写在屏幕上（不再只靠 tooltip，触屏 / 截图也能看到）。 */}
+                  {verdict.tier} · {verdict.tier === 'F' ? '全核对' : verdict.tier === 'N' ? '仅数值' : '不适用'} · {verdict.headline}
                 </span>
               ) : null}
               <div className="ml-auto flex shrink-0 flex-wrap justify-end gap-1.5">
@@ -2196,7 +2249,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     </div>
                   ) : null}
                 </div>
-                <UnitModeSelect testId="unit-mode-lab" label="装配台读数单位制" />
+                <UnitModeSelect testId="unit-mode-lab" label="装配台读数单位制" showScope />
                 {generic?.frame || zeroFromTemplate ? (
                   <>
                     <button
@@ -2250,7 +2303,9 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                         ? '上一轮被拒：先把画布改到能算，再点一次'
                         : allConfirmed
                           ? '归约 → 既有 solver'
-                          : '先把每个参数都确认一遍（默认值也要点一次）'
+                          : writableParams.length === 0
+                            ? '画布缺少本题求解所需的器件 / 载荷，先补回来或恢复骨架'
+                            : '先把每个参数都确认一遍（默认值也要点一次）'
                     }
                     className="sheen focus-ring whitespace-nowrap rounded-[4px] bg-cyan px-3.5 py-1 font-semibold text-[11px] text-white disabled:opacity-40"
                   >
@@ -2472,8 +2527,8 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   <p className="mt-1 text-[10px] leading-4 text-muted">
                     {isBeam
                       ? // W21-C C1-2：力学页只讲力学手势，不再插电路的「引脚连线」。
-                        '点节点选物件、拖节点改布局（pointerup 才重算）；「加构件」模式下按两次节点连一根构件；双击自动整理，Esc 取消拖动。'
-                      : '点引脚两次连线；拖节点改布局（pointerup 才重算导线）；双击自动整理，Esc 取消拖动。'}
+                        '点节点选物件、拖节点改布局（松手后重算）；「加构件」模式下按两次节点连一根构件；双击自动整理，Esc 取消拖动。'
+                      : '点引脚两次连线；拖节点改布局（松手后重算导线）；双击自动整理，Esc 取消拖动。'}
                   </p>
 
                   <h3 className="mt-3 text-[11px] text-muted">{isBeam ? '物件（点行或点画布节点 → 选中条）' : '器件（点行选中，Delete 删）'}</h3>
@@ -2823,7 +2878,19 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                       「这里不给你支座和横向载荷」，下面还挂着「集中力 / 均布 / 支座」就自相矛盾。 */}
                   {isBeam ? (
                     <>
-                      <h3 className="mt-3 text-[11px] text-muted">放置器（选一个，再在图上指）</h3>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <h3 className="text-[11px] text-muted">放置器（选一个，再在图上指）</h3>
+                        <label className="flex items-center gap-1 text-[9px] text-muted" title="默认放一个就退出；要连放多个结点 / 载荷时勾上">
+                          <input
+                            type="checkbox"
+                            data-testid="place-continuous"
+                            checked={placeContinuous}
+                            onChange={(event) => setPlaceContinuous(event.target.checked)}
+                            className="accent-[var(--color-cyan,#6366f1)]"
+                          />
+                          连续放置
+                        </label>
+                      </div>
                       <div data-testid="place-tools" className="mt-1 flex flex-wrap gap-1">
                         {PLACE_TOOLS.filter((item) => item.tool !== 'off' && (!axialElement && !shaftElement || item.tool === 'node')).map((item) => (
                           <button
@@ -3121,6 +3188,13 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     <span className="h-1 w-1 shrink-0 rounded-full bg-cyan" />
                     <h2 className="shrink-0 text-[11.5px] font-medium tracking-[0.01em] text-ink">画布（骨架 + 装配结果）</h2>
                     <span className="draft-rule flex-1" />
+                    {/* 剩余漏洞 1.7：拖结点只改布局、不改跨长 —— 跨长真相在参数表 L。
+                        画布上直接写明「示意」，免得用户量着图以为是几何在驱动数值。 */}
+                    {isBeam && spanFromMeta ? (
+                      <span data-testid="canvas-not-to-scale" className="shrink-0 rounded border border-amber/40 px-1 text-[9px] leading-4 text-amber" title="跨长取自参数表 L；拖动结点只调布局，不改变计算跨长">
+                        示意 · 不按比例
+                      </span>
+                    ) : null}
                   </div>
                   {/* ㉜③：清空之后画布上什么都没有了 —— 直接给一眼能照做的下一步。 */}
                   {canvasEmpty ? (
@@ -3442,7 +3516,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   ) : null}
                   <p className="text-[10px] leading-4 text-muted">每个参数都要点一次「确认」（默认值也要）；改动后自动回到未确认。</p>
                   <p data-testid="known-source-note" className="text-[10px] leading-4 text-faint">
-                    下面是本题的参数表（默认取骨架值）：画布上新增 / 删除的载荷<strong>不会自动写回</strong>这里；
+                    下面是本题的参数表（默认取骨架值）：画布上新增 / 删除的{isBeam ? '载荷' : '器件 / 导线'}<strong>不会自动写回</strong>这里；
                     改器件数值请用左栏输入框。
                   </p>
                   {/* 图上元件实时读数：确认数值时对着画布实物核对。 */}
@@ -3454,7 +3528,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                           <li key={`${row}-${index}`} className="truncate" title={row}>· {row}</li>
                         ))}
                       </ul>
-                      <p className="mt-1 text-[9px] leading-3 text-faint">随画布实时刷新（挪载荷 / 换支座 / 加器件立刻更新）；确认数值以这一份为准。</p>
+                      <p className="mt-1 text-[9px] leading-3 text-faint">
+                        {isBeam
+                          ? '随画布实时刷新（挪载荷 / 换支座 / 加器件立刻更新）；确认数值以这一份为准。'
+                          : '随画布实时刷新（改器件值 / 连线 / 删除立刻更新）；确认数值以这一份为准。'}
+                      </p>
                     </div>
                   ) : null}
                   {/* ㊱③：剪贴板被拒（file:// / 权限策略）时把链接摊在页面上 —— 用户拿得到、能手动复制。 */}
@@ -3509,14 +3587,29 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   ) : null}                  {/* W21-A A2.3：确认是真闸门，把还差几项直接写在屏幕上。 */}
                   {canvasEmpty ? (
                     <p data-testid="confirm-gate-note" className="text-[11px] font-medium leading-4 text-amber">画布已空 · 先放器件 / 连构件，再回来核对数值</p>
+                  ) : writableParams.length === 0 ? (
+                    <div data-testid="confirm-gate-note" className="rounded-lg border border-danger/40 bg-danger/10 px-2 py-1.5 text-[11px] leading-5 text-danger">
+                      <p>
+                        当前图缺少 {blockedParams.length} 项求解输入（{blockedLabels}）：画布上找不到对应器件 / 载荷，确认表无法签收，也就不能求解。
+                      </p>
+                      <button
+                        type="button"
+                        onClick={resetSkeleton}
+                        className="focus-ring mt-1 rounded border border-danger/50 px-1.5 py-0.5 text-[10px] hover:bg-danger/15"
+                      >
+                        恢复骨架
+                      </button>
+                    </div>
                   ) : !allConfirmed ? (
                     <p data-testid="confirm-gate-note" className="text-[11px] font-medium leading-4 text-danger">
                       还有 {writableParams.filter((one) => !confirmed[one.key]).length} 项没确认 —— 未确认前不求解、不给校验章
                     </p>
                   ) : (
-                    <p data-testid="confirm-gate-note" className="text-[11px] leading-4 text-ok">全部已确认 · 三处数值都取自归约结果</p>
+                    <p data-testid="confirm-gate-note" className="text-[11px] leading-4 text-ok">
+                      全部已确认 · {writableParams.length} 项数值都取自归约结果
+                    </p>
                   )}
-                  {!allConfirmed ? (
+                  {!allConfirmed && writableParams.length > 0 ? (
                     <button
                       type="button"
                       data-testid="confirm-all"
@@ -3542,6 +3635,10 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                         ((param.min !== undefined && value < param.min) || (param.max !== undefined && value > param.max));
                       /* A3：写入目标不在画布上（如 q：图上没有均布载荷）→ 只读 + 说明缺什么。 */
                       const writeBlock = paramWriteBlock(pickId, graph, param.key);
+                      // L 可以走 meta 兜底，但图上没有标注时要让人知道“这个跨长
+                      // 不是从图上量出来的”，否则清空自建后会以为画布几何在说话。
+                      // 与画布角标 spanFromMeta 同一真相。
+                      const noSpanLabel = param.key === 'L' && spanFromMeta;
                       const draft = paramDrafts[param.key];
                       return (
                         <li key={param.key} data-testid="param-row" data-param={param.key} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
@@ -3582,6 +3679,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                               if (text.trim() !== '' && Number.isFinite(next)) onParamChange(param.key, next);
                             }}
                             onBlur={() => {
+                              // 剩余漏洞 1.10：越界输入（a=5 > L）不要被静默归一成钳制后的 4 ——
+                              // 保留草稿，让红框与右侧「超出 0.1~3.9」说的就是用户真输的 5。
+                              // 合法值才丢草稿回到模型值（020 → 20 的归一）。
+                              const draftText = paramDrafts[param.key];
+                              if (draftText !== undefined && outOfRange) return;
                               setParamDrafts((current) => {
                                 if (current[param.key] === undefined) return current;
                                 const copy = { ...current };
@@ -3597,6 +3699,16 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                           {writeBlock ? (
                             <span data-testid="param-readonly-hint" className="min-w-0 flex-1 break-words rounded bg-panel-2 px-1 text-[10px] leading-4 text-muted">
                               {writeBlock}
+                            </span>
+                          ) : null}
+                          {inertParamNote(pickId, param.key, graph?.meta ?? {}) ? (
+                            <span data-testid="param-inert-hint" className="min-w-0 flex-1 break-words rounded bg-panel-2 px-1 text-[10px] leading-4 text-faint">
+                              {inertParamNote(pickId, param.key, graph?.meta ?? {})}
+                            </span>
+                          ) : null}
+                          {noSpanLabel ? (
+                            <span data-testid="param-span-hint" className="min-w-0 flex-1 break-words text-[10px] leading-4 text-amber">
+                              图上没有 L 标注：当前按参数表值计算，拖结点不会改 L
                             </span>
                           ) : null}
                           {outOfRange ? (
@@ -3658,10 +3770,12 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                           onClick={() => {
                             setSectionDraft({ b: '', h: '', E: '' });
                             mutate({ op: 'setSection', section: null });
+                            if (stage === 'solved') recomputeArmed.current = true;
                           }}
+                          title="只清 b / h / E 三个截面值，不动画布上的图元"
                           className="focus-ring rounded border border-line px-1.5 py-0.5 text-[10px] text-muted hover:border-cyan/50 hover:text-cyan"
                         >
-                          清空
+                          清空截面
                         </button>
                       </div>
                     </div>
@@ -3832,8 +3946,13 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                 {/* W20：默认骨架走 template，讲解稿之外也给出「这张图的量」——填截面后即时更新。 */}
                 {graph ? <GraphMeasures graph={graph} /> : null}
                 {solution.warnings.length > 0 ? (
-                  <div className="print-applied-rules mb-3 rounded-xl border border-amber/50 bg-amber/10 p-3">
-                    <p className={EYEBROW}>改动台账 · 结构改动证据（随 PDF 导出）</p>
+                  <div data-testid="solver-assumptions" className="mb-3 rounded-xl border border-amber/50 bg-amber/10 p-3">
+                    {/* 剩余漏洞 2.3：这里装的是求解假设 / 警告（RE 未画出、本题不计算变形…），
+                        不是用户改动 —— 真正的改动台账在上方归约预览的 appliedRules。分开标注。 */}
+                    <p className={EYEBROW}>求解假设 / 警告</p>
+                    <p className="mt-0.5 text-[9px] leading-3 text-faint">
+                      以下是本次求解采用的假设与提醒，不算你的结构改动（改动逐条见上方归约预览）。
+                    </p>
                     <ul className="mt-1 space-y-0.5 text-[11px] leading-5 text-amber">
                       {solution.warnings.map((rule: string) => (
                         <li key={rule}>· {rule}</li>
@@ -4337,6 +4456,20 @@ function wireDisplayName(graph: CanvasGraph, wireId: string): string {
  * 与其让人白打一个数，不如直接只读 + 说明缺什么。
  * 目标查找逻辑与 picks.ts `applyParams` 逐条对应，两边一起改。
  */
+/**
+ * 剩余漏洞 2.6：某些参数在当前模式 / 求解口径下根本不参与计算 ——
+ * 与其让人去台账里翻，直接在参数行标「本模式不使用」。
+ */
+function inertParamNote(pickId: string, key: string, meta: CanvasGraph['meta']): string | null {
+  if (pickId === 'A1' && meta.mode === 'series' && (key === 'Vz' || key === 'Rz')) {
+    return '本模式不使用（普通二极管只看 Vf；切到稳压模式才用）';
+  }
+  if (pickId === 'A3' && key === 'Vt') {
+    return '只读常数（热电压 ≈26 mV，参与换算，不写回求解）';
+  }
+  return null;
+}
+
 function paramWriteBlock(pickId: string, graph: CanvasGraph | null, key: string): string | null {
   if (!graph) return null;
   const entry = PICKS[pickId]?.picks.find((one) => one.key === key);
@@ -4355,9 +4488,14 @@ function paramWriteBlock(pickId: string, graph: CanvasGraph | null, key: string)
       return `画布上没有器件 ${source.device}，先放一个再改这个值`;
     }
     if (source.src === 'spanText') {
-      return graph.nodes.some((node) => node.kind === 'text' && /^L\s*=/.test(node.label ?? ''))
-        ? null
-        : '画布上没有「L = …」标注文字，先放一个再改这个值';
+      if (graph.nodes.some((node) => node.kind === 'text' && /^L\s*=/.test(node.label ?? ''))) {
+        return null;
+      }
+      // 没有标注文字时，L 仍可由 meta 兜底（reduce 也是这个顺序）。多源参数不能
+      // 因为第一源缺席就整项只读 —— 否则清空画布自建梁后 L 被静默跳过确认，
+      // 求解继续用上一张图的 meta.L。继续看后面的 meta 源。
+      if (entry.sources.length > 1) continue;
+      return '画布上没有「L = …」标注文字，先放一个再改这个值';
     }
     if (source.src === 'textValue') {
       return graph.nodes.some((node) => node.id === source.nodeId && node.kind === 'text')
@@ -4479,7 +4617,7 @@ function CandidatePanel({
 }) {
   const list = candidatesFor(templateId);
   return (
-    <section data-testid="candidate-panel" className="max-h-[70vh] w-full overflow-y-auto rounded-xl border border-cyan/30 bg-panel p-3 shadow-lg">
+    <section data-testid="candidate-panel" className="max-h-[70vh] w-full overflow-y-auto rounded-xl border border-cyan/30 bg-bg p-3 shadow-lg">
       <header className="flex flex-wrap items-center gap-2 border-b border-line pb-2">
         <h2 className="text-xs text-ink">{candidateHeading(templateId)}</h2>
         <span className="text-[10px] text-muted">

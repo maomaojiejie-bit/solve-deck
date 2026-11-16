@@ -32,6 +32,9 @@ export function GraphMeasures({ graph }: { graph: CanvasGraph }) {
       <p className="mt-1 text-[10px] leading-4 text-muted">
         按当前这张装配图求解，与上方讲解稿无关。缺截面时写清缺什么；在右栏「截面」填上 b / h / E 后，应力与挠度会立刻出数。
       </p>
+      <p className="mt-1 text-[10px] leading-4 text-faint">
+        这一区固定按题面单位（kN / kN·m / mm / MPa）显示；顶部「单位」只改结论 headline 与讲解稿读数，不改这里的图和表。
+      </p>
       <div className="mt-3 flex flex-col gap-3">
         {solved.map((measure) => (
           <MeasureCard key={measure.id} measure={measure} />

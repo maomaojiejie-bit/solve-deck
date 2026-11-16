@@ -111,6 +111,10 @@ const go = async (hash) => {
 
 await send('Page.enable');
 await send('Runtime.enable');
+/* 固定 CDP 视口：headless Edge 的 --window-size 在新版内核里不保证生效
+   （实测 header 只拿到 490px，远小于 1500），外壳宽度断言会假红。
+   显式设 1500×1000 设备指标，让 ① 的外壳宽度测的是真实布局而非内核默认值。 */
+await send('Emulation.setDeviceMetricsOverride', { width: 1500, height: 1000, deviceScaleFactor: 1, mobile: false });
 
 /* ── ① 外壳统一：读物页 ≤1120、工作面页 ≤1440 ──────────────────────
  * 两类页面的「宽」不是一个意思：首页/贴题/关于/范围判别是读物，窄栏才好读；

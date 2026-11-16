@@ -5,9 +5,14 @@
  * W11：16 个装配入口 = 28 道母题里的 15 型 + M3 悬臂这一个组态变体。
  * 剩下 13 型见 coverage.ts 的「不适用」卡，不在这里假装全能。
  */
+/**
+ * 剩余漏洞 2.1：按学科分组排（模拟电路 A1–A7 → 力学 M1–M7 + M3 悬臂 → 结构 / 数字 S3/S5），
+ * 不再 A3/A5/A6/A1 这样随机散排。门禁只校验集合与数量，不依赖顺序。
+ */
 export const SUPPORTED_IDS = [
-  'A3', 'A5', 'A6', 'A1', 'M3', 'M3-cantilever', 'S5',
-  'A2', 'A4', 'A7', 'M1', 'M2', 'M4', 'M5', 'M7', 'S3',
+  'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7',
+  'M1', 'M2', 'M3', 'M3-cantilever', 'M4', 'M5', 'M7',
+  'S3', 'S5',
 ] as const;
 
 export function isLabSupported(templateId: string): boolean {

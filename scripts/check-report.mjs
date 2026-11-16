@@ -19,6 +19,7 @@ import { reduce } from '../src/core/lab/reduce.ts';
 import { applyOp } from '../src/core/lab/ops.ts';
 import { tierOf, withLabChecks, N_TIER_STEP4_TITLE } from '../src/core/lab/tiers.ts';
 import { formatCompact, formatScalar } from '../src/core/format.ts';
+import { validateLive } from '../src/confidence/live.ts';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const problems = [];
@@ -111,6 +112,17 @@ ok('③', labSource.includes("stage === 'refused'"), 'Lab.tsx 没有 refused 状
 ok('③', !/refused[\s\S]{0,600}DataPanel|refused[\s\S]{0,600}override=\{solution\}/.test(labSource), 'U 档拒绝了却还渲染结果区');
 console.log('③  N 档：第 4 帧替换 + 等效图过滤 + F 档显式分支，静态断言全过');
 
+/* ── ⑤ A1 截止态：0 电流不能被相对误差判成“两条路径不一致” ─────── */
+{
+  const a1Route = getTemplateRoute('A1');
+  const a1Input = { mode: 'series', Vs: 0.2, R: 1000, Vf: 0.7, Vz: 5.1, Rz: 10 };
+  const a1Solution = a1Route ? (await a1Route.entry.solver()).default(a1Input) : null;
+  const live = a1Route && a1Solution ? await validateLive(a1Route.entry, undefined, a1Solution, a1Input) : null;
+  ok('⑤', Boolean(live) && live.confidence.pathsConsistent === 'pass', `⑤ A1 截止态两条路径应一致，实际 ${live?.confidence.pathsConsistent} / ${live?.confidence.checks.find((c) => c.name === 'pathsConsistent')?.detail}`);
+  ok('⑤', Boolean(live) && live.confidence.failedCount === 0, `⑤ A1 截止态不应有 fail，实际 ${live?.confidence.failedCount} 项`);
+  console.log(`⑤  A1 截止态：路径 ${live?.confidence.pathsConsistent} · fail ${live?.confidence.failedCount}`);
+}
+
 /* ── W21-B B5：数值只有一种写法（体验报告 5.9） ─────────────────── */
 {
   ok('B5', formatCompact(100000) === '100k', `画布数字应写 100k，实际 ${formatCompact(100000)}`);
@@ -191,4 +203,4 @@ if (problems.length > 0) {
   for (const problem of problems) console.error(`  · ${problem}`);
   process.exit(1);
 }
-console.log(`PASS：${checks} 项（三档报告门禁：tierOf 互斥 / structure fail → U / N 档不渲染等效图 / withLabChecks 只加两项 / B5 统一格式器 / C1 构件与求解内核改名扫描）`);
+console.log(`PASS：${checks} 项（三档报告门禁：tierOf 互斥 / structure fail → U / N 档不渲染等效图 / withLabChecks 只加两项 / A1 截止态 / B5 统一格式器 / C1 构件与求解内核改名扫描）`);
