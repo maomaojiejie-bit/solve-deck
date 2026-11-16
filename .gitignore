@@ -20,3 +20,6 @@ desktop.ini
 .workbuddy/
 .bugs/
 tsconfig.tsbuildinfo
+# 工具产物（与站点源码无关）
+taste-skill/
+*.qoder.site
