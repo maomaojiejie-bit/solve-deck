@@ -12,6 +12,7 @@ import { formatCompact } from '../format.ts';
 import { normalizeDeviceId } from './graphFromSpec.ts';
 import { deviceName } from './labels.ts';
 import { supportRefs } from './attach.ts';
+import { analyzeTruss } from '../statics/truss.ts';
 import type { CanvasGraph, CanvasNode } from './types.ts';
 
 export type LoadType = 'point' | 'udl' | 'moment' | 'torque';
@@ -577,6 +578,72 @@ function fmt(value: number): string {
   return formatCompact(value);
 }
 
+/**
+ * S5：L/H 是 meta 参数，但图内通用求解按坐标几何走。只写 meta 会让
+ * 「按图现算」继续用旧矢高，和讲解稿的 H 打架。这里把 C 点（以及挂在
+ * C 上的载荷）按 H/L 比例同步到画布，并重算三根杆的轴力标签。
+ * 画布只示意比例：A 固定、B/C 按比例缩放，始终留在原可视区内。
+ */
+function syncS5Geometry(graph: CanvasGraph, moveGeometry: boolean): void {
+  const A = graph.nodes.find((node) => node.id === 'n-A');
+  const B = graph.nodes.find((node) => node.id === 'n-B');
+  const C = graph.nodes.find((node) => node.id === 'n-C');
+  const L = Number(graph.meta.L);
+  const H = Number(graph.meta.H);
+  if (!A || !B || !C || !(L > 0) || !(H > 0)) return;
+  if (moveGeometry) {
+    const ratio = H / L;
+    const maxHeight = Math.max(80, A.y - 40);
+    const baseSpan = Math.max(80, B.x - A.x);
+    const span = Math.min(baseSpan, maxHeight / ratio);
+    const oldCx = C.x;
+    const oldCy = C.y;
+    B.x = A.x + span;
+    C.x = A.x + span / 2;
+    C.y = A.y - span * ratio;
+    for (const node of graph.nodes) {
+      if (node.kind !== 'arrow' || node === C) continue;
+      if (Math.hypot(node.x - oldCx, node.y - oldCy) > 12) continue;
+      node.x += C.x - oldCx;
+      node.y += C.y - oldCy;
+    }
+  }
+  const byId = new Map(graph.nodes.map((node) => [node.id, node]));
+  for (const edge of graph.edges) {
+    const a = byId.get(edge.from);
+    const b = byId.get(edge.to);
+    if (a && b) edge.points = [[a.x, a.y], [b.x, b.y]];
+  }
+  const load = graph.nodes.find((node) => node.kind === 'arrow');
+  const P = Math.max(0, Number(load?.value ?? graph.meta.P ?? 10));
+  if (!(P > 0)) return;
+  const analysis = analyzeTruss({
+    nodes: [
+      { id: 'A', x: 0, y: 0 },
+      { id: 'B', x: L, y: 0 },
+      { id: 'C', x: L / 2, y: H },
+    ],
+    members: [
+      { id: 'AB', a: 'A', b: 'B' },
+      { id: 'AC', a: 'A', b: 'C' },
+      { id: 'BC', a: 'B', b: 'C' },
+    ],
+    supports: [
+      { at: 'A', kind: 'pin' },
+      { at: 'B', kind: 'roller' },
+    ],
+    loads: [{ at: 'C', F: [0, -P] }],
+  });
+  if (!analysis.ok) return;
+  for (const edge of graph.edges) {
+    const member = edge.id.replace(/^e-/, '');
+    if (!['AB', 'AC', 'BC'].includes(member)) continue;
+    const force = analysis.forces[member] ?? 0;
+    const label = Math.abs(force) < 1e-9 ? '零杆' : force > 0 ? '拉' : '压';
+    edge.tag = `${member}: ${force >= 0 ? '+' : ''}${force.toFixed(3)} kN（${label}）`;
+  }
+}
+
 /** ③ 参数表 → 图：挪载荷位置、改器件值、刷新标签。返回新图（不动原骨架）。 */
 export function applyParams(templateId: string, graph: CanvasGraph, values: Record<string, ParamValue>): CanvasGraph {
   return applyParamsWithReport(templateId, graph, values).graph;
@@ -594,6 +661,8 @@ export function applyParamsWithReport(
   const next: CanvasGraph = { ...graph, nodes, meta: { ...graph.meta } };
   const written: string[] = [];
   if (!picks) return { graph: next, written };
+  const oldL = graph.meta.L;
+  const oldH = graph.meta.H;
 
   const L = Number(values.L ?? 0);
   const member = graph.edges.find((edge) => ['beam', 'shaft', 'line', 'trussMember'].includes(edge.kind));
@@ -670,6 +739,10 @@ export function applyParamsWithReport(
         break;
       }
     }
+  }
+  if (templateId === 'S5') {
+    const geometryChanged = Number(oldL) !== Number(next.meta.L) || Number(oldH) !== Number(next.meta.H);
+    syncS5Geometry(next, geometryChanged);
   }
   return { graph: next, written };
 }

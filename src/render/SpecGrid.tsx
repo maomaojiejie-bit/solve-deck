@@ -154,6 +154,18 @@ export interface EditableCanvas {
     onPlaceUp: (x: number, y: number) => void;
     ghost: PlaceGhost | null;
   };
+  /**
+   * 通电动画：直接吃 netSolve 的 `branchCurrents` / `powers`（键 = 器件 id）。
+   * 只画「有电」这件事，不画方向 —— 理想导线的电流方向由端点几何定，
+   * 画布边只连到器件中心，硬画会画出一个不知道对不对的方向。
+   * 自拼电路与题目无关：只要解出来了就有电流表，所以一样会亮。
+   */
+  flow?: {
+    current: Record<string, number>;
+    power?: Record<string, number>;
+    /** 画布角标文字，例如「通电中 · 4.26 mA」。 */
+    label?: string;
+  };
 }
 
 interface SpecGridProps {
@@ -237,6 +249,17 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
     setView(parseBox(fitBox));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spec.id]);
+
+  /**
+   * 增删图元后重新 fit：清空自建时最容易出现「视图还停在旧骨架、
+   * 新器件只占 27%」——图元数变化时回到内容视图；拖结点不改数量，不会重置缩放。
+   */
+  const prevNodeCount = useRef(spec.nodes.length);
+  useEffect(() => {
+    if (prevNodeCount.current === spec.nodes.length) return;
+    prevNodeCount.current = spec.nodes.length;
+    setView(parseBox(fitBox));
+  }, [spec.nodes.length, fitBox]);
 
   /** 主 svg 与 overlay 共用用户视图；拖动冻结靠 view 在拖动期间不变。 */
   useEffect(() => {
@@ -544,6 +567,18 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
     </div>
   );
 
+  /** 通电角标：只报「解出来的电源电流」，不猜别的。 */
+  const flowChip =
+    canvas.flow?.label && (canvas.flow.label ?? '').length > 0 ? (
+      <div
+        data-testid="canvas-flow-chip"
+        className="pointer-events-none absolute right-2 top-2 z-20 flex items-center gap-1 rounded-lg border border-amber/40 bg-panel/90 px-2 py-0.5 text-[10px] text-amber shadow"
+      >
+        <span aria-hidden="true">⚡</span>
+        <span className="font-mono tabular-nums">{canvas.flow.label}</span>
+      </div>
+    ) : null;
+
   const first = canvas.wireFirst ? canvas.pins.find((pin) => pin.key === canvas.wireFirst) : undefined;
   // W17-C：力学族杆线体热区要画在节点拖动圆点**之下**（节点在杆的端点上，
   // 热区重叠时点节点必须选中物件而不是杆）；电路族维持 W16 顺序（引脚最上）。
@@ -792,6 +827,7 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
         </div>
       ) : null}
       {viewTools}
+      {flowChip}
       {/* 剩余漏洞 1.3：hover 中文名从画布右上角改到贴着引脚。保留 pin-hover testid
           让门禁 / 截图脚本照常找到它，但绝对定位到引脚附近。 */}
       {hoverPin ? (
@@ -837,7 +873,7 @@ function Figure({ spec, stepIndex, liveSelection, canvas }: FigureProps) {
     body = (
       <div className="schematic-frame h-[420px] w-full">
         {analog ? (
-          <AnalogSchematic spec={spec} activeIds={activeIds} labels={labels} />
+          <AnalogSchematic spec={spec} activeIds={activeIds} labels={labels} flow={canvas?.flow} />
         ) : (
           <Schematic
             spec={spec}
@@ -930,7 +966,7 @@ function Figure({ spec, stepIndex, liveSelection, canvas }: FigureProps) {
           {canvas ? <EditableLayer spec={spec} canvas={canvas}>{body}</EditableLayer> : body}
         </Suspense>
         {spec.type === 'matrix' ? (
-          <p className="mt-2 text-[10px] text-muted">此表是数字汇总，不与画布联动高亮</p>
+          <p className="mt-2 text-[10px] text-muted">此表是模板默认参数口径的数字汇总，不与当前装配图联动；当前图缺项时以「这张图的量」为准</p>
         ) : null}
       </div>
     </figure>

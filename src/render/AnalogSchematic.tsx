@@ -171,10 +171,13 @@ export function AnalogSchematic({
   spec,
   activeIds,
   labels,
+  flow,
 }: {
   spec: RenderSpec;
   activeIds: ReadonlySet<string>;
   labels: ReadonlyMap<string, string>;
+  /** 通电动画：器件 id → 电流（A）/ 功率（W），来自 netSolve 的解。 */
+  flow?: { current: Record<string, number>; power?: Record<string, number> };
 }) {
   if (spec.nodes.length === 0) {
     /** 清空画布后从零建力学模型：这里必须仍是一张可点的 SVG 白纸。
@@ -199,6 +202,13 @@ export function AnalogSchematic({
 
   const positions = new Map(spec.nodes.map((node) => [node.id, node]));
   const fittedViewBox = fittedViewBoxFor(spec);
+
+  /* 通电：只要有一根支路真的过了电流，回路就「带电」。
+     阈值 1e-9 A 是数值噪声底，防止断路的图也微微发光骗人。 */
+  const energised = flow !== undefined && Object.values(flow.current).some((value) => Math.abs(value) > 1e-9);
+  const powerMax = flow?.power
+    ? Math.max(1e-12, ...Object.values(flow.power).map((value) => Math.abs(value)))
+    : 1e-12;
 
   /** W21-B B1：文字标注重叠时逐条上移，并画细引线指回原位（不猜用户想看哪个）。 */
   const textShift = new Map<string, number>();
@@ -229,6 +239,19 @@ export function AnalogSchematic({
       strokeLinecap="round"
       strokeLinejoin="round"
     >
+      {energised ? (
+        <defs>
+          <radialGradient id="flow-glow-warm">
+            <stop offset="30%" stopColor="#f2c14e" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#f2c14e" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="flow-glow-cool">
+            <stop offset="30%" stopColor="#8ab0ff" stopOpacity="0.42" />
+            <stop offset="100%" stopColor="#8ab0ff" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+      ) : null}
+
       {spec.edges.map((edge) => {
         const pts = edgePoints(edge, positions.get(edge.from), positions.get(edge.to));
         if (!pts) return null;
@@ -244,6 +267,19 @@ export function AnalogSchematic({
               strokeWidth={edge.weight === 2 || active ? 2.2 : 1.7}
               strokeDasharray={edge.dashed ? '5 4' : undefined}
             />
+            {/* 通电：导线叠一层暖色呼吸。只表示「这段有电」，不表示方向。 */}
+            {energised ? (
+              <path
+                d={toPath(pts)}
+                fill="none"
+                stroke="#f2c14e"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeOpacity={0.42}
+                className="flow-wire"
+                data-flow-wire="1"
+              />
+            ) : null}
             {edge.tag ? (
               <text
                 x={mid[0] + 4}
@@ -356,6 +392,29 @@ export function AnalogSchematic({
           !/^R_|^M_/.test((node.label ?? '').trim());
         const lift = lifted ? -(def.hh + 14) : 0;
         const inside = def?.labelInside === true;
+        /* 器件辉光：二极管像 LED 亮起来、电阻按发热量暖起来、电源给一圈冷光。
+           颜色取「暖 = 电流/损耗」「冷 = 供电」，与结果页的用色一致。 */
+        const amps = flow ? Math.abs(flow.current[node.id] ?? 0) : 0;
+        const flowHalo =
+          energised && amps > 1e-9 && def
+            ? (() => {
+                const isSource = node.kind === 'vsrc' || node.kind === 'isrc' || node.kind === 'ctrlsrc';
+                const heat = isSource ? 1 : Math.min(1, Math.abs(flow?.power?.[node.id] ?? 0) / powerMax);
+                const cls =
+                  node.kind === 'res' ? 'flow-heat' : isSource ? 'flow-src' : 'flow-led';
+                return (
+                  <circle
+                    cx={0}
+                    cy={0}
+                    r={Math.max(hw, hh) + 7}
+                    fill={isSource ? 'url(#flow-glow-cool)' : 'url(#flow-glow-warm)'}
+                    data-heat={heat.toFixed(2)}
+                    className={cls}
+                    data-flow-halo={node.id}
+                  />
+                );
+              })()
+            : null;
         return (
           <g
             key={node.id}
@@ -363,6 +422,7 @@ export function AnalogSchematic({
             transform={`translate(${node.x} ${node.y})`}
             color={stroke}
           >
+            {flowHalo}
             {lifted ? (
               <>
                 <line

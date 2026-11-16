@@ -91,10 +91,11 @@ ok('⑥', /触发条件/.test(debt) && /唯一能答的那型/.test(debt), '⑥ 
 /* 快照「不许手改」的判据是 mtime 截断。截断日期推进规则：每次走完
  * build-example.mjs 再生 + check-p3 复验的正规链之后，把日期推到再生时刻 ——
  * 红线真正要抓的是「手改了快照却没再生 / 没复验」，不是再生本身。
- * 2026-11-16 推进（两次）：① F3 改默认参数触发全量再生，p3 58/58；② filter-branch
- * 历史重写检出把全部跟踪文件的 mtime 刷新（内容未动，p3 照旧全绿）。截断取 12:15。
+ * 2026-11-16 推进（三次）：① F3 改默认参数触发全量再生，p3 58/58；② filter-branch
+ * 历史重写检出把全部跟踪文件的 mtime 刷新（内容未动，p3 照旧全绿）；③ 修 M3 提示文案
+ * 后按正规链重生成 M1/M2/M3/M3-cantilever/M4/M5/M8。截断取 21:30。
  * 下一次正规再生 / 历史重写后同样把日期往前推。 */
-const touchedRecently = (path) => statSync(join(root, path)).mtimeMs >= new Date('2026-11-16T12:15:00+08:00').getTime();
+const touchedRecently = (path) => statSync(join(root, path)).mtimeMs >= new Date('2026-11-16T21:30:00+08:00').getTime();
 ok('⑦', !['src/examples/M3.json', 'src/examples/M5.json', 'src/examples/A3.json', 'src/examples/A7.json'].some(touchedRecently), '⑦ 本批动了 examples 快照');
 ok('⑦', !touchedRecently('src/core/templates/mechanics/M3.ts') || !/求解内核|与基准题逐字段对拍/.test(readFileSync(join(root, 'src/core/templates/mechanics/M3.ts'), 'utf8')), '⑦ 模板文案被 C1 批改过且没回退干净（templates 文案被快照 P3 钉住，改文案=快照漂移）');
 ok('⑦', Object.keys(pkg.dependencies ?? {}).length === 3 && Object.keys(pkg.devDependencies ?? {}).length === 12 && !pkg.scripts['check:section'].includes('node_modules'), '⑦ 依赖数变了 / 引入了新依赖');

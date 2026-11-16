@@ -161,6 +161,28 @@ const direct = (graph) => netSolve(graph, netSolveOptionsFor(graph).options);
   console.log(`⑦  A1 删 gnd → U noGround「${r7.kind === 'refused' ? r7.reason.slice(0, 30) : ''}…」（以前走模板照常出数）；⑧ 变异回退成 template 再还原回绿`);
 }
 
+/* ── ⑨ 新增同类器件：label 相同也不能被当成骨架器件 ───────────────── */
+{
+  let st = createUiState('A1', skeleton('A1'));
+  st = step('A1', st, { op: 'addDevice', kind: 'res', label: 'R', value: 1000, x: 120, y: 560 });
+  const added = st.graph.nodes.find((node) => node.id.startsWith('n-add-'));
+  ok('⑨', Boolean(added), '⑨ 没找到新加的电阻');
+  if (added) {
+    st = step('A1', st, { op: 'addEdge', from: `${added.id}:a`, to: 'n-r:a' });
+    st = step('A1', st, { op: 'addEdge', from: `${added.id}:b`, to: 'n-r:b' });
+    const r = resolveLabSolve('A1', st.graph, st.rules);
+    ok('⑨', r.kind === 'generic' && Boolean(r.circuit), `⑨ 并联第二只 R 应走通用求解，实际 ${r.kind}${r.kind === 'refused' ? `：${r.reason}` : ''}`);
+    const golden = direct(st.graph);
+    ok('⑨', golden.ok, `⑨ 并联图直接调 netSolve 被拒：${golden.ok ? '' : golden.reason}`);
+    if (r.kind === 'generic' && r.circuit && golden.ok) {
+      const source = Math.abs(r.circuit.branchCurrents['n-src'] ?? 0);
+      ok('⑨', source > 7e-3 && source < 9e-3, `⑨ 并联后电源电流 ${source} 应约 8.6mA（不是单只 1kΩ 的 4.3mA）`);
+      ok('⑨', JSON.stringify(r.circuit.nodeVoltages) === JSON.stringify(golden.solution.nodeVoltages), '⑨ 并联通用解与直接调 netSolve 不逐位相等');
+      console.log(`⑨  并联第二只 1kΩ → generic-solution：I_src=${(source * 1000).toFixed(3)}mA`);
+    }
+  }
+}
+
 /* ── 汇总 ───────────────────────────────────────────────────────── */
 
 if (problems.length > 0) {

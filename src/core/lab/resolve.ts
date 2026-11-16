@@ -131,8 +131,10 @@ function unmodeledCircuitDevices(graph: CanvasGraph, picks: NonNullable<(typeof 
     if (node.compositeId) continue; // 复合器件由展开逻辑管
     if (!wired.has(node.id)) continue;
     const bare = node.id.replace(/^n-/, '').toUpperCase();
-    const label = (node.label ?? '').toUpperCase();
-    const known = [...tokens].some((token) => bare === token || bare.startsWith(`${token}-`) || label.startsWith(token));
+    // 只认器件 id，不认 label：新加的同类器件（例如 A1 再加一只 R）
+    // label 也是「R」，按 label 前缀会把它误判成骨架里那只已建模的 R，
+    // 结果图上多了一只并联电阻、答案却还是旧值。id 不匹配就交给通用求解。
+    const known = [...tokens].some((token) => bare === token || bare.startsWith(`${token}-`));
     if (!known) {
       problems.push(
         `器件「${node.label || node.id}」（${node.kind}）接了线，但 ${templateId} 的归约表不认识它 —— 讲解稿算不到它，按这张图求解。`,
@@ -202,6 +204,10 @@ function genericRoute(
     family === 'circuit' && graph.nodes.some((node) => node.kind === 'cap' || node.kind === 'ind')
       ? ['交流小信号口径：C 视为短路、L 视为开路 —— 增益等小信号量按这个口径现算']
       : [];
+  const diodeNotice =
+    family === 'circuit' && graph.nodes.some((node) => node.kind === 'diode')
+      ? ['通用求解把二极管线性化为 Vf + 1Ω；模板口径是 Vf + I·Rz，同一张图两条路径可能相差约 1% —— 这里按当前图口径。']
+      : [];
   const measures = interpretQuestion(graph, family === 'beam' ? 'beam' : 'circuit', solved);
   if (incomplete) {
     for (const measure of measures) {
@@ -216,7 +222,7 @@ function genericRoute(
     family,
     circuit: solved.circuit,
     frame: solved.frame,
-    notices: [...notices, ...acNotice],
+    notices: [...notices, ...acNotice, ...diodeNotice],
     measures,
     reason,
   };

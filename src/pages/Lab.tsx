@@ -59,9 +59,9 @@ import {
   tOnSpan,
 } from '../core/lab/attach';
 import { N_TIER_STEP4_TITLE, withLabChecks, genericVerdict, type LabVerdict } from '../core/lab/tiers';
-import { resolveLabSolve } from '../core/lab/resolve';
+import { resolveLabSolve, netSolveOptionsFor, unmodeledDevices } from '../core/lab/resolve';
 import { beamCapabilities, filterWarningsByCapability, type Measure } from '../core/lab/measures';
-import type { CircuitSolution } from '../core/lab/netSolve';
+import { netSolve, type CircuitSolution } from '../core/lab/netSolve';
 import type { FrameSolution } from '../core/lab/frameSolve';
 import { GenericResult } from '../ui/GenericResult';
 import { deriveCircuitEquivalent, type CircuitEquivalent } from '../core/lab/equivalent';
@@ -382,6 +382,8 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   const [specType, setSpecType] = useState<string>('schematic');
   const [values, setValues] = useState<Record<string, ParamValue>>({});
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
+  /** 通用路由的确认闸：模板参数表不参与，只确认「按这张图现算」。 */
+  const [genericConfirmed, setGenericConfirmed] = useState(false);
   const [solution, setSolution] = useState<Solution | null>(null);
   const [verdict, setVerdict] = useState<LabVerdict | null>(null);
   const [refusal, setRefusal] = useState<string[]>([]);
@@ -499,6 +501,49 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   const beforeDragRef = useRef<CanvasGraph | null>(null);
   const graph = ui?.graph ?? null;
   const preview = ui?.preview ?? null;
+  /** 图一变就撤回通用路由的确认章 —— 不能拿旧图的「确认」给新图签字。 */
+  useEffect(() => {
+    setGenericConfirmed(false);
+  }, [graph]);
+  /**
+   * 通电动画的数据源：对**当前这张图**再跑一遍节点电压法，拿器件电流 / 功率。
+   * 与题型、模板、归约表都无关 —— 自拼的电路只要解得出，就一样会亮。
+   * 失败（无地 / 悬空 / 未接地源）就当作没电，不发光，也不报错。
+   */
+  const flowCircuit = useMemo<CircuitSolution | null>(() => {
+    if (stage !== 'solved' || !graph || graph.family !== 'circuit') return null;
+    try {
+      const outcome = netSolve(graph, netSolveOptionsFor(graph).options);
+      return outcome.ok ? outcome.solution : null;
+    } catch {
+      return null;
+    }
+  }, [graph, stage]);
+
+  /**
+   * 通电角标的读数：**只报结果面板已经在用的那一份解**（generic.circuit），
+   * 别用动画自己那份 netSolve 的数 —— 两套二极管模型相差约 1%（模板口径带 Rz，
+   * 通用网表按 Vf 直降），角标写 4.30 mA 而面板写 4.257 mA 会互相打脸。
+   * 模板路径没有这份解，就只显示「通电中」，不给数字。
+   */
+  const flowChipLabel = useMemo(() => {
+    if (!flowCircuit) return undefined;
+    /** 电源电流就是回路电流；没有电源就退到最大支路电流。 */
+    const ampsOf = (solution: CircuitSolution) => {
+      const sourceIds = (graph?.nodes ?? []).filter((node) => node.kind === 'vsrc').map((node) => node.id);
+      const fromSource = Math.max(0, ...sourceIds.map((id) => Math.abs(solution.branchCurrents[id] ?? 0)));
+      if (fromSource > 1e-9) return fromSource;
+      return Math.max(0, ...Object.values(solution.branchCurrents).map((value) => Math.abs(value)));
+    };
+    // 没电流就不挂角标 —— 角标与画布上的光必须同真同假。
+    if (!(ampsOf(flowCircuit) > 1e-9)) return undefined;
+    const panel = generic?.circuit;
+    if (!panel) return '通电中';
+    const amps = ampsOf(panel);
+    if (!(amps > 1e-9)) return '通电中';
+    const text = amps >= 0.1 ? `${amps.toFixed(3)} A` : `${(amps * 1000).toPrecision(3)} mA`;
+    return `通电中 · I = ${text}`;
+  }, [flowCircuit, generic, graph]);
   /** 确认区「图上元件 · 实时读数」：直接读当前画布的支座 / 载荷 / 构件，
    *  图一动立刻刷新 —— 核对数字时能对着实物看，不靠记忆里的题面值。 */
   const liveDeviceRows = useMemo(() => {
@@ -512,23 +557,37 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
           rows.push(`${name} · ${SUPPORT_KIND_LABEL[`${node.support.type}Support`] ?? '支座'}`);
         } else if (['arrow', 'udl', 'momentArrow', 'torqueArrow'].includes(node.kind)) {
           let where: string;
-          if (node.atJoint) {
-            where = `在结点 ${(graph.nodes.find((one) => one.id === node.atJoint)?.label ?? '').trim() || node.atJoint.replace(/^n-/, '').toUpperCase()}`;
+          // 先认结点：载荷挂在结点上时，x 坐标可能刚好等于某根杆的跨中
+          // （S5 顶点载荷就是 x 与 AB 中点相同）。只按 x 投影找杆会把
+          // 「顶点载荷」写成「落在 AB · t=0.50」—— 位置是确认栏的真相，必须先认结点。
+          const nearJoint =
+            (node.atJoint ? graph.nodes.find((one) => one.id === node.atJoint) : undefined) ??
+            graph.nodes.find(
+              (one) =>
+                (one.kind === 'dot' || one.kind === 'pin') &&
+                Math.hypot(one.x - node.x, one.y - node.y) <= 12,
+            );
+          if (nearJoint) {
+            where = `在结点 ${(nearJoint.label ?? '').trim() || nearJoint.id.replace(/^n-/, '').toUpperCase()}`;
           } else {
+            const members = graph.edges.map((edge) => {
+              const a = graph.nodes.find((one) => one.id === edge.from);
+              const b = graph.nodes.find((one) => one.id === edge.to);
+              if (!a || !b) return null;
+              const dx = b.x - a.x;
+              const dy = b.y - a.y;
+              const denom = dx * dx + dy * dy;
+              if (denom === 0) return null;
+              const t = ((node.x - a.x) * dx + (node.y - a.y) * dy) / denom;
+              const px = a.x + Math.min(1, Math.max(0, t)) * dx;
+              const py = a.y + Math.min(1, Math.max(0, t)) * dy;
+              return { edge, t, distance: Math.hypot(node.x - px, node.y - py) };
+            }).filter((one): one is NonNullable<typeof one> => Boolean(one));
             const host =
-              graph.edges.find((edge) => edge.id === node.atMember) ??
-              graph.edges.find((edge) => {
-                const a = graph.nodes.find((one) => one.id === edge.from);
-                const b = graph.nodes.find((one) => one.id === edge.to);
-                if (!a || !b || b.x === a.x) return false;
-                const t = (node.x - a.x) / (b.x - a.x);
-                return t >= -0.02 && t <= 1.02;
-              });
+              members.find((one) => one.edge.id === node.atMember) ??
+              members.find((one) => one.t >= -0.02 && one.t <= 1.02 && one.distance <= 20);
             if (host) {
-              const a = graph.nodes.find((one) => one.id === host.from);
-              const b = graph.nodes.find((one) => one.id === host.to);
-              const t = a && b && b.x !== a.x ? (node.x - a.x) / (b.x - a.x) : 0;
-              where = `落在 ${memberLabel(host.id)} · t=${Math.min(1, Math.max(0, t)).toFixed(2)}`;
+              where = `落在 ${memberLabel(host.edge.id)} · t=${Math.min(1, Math.max(0, host.t)).toFixed(2)}`;
             } else {
               where = '位置未定（不落在任何杆上）';
             }
@@ -1296,7 +1355,23 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   /** 全部参数都因画布缺器件 / 载荷而只读：不能只显示“0 项没确认”把用户晾住。 */
   const blockedParams = params.filter((p) => (pickId ? paramWriteBlock(pickId, graph, p.key) !== null : false));
   const blockedLabels = blockedParams.map((p) => p.label ?? p.key).join('、');
-  const allConfirmed = params.length > 0 && writableParams.length > 0 && writableParams.every((p) => confirmed[p.key]);
+  /**
+   * 模板闸只对「图 = 骨架 + 参数表能描述的变化」负责。图上多了归约表
+   * 不认识的器件 / 结构被改到需要通用求解时，再让用户确认骨架参数就是
+   * 假签字 —— 换成一次「确认按这张图求解」。
+   */
+  const gateUnmodeled = pickId && graph ? unmodeledDevices(graph, pickId) : [];
+  const gateBlocking = preview ? preview.problems.filter(isBlockingProblem) : [];
+  const templateGateApplies = Boolean(
+    pickId && graph && gateUnmodeled.length === 0 && graph.meta.healedSeries === undefined && gateBlocking.length === 0,
+  );
+  const templateAllConfirmed =
+    params.length > 0 && writableParams.length > 0 && writableParams.every((p) => confirmed[p.key]);
+  const allConfirmed = templateGateApplies ? templateAllConfirmed : genericConfirmed;
+  /** 通用路由下「参数 X 在图上找不到来源」是模板归约的旧问题，不是这张图的错 —— 不再当红字吓人。 */
+  const visiblePreviewProblems = (preview?.problems ?? []).filter(
+    (problem) => templateGateApplies || !problem.includes('在图上找不到来源'),
+  );
 
   /** R-36：收藏 = 把当前张图存成一条 SavedGraph（首页可一键载回）。 */
   const openFavorite = () => {
@@ -2571,7 +2646,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     // 巡检 C3：146px 左栏里一行塞「说明 + 两按钮」会把按钮压成竖排单字。
                     // 文案整行换行（basis-full），按钮单独一行、不缩不换行。
                     <div data-testid="delete-confirm" className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-amber/50 bg-amber/10 px-2 py-1.5 text-[10px] leading-4 text-amber">
-                      <span className="min-w-0 flex-1 basis-full">
+                      <span className="min-w-0 basis-full w-full">
                         {(() => {
                           const victim = graph.nodes.find((node) => node.id === pendingDelete);
                           if (isBeam && victim && (victim.kind === 'dot' || victim.kind === 'pin')) {
@@ -3317,6 +3392,15 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                         ? (edgeId: string | null) => selectMember(edgeId)
                         : (edgeId: string | null) => selectWire(edgeId),
                       linkMode: isBeam && linkMode,
+                      // 通电动画：解出来了才给，数据就是 netSolve 的器件电流 / 功率。
+                      flow:
+                        !isBeam && flowCircuit
+                          ? {
+                              current: flowCircuit.branchCurrents,
+                              power: flowCircuit.powers,
+                              label: flowChipLabel,
+                            }
+                          : undefined,
                       // R3-4 U1：放置器（力学族）。tool='off' 时画布事件与以前完全一致。
                       place: isBeam
                         ? {
@@ -3634,6 +3718,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   ) : null}                  {/* W21-A A2.3：确认是真闸门，把还差几项直接写在屏幕上。 */}
                   {canvasEmpty ? (
                     <p data-testid="confirm-gate-note" className="text-[11px] font-medium leading-4 text-amber">画布已空 · 先放器件 / 连构件，再回来核对数值</p>
+                  ) : !templateGateApplies ? (
+                    <p data-testid="confirm-gate-note" className="text-[11px] leading-4 text-amber">
+                      这张图与骨架不一致：骨架参数表不参与本次求解，按画布上的器件值 / 几何用通用求解器现算。
+                      {genericConfirmed ? ' 已确认，可以求解。' : ' 先确认这张图，再求解。'}
+                    </p>
                   ) : writableParams.length === 0 ? (
                     <div data-testid="confirm-gate-note" className="rounded-lg border border-danger/40 bg-danger/10 px-2 py-1.5 text-[11px] leading-5 text-danger">
                       <p>
@@ -3647,16 +3736,19 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                         恢复骨架
                       </button>
                     </div>
-                  ) : !allConfirmed ? (
+                  ) : !templateAllConfirmed ? (
                     <p data-testid="confirm-gate-note" className="text-[11px] font-medium leading-4 text-danger">
                       还有 {writableParams.filter((one) => !confirmed[one.key]).length} 项没确认 —— 未确认前不求解、不给校验章
                     </p>
                   ) : (
                     <p data-testid="confirm-gate-note" className="text-[11px] leading-4 text-ok">
-                      全部已确认 · {writableParams.length} 项数值都取自骨架默认值
+                      全部已确认 · {writableParams.length} 项数值
+                      {writableParams.every((one) => String(displayValues[one.key]) === String(one.defaultValue))
+                        ? '都取自骨架默认值'
+                        : '（含你改过的值）'}
                     </p>
                   )}
-                  {!allConfirmed && writableParams.length > 0 ? (
+                  {templateGateApplies && !templateAllConfirmed && writableParams.length > 0 ? (
                     <button
                       type="button"
                       data-testid="confirm-all"
@@ -3667,6 +3759,18 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                       一键确认全部（{writableParams.filter((one) => !confirmed[one.key]).length} 项）
                     </button>
                   ) : null}
+                  {!templateGateApplies && !canvasEmpty ? (
+                    <button
+                      type="button"
+                      data-testid="confirm-generic"
+                      disabled={genericConfirmed}
+                      onClick={() => setGenericConfirmed(true)}
+                      className="focus-ring rounded border border-cyan/50 px-2 py-1 text-[10px] text-cyan hover:border-cyan disabled:cursor-default disabled:opacity-50"
+                    >
+                      {genericConfirmed ? '已确认按这张图求解' : '确认按这张图求解'}
+                    </button>
+                  ) : null}
+                  {templateGateApplies ? (
                   <ul className="space-y-1.5">
                     {params.map((param) => {
                       const value = displayValues[param.key];
@@ -3746,27 +3850,27 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                           {writeBlock ? (
                             // 巡检 C1：注文块级另起一行（basis-full），不再与数值挤同一行
                             // 被压成逐字竖排；来源列（归约/用户）宽度不受它影响。
-                            <span data-testid="param-readonly-hint" className="min-w-0 flex-1 basis-full break-words rounded bg-panel-2 px-1 py-0.5 text-[10px] leading-4 text-muted">
+                            <span data-testid="param-readonly-hint" className="min-w-0 basis-full w-full break-words rounded bg-panel-2 px-1 py-0.5 text-[10px] leading-4 text-muted">
                               {writeBlock}
                             </span>
                           ) : null}
                           {inertParamNote(pickId, param.key, graph?.meta ?? {}) ? (
-                            <span data-testid="param-inert-hint" className="min-w-0 flex-1 basis-full break-words rounded bg-panel-2 px-1 py-0.5 text-[10px] leading-4 text-faint">
+                            <span data-testid="param-inert-hint" className="min-w-0 basis-full w-full break-words rounded bg-panel-2 px-1 py-0.5 text-[10px] leading-4 text-faint">
                               {inertParamNote(pickId, param.key, graph?.meta ?? {})}
                             </span>
                           ) : null}
                           {noSpanLabel ? (
-                            <span data-testid="param-span-hint" className="min-w-0 flex-1 basis-full break-words text-[10px] leading-4 text-amber">
+                            <span data-testid="param-span-hint" className="min-w-0 basis-full w-full break-words text-[10px] leading-4 text-amber">
                               图上没有 L 标注：当前按参数表值计算，拖结点不会改 L
                             </span>
                           ) : null}
                           {outOfRange ? (
-                            <span data-testid="param-range-flag" className="min-w-0 flex-1 basis-full break-words rounded bg-danger/15 px-1 py-0.5 text-[10px] leading-4 text-danger">
+                            <span data-testid="param-range-flag" className="min-w-0 basis-full w-full break-words rounded bg-danger/15 px-1 py-0.5 text-[10px] leading-4 text-danger">
                               超出 {`合法 ${param.min ?? '−∞'}~${param.max ?? '+∞'}`}
                             </span>
                           ) : null}
                           {infinite ? (
-                            <span data-testid="param-infinite-flag" className="min-w-0 flex-1 basis-full break-words rounded bg-panel-2 px-1 py-0.5 text-[10px] leading-4 text-muted">
+                            <span data-testid="param-infinite-flag" className="min-w-0 basis-full w-full break-words rounded bg-panel-2 px-1 py-0.5 text-[10px] leading-4 text-muted">
                               ∞ · 图上没有它，按规则当作不存在
                             </span>
                           ) : null}
@@ -3787,6 +3891,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                       );
                     })}
                   </ul>
+                  ) : (
+                    <p data-testid="generic-param-note" className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-[10px] leading-4 text-muted">
+                      骨架参数表（{params.length} 项）不参与本次通用求解。请在左侧器件行修改数值；确认闸只确认「按这张图求解」。
+                    </p>
+                  )}
 
                   {/* W20：梁族专属「截面」。三个数一起给、一起清，写进 graph.meta.section。 */}
                   {graph?.family === 'beam' ? (
@@ -3837,11 +3946,13 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   {preview ? (
                     <div className="rounded-lg border border-line bg-panel-2 p-2">
                       {/* 巡检 D1：内部词「归约」→「从这张图读出」。 */}
-                      <p className="text-[11px] text-ink">从这张图读出的参数</p>
-                      {preview.problems.length > 0 ? (
+                      <p className="text-[11px] text-ink">
+                        {templateGateApplies ? '从这张图读出的参数' : '骨架归约参考（不参与本次通用求解）'}
+                      </p>
+                      {visiblePreviewProblems.length > 0 ? (
                         <div data-testid="structure-card" className="mt-1 rounded-lg border border-amber/50 bg-amber/10 p-2">
                           <p className="text-[10px] text-amber">结构判据 · 可执行建议</p>
-                          {preview.problems.map((problem: string) => (
+                          {visiblePreviewProblems.map((problem: string) => (
                             <p key={problem} className="mt-1 text-[10px] leading-4 text-amber">· {problem}</p>
                           ))}
                           <p className="mt-1 text-[10px] text-amber/80">可点「恢复骨架」回到原始结构，或在左侧加 / 删构件后重新求解。</p>
@@ -3891,7 +4002,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   ) : null}
 
                   {/* H-11：参数实验场接进装配台 —— 拖一个值，归约预览与结果同时变 */}
-                  {params.length > 0 ? (
+                  {!templateGateApplies ? (
+                    <p className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-[10px] leading-4 text-muted">
+                      参数实验场只驱动骨架参数；这张图走通用求解，请在左侧器件行改数值。
+                    </p>
+                  ) : params.length > 0 ? (
                     <ParamPanel
                       params={params}
                       values={displayValues}
@@ -4456,8 +4571,8 @@ function TwoClickHelper({
         />
       ) : null}
       <div data-testid="anchor-candidates" className="mt-1 max-h-44 space-y-1.5 overflow-y-auto pr-0.5">
-        {groups.map((group) => (
-          <div key={group.device}>
+        {groups.map((group, groupIndex) => (
+          <div key={`${group.device}-${groupIndex}`}>
             <div className="text-[9px] leading-4 text-faint">{group.device}</div>
             <div className="flex flex-wrap gap-1">
               {group.items.map((anchor) => (

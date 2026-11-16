@@ -748,3 +748,82 @@ html[data-theme-switching='1'] *::after {
     transform: scaleY(1);
   }
 }
+
+/* ⑯ 通电动画（电路求解成功后：导线呼吸 + 器件发光） ---------------------- */
+/* 数据来源是 netSolve 的 branchCurrents / powers，与题目、题型无关 ——      */
+/* 所以自拼的电路一样会亮。不做「电流光点沿导线跑」：理想导线的电流方向     */
+/* 由端点几何决定，画布边只连到器件中心，硬画会画出一个不知道对不对的方向。 */
+.flow-wire {
+  animation: flow-breath 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 3px rgba(242, 193, 78, 0.55));
+}
+
+@keyframes flow-breath {
+  0%,
+  100% {
+    opacity: 0.26;
+  }
+
+  50% {
+    opacity: 0.82;
+  }
+}
+
+/* 二极管 / 稳压管导通：像 LED 一样亮起来 */
+.flow-led {
+  animation: flow-led 1.9s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(242, 193, 78, 0.85));
+}
+
+@keyframes flow-led {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 电阻发热：慢呼吸，弱 —— 功率越大越暖（不透明度由内联 opacity 给基数） */
+.flow-heat {
+  animation: flow-heat 4.2s ease-in-out infinite;
+}
+
+@keyframes flow-heat {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* 电源 */
+.flow-src {
+  animation: flow-src 3.4s ease-in-out infinite;
+}
+
+@keyframes flow-src {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+
+  50% {
+    opacity: 0.66;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-wire,
+  .flow-led,
+  .flow-heat,
+  .flow-src {
+    animation: none !important;
+    opacity: 0.5;
+  }
+}

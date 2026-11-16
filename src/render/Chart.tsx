@@ -9,6 +9,7 @@
  * 曲线用采样点直连（step 用水平+垂直），不做拟合。
  */
 
+import { useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { ChartSpec, ChartSeries } from '../core/types';
 import { visiblePanels, flatZeroPanels } from '../core/chartPanels.ts';
 
@@ -407,8 +408,57 @@ function Panel({
   );
 }
 
+/**
+ * 探针读数：在**已有的采样点**上取值，绝不另算一套数。
+ * - `step` 序列（剪力图那种阶跃）取左端值，和画出来的水平段一致；
+ * - `line` 序列做线性插值，和画出来的折线一致；
+ * - 多条序列的面板（挠曲线 v/θ、应力分量）逐条给值，最多 3 条，不做任何合成。
+ */
+function probeSeries(panel: ChartSpec, x: number): number[] {
+  const series = panel.series ?? [];
+  const out: number[] = [];
+  for (const one of series.slice(0, 3)) {
+    const pts = one.points;
+    if (!pts || pts.length === 0) continue;
+    if (x <= pts[0][0]) {
+      out.push(pts[0][1]);
+      continue;
+    }
+    const last = pts[pts.length - 1];
+    if (x >= last[0]) {
+      out.push(last[1]);
+      continue;
+    }
+    let value = last[1];
+    for (let i = 1; i < pts.length; i += 1) {
+      if (x <= pts[i][0]) {
+        const [x0, y0] = pts[i - 1];
+        const [x1, y1] = pts[i];
+        if (one.kind === 'step') value = y0;
+        else {
+          const t = x1 === x0 ? 0 : (x - x0) / (x1 - x0);
+          value = y0 + (y1 - y0) * t;
+        }
+        break;
+      }
+    }
+    out.push(value);
+  }
+  return out;
+}
+
+/** 面板短名：标题去掉括号里的符号（中英文括号都去），避免读数条太长。 */
+function shortTitle(panel: ChartSpec): string {
+  return (panel.title ?? '')
+    .replace(/（[^）]*）|\([^)]*\)/g, '')
+    .replace(/\s+/g, '')
+    .slice(0, 8);
+}
+
 /** 一条 ChartSpec（可含 panels）→ 一张 SVG。 */
 export function Chart({ spec }: { spec: ChartSpec }) {
+  // 探针：指针所在的 x（数据域坐标）。hooks 必须排在下面「全是零 → 空态早退」之前。
+  const [probeX, setProbeX] = useState<number | null>(null);
   const panels = visiblePanels(spec);
   // W21-C C0-3：被判恒零的面板不出轴，改出一行灰字（面板数 ≥1 时也照给）。
   const hidden = flatZeroPanels(spec);
@@ -427,17 +477,53 @@ export function Chart({ spec }: { spec: ChartSpec }) {
   const convLines = convention ? wrap(convention, 30) : [];
   const convW = 190;
 
+  // 指针 → 数据域 x。用第一张面板的盒子做换算，各面板共享同一条 x 刻度。
+  const firstBox = box(panels[0], heights[0]);
+  const [fx0, fx1] = panels[0].xDomain;
+  const handleMove = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const px = ((event.clientX - rect.left) / rect.width) * W;
+    if (px < firstBox.x0 - 2 || px > firstBox.x1 + 2) {
+      setProbeX(null);
+      return;
+    }
+    const ratio = Math.min(1, Math.max(0, (px - firstBox.x0) / (firstBox.x1 - firstBox.x0 || 1)));
+    setProbeX(fx0 + ratio * (fx1 - fx0));
+  };
+  const handleLeave = () => setProbeX(null);
+
+  /** 一行读数：`x = 2.12 · 剪力图 10 kN · 弯矩图 18.8 kN·m`。 */
+  const probeReadout =
+    probeX === null
+      ? ''
+      : [
+          `x = ${fmt(probeX)}`,
+          ...panels.map((panel) => {
+            if (probeX < panel.xDomain[0] || probeX > panel.xDomain[1]) return '';
+            const values = probeSeries(panel, probeX);
+            if (values.length === 0) return '';
+            const text = values.map((value) => fmt(value)).join(' / ');
+            return `${shortTitle(panel)} ${text}${panel.unit ? ` ${panel.unit}` : panel.yLabel ? ` ${panel.yLabel}` : ''}`;
+          }),
+        ]
+          .filter(Boolean)
+          .join(' · ');
+
   return (
     <svg
       viewBox={`0 0 ${W} ${height + (hidden.length > 0 ? 18 : 0)}`}
       className="h-auto w-full"
       role="img"
       aria-label={`chart ${spec.id}`}
-      style={{ minHeight: 160 }}
+      style={{ minHeight: 160, cursor: 'crosshair' }}
+      onPointerMove={handleMove}
+      onPointerLeave={handleLeave}
+      onPointerCancel={handleLeave}
     >
       {panels.map((panel, index) => (
         <Panel
-          key={panel.id}
+          key={`${panel.id}-${index}`}
           spec={panel}
           top={heights[index]}
           showX={index === panels.length - 1}
@@ -446,7 +532,7 @@ export function Chart({ spec }: { spec: ChartSpec }) {
       ))}
       {hidden.map((panel, index) => (
         <text
-          key={`flat-${panel.id}`}
+          key={`flat-${panel.id}-${index}`}
           data-testid="flat-zero-note"
           data-flat-panel={panel.id}
           x={PAD_LEFT}
@@ -484,6 +570,55 @@ export function Chart({ spec }: { spec: ChartSpec }) {
               {line}
             </text>
           ))}
+        </g>
+      ) : null}
+
+      {/*
+        探针：一条竖线贯穿所有面板，曲线上的点标出「读的是哪一处」，读数统一放在左上角。
+        数值全部取自「画出来的同一批采样点」（probeValue），不另算一套账，所以图上看到什么、读数就是什么。
+        读数条固定位置而不是跟着指针跑 —— 跟着跑会盖住曲线上的极值标注（|M|max 那类）。
+      */}
+      {probeX !== null ? (
+        <g data-probe="1" pointerEvents="none">
+          {panels.map((panel, index) => {
+            const panelBox = box(panel, heights[index]);
+            const [px0, px1] = panel.xDomain;
+            if (probeX < px0 || probeX > px1) return null;
+            const cx = panelBox.xs(probeX);
+            const values = probeSeries(panel, probeX);
+            return (
+              <g key={`probe-${panel.id}-${index}`}>
+                <line
+                  x1={cx}
+                  y1={panelBox.y0}
+                  x2={cx}
+                  y2={panelBox.y1}
+                  stroke={ACCENT}
+                  strokeWidth={1}
+                  strokeDasharray="4 3"
+                  strokeOpacity={0.85}
+                />
+                {values.map((value, vi) => (
+                  <circle key={vi} cx={cx} cy={panelBox.ys(value)} r={3.2} fill={ACCENT} />
+                ))}
+              </g>
+            );
+          })}
+          {probeReadout ? (
+            <text
+              data-probe-readout={probeReadout}
+              x={PAD_LEFT}
+              y={14}
+              fontSize={10.5}
+              fill={ACCENT}
+              stroke="var(--color-panel, #ffffff)"
+              strokeWidth={3.4}
+              strokeLinejoin="round"
+              paintOrder="stroke"
+            >
+              {probeReadout}
+            </text>
+          ) : null}
         </g>
       ) : null}
     </svg>

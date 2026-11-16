@@ -248,19 +248,36 @@ export function internalChart(frame: FrameSolution): ChartSpec | undefined {
     const hi = Math.max(0, ...values);
     // 巡检 C6：剪力图在集中力处的跳变必须画成竖直线 —— 采样点之间有横向间距，
     // 直接连线会变成一段斜线，被误读成坡段。跳变处补一个「同 x 双值点」：
-    // 水平走到载荷位置 → 竖直跳到新值。容忍度取量程的 1%。
+    // 水平走到载荷位置 → 竖直跳到新值。
+    //
+    // 阈值不能只看量程（早先取 1%）：均布载荷下每个采样步的 ΔQ = q·Δx 本身就有
+    // 量级的 2%~4%，会被逐点误判成跳变，剪力图于是画成一段**台阶**而不是斜直线
+    // （L=4、q=20 kN/m、P=20 kN 时实测每格 2.75 px 的锯齿）。所以阈值取
+    // 「相邻差的中位数 ×3」与「量程 3%」的较大者：连续段（斜线）的中位数就是
+    // 自身斜率，阈值高过它；真正的断点 Δ 远大于中位数，仍然会被识别出来。
     const range = Math.max(hi - lo, 1e-9);
     const jumpTol = range * 0.01;
     const seriesOf = () =>
       curves.map((curve) => {
         const raw = curve.samples.map((sample) => [sample.gx, pick(sample)] as [number, number]);
         if (id !== 'q') return { kind: 'line' as const, points: raw, label: curve.edgeId };
+        const deltas: number[] = [];
+        for (let index = 1; index < raw.length; index += 1) {
+          deltas.push(Math.abs(raw[index][1] - raw[index - 1][1]));
+        }
+        const median = deltas.length > 0 ? [...deltas].sort((a, b) => a - b)[Math.floor(deltas.length / 2)] : 0;
+        const jumpThreshold = Math.max(jumpTol * 3, median * 3);
         const stepped: [number, number][] = [];
         for (let index = 0; index < raw.length; index += 1) {
           const [x, y] = raw[index];
           if (index > 0) {
             const [px, py] = raw[index - 1];
-            if (x > px && Math.abs(y - py) > jumpTol) stepped.push([x, py]);
+            // 竖线锚在**跳变发生的位置**，也就是上一个采样点的 x —— 求解器把断点
+            // （载荷位置）自己采成一个样本、并且存的是左极限，所以 px 正是载荷所在
+            // 的 x。早先锚在 x 上会让竖线跑到下一个采样点去，剪力图与弯矩图于是
+            // 对不上：简支梁 L=4、P 在跨中时，弯矩峰值在 x=2.00，剪力的竖直跳变
+            // 却被画在 x=2.125（右移一个采样步长）。
+            if (x > px && Math.abs(y - py) > jumpThreshold) stepped.push([px, y]);
           }
           stepped.push([x, y]);
         }
