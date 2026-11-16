@@ -4,9 +4,10 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-/** 把 docs/shots 暴露成 /shots/*：about 页直接引用过程截图，构建时拷进 dist。 */
+/** 把 docs/shots 暴露成 /shots/*：about 页只引用 r32-product.png，构建时只拷这一张。 */
 function shotsPlugin(): Plugin {
   const source = resolve(process.cwd(), 'docs', 'shots');
+  const SITE_SHOTS = new Set(['r32-product.png']);
   return {
     name: 'solve-deck-shots',
     configureServer(server) {
@@ -28,7 +29,8 @@ function shotsPlugin(): Plugin {
       const target = resolve(process.cwd(), 'dist', 'shots');
       mkdirSync(target, { recursive: true });
       for (const name of readdirSync(source)) {
-        if (!/\.(png|pdf)$/.test(name)) continue;
+        // 站点只带 About 实际引用的那一张；巡检/修复过程截图和其余样例图留在本地证据目录。
+        if (!SITE_SHOTS.has(name)) continue;
         copyFileSync(join(source, name), join(target, name));
       }
     },
