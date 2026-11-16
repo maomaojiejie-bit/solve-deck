@@ -84,7 +84,7 @@ ok('③', fmt.formatScalar(30, 'MPa') === '30.0 MPa', 'auto 逐字不变：应�
 ok('③', units.forceUnitText(1, '', 'auto') === null, 'auto 不改写');
 ok('③', fmt.formatScalar(100000, 'Ω', 'si') === '100000 Ω', 'si 去前缀');
 ok('③', fmt.formatScalar(2, 'kN', 'si') === '2000 N', 'si kN→N');
-ok('③', fmt.formatScalar(30, 'MPa', 'si') === '30000000 Pa', 'si MPa→Pa');
+ok('③', fmt.formatScalar(30, 'MPa', 'si') === '30 MPa', 'si 应力保持 MPa（全覆盖 F1：不折回生 Pa）');
 ok('③', fmt.formatScalar(2000, 'N', 'eng') === '2 kN', 'eng N→kN');
 ok('③', fmt.formatScalar(0.002, 'm', 'eng') === '2.0 mm', 'eng 小长度→mm');
 ok('③', units.forceUnitText(1, 'V', 'eng') === null, 'eng 电气量交回 auto');

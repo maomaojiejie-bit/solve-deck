@@ -6,7 +6,7 @@
     "Rg1": 2000000,
     "Rg2": 1000000,
     "Rd": 2000,
-    "Rs": 1000,
+    "Rs": 180000,
     "Vth": 1,
     "Kn": 0.0005,
     "lambda": 0.02
@@ -39,8 +39,8 @@
       "i": 2,
       "title": "解出 ID / VGS / VDS",
       "formula_tex": "V_{GS}=V_G-I_DR_S,\\quad V_{DS}=V_{DD}-I_D(R_D+R_S)",
-      "substitution": "ID=1.0814mA",
-      "value": "VGS=2.9186V，VDS=8.7558V",
+      "substitution": "ID=0.0154mA",
+      "value": "VGS=1.2281V，VDS=9.1973V",
       "basis": "KVL 回路方程",
       "highlight": [
         "n-rd",
@@ -51,7 +51,7 @@
       "i": 3,
       "title": "回代工作区不等式",
       "formula_tex": "V_{GS}>V_{th},\\quad V_{DS}\\gtrless V_{GS}-V_{th}",
-      "substitution": "VOV=1.9186V",
+      "substitution": "VOV=0.2281V",
       "value": "VDS≥VOV，饱和区成立",
       "basis": "工作区不等式回代",
       "highlight": [
@@ -62,7 +62,7 @@
       "i": 4,
       "title": "确认工作点",
       "formula_tex": "Q=(I_D,\\;V_{GS},\\;V_{DS})",
-      "substitution": "1.081mA / 2.919V / 8.756V",
+      "substitution": "0.015mA / 1.228V / 9.197V",
       "value": "saturation",
       "basis": "三组不等式恰好一组成立",
       "highlight": [
@@ -72,10 +72,10 @@
   ],
   "result": {
     "zone": "saturation",
-    "ID": 0.0010814037230204771,
-    "VGS": 2.918596276979523,
-    "VDS": 8.755788830938569,
-    "VOV": 1.9185962769795228
+    "ID": 0.000015399468821085502,
+    "VGS": 1.2280956122046098,
+    "VDS": 9.197296674562438,
+    "VOV": 0.22809561220460983
   },
   "render_specs": [
     {
@@ -372,11 +372,11 @@
           "labels": [
             {
               "id": "n-m",
-              "text": "ID=1.08mA"
+              "text": "ID=0.02mA"
             },
             {
               "id": "n-rd",
-              "text": "VDS=8.756V"
+              "text": "VDS=9.197V"
             }
           ]
         },
@@ -408,11 +408,11 @@
           "labels": [
             {
               "id": "n-m",
-              "text": "ID=1.08mA"
+              "text": "ID=0.02mA"
             },
             {
               "id": "n-rd",
-              "text": "VDS=8.756V"
+              "text": "VDS=9.197V"
             }
           ]
         },
@@ -444,11 +444,11 @@
           "labels": [
             {
               "id": "n-m",
-              "text": "ID=1.08mA"
+              "text": "ID=0.02mA"
             },
             {
               "id": "n-rd",
-              "text": "VDS=8.756V"
+              "text": "VDS=9.197V"
             }
           ]
         }
@@ -462,7 +462,7 @@
     "residualOk": "pass",
     "boundaryOk": "pass",
     "goldenOk": "pass",
-    "maxResidual": 2.0287799005881636e-16,
+    "maxResidual": 3.256238969021784e-14,
     "checks": [
       {
         "name": "scopeOk",
@@ -492,14 +492,14 @@
       {
         "name": "residualOk",
         "state": "pass",
-        "detail": "maxResidual=2.0287799005881636e-16，tolerance=0.000001"
+        "detail": "maxResidual=3.256238969021784e-14，tolerance=0.000001"
       }
     ],
     "failedCount": 0,
     "skippedCount": 0,
     "allPassed": true
   },
-  "validatedAt": "2026-11-10T10:12:20.887Z",
+  "validatedAt": "2026-11-16T01:11:04.382Z",
   "contractVersion": "v2.2",
   "warnings": []
 }

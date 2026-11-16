@@ -191,7 +191,7 @@ export function solveM4(input: SolverInput): Solution {
       `受拉侧：y=${sigmaBottom > 0 ? '下缘' : '上缘'}；σ 沿高度线性`, '平面假设 + 库 ∫σdA=N / ∫yσdA=M 校核', ['n-span']),
     step(4, '强度校核', '\\sigma_{max}\\le[\\sigma]',
       `σmax=${sigmaMax.toFixed(3)} MPa，[σ]=${params.allow} MPa`, verdict.text,
-      '强度条件 + 库 checks[]', ['e-member', 'n-span']),
+      '强度条件（求解内核自检）', ['e-member', 'n-span']),
   ];
 
   return {

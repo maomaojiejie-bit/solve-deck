@@ -167,7 +167,7 @@ const snapshot = () =>
       hash: location.hash,
       entryId: document.querySelector('.id-mono')?.innerText ?? '',
       solverLine: (all.match(/solver: [^\\n]*/) ?? [''])[0],
-      paramsLine: (all.match(/params：[^\\n]*/) ?? [''])[0],
+      paramsLine: (() => { const el = document.querySelector('[data-testid=preview-params]'); return el ? el.innerText.replace(/\\s*\\n\\s*/g, '　') : (all.match(/params：[^\\n]*/) ?? [''])[0]; })(),
       rowValues,
       resultTable,
       canvasText,

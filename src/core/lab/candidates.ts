@@ -47,7 +47,7 @@ export const CANDIDATES: Record<string, readonly Candidate[]> = {
     snap('A3-CB', '共基 CB', '输入在发射极，高频响应好、电流增益≈1', '信号从 e 进 · c 出 · b 交流接地', 'A3-CB', 'A3', { config: 'CB' }),
     none(
       'A3-CC', '共集 CC', '射极跟随器，输入电阻高、电压增益≈1', 'c 接 Vcc · 输出取自 e',
-      'CC 骨架把 n-rl 复用成 Re，A3 归约表会把 Rl 误判成空载；没有可直接复用的装配骨架，不硬载入',
+      '共集接法没有现成骨架：图上看不到发射极电阻（它被旁路电容短接了），照搬骨架会让负载电阻被误判成空载。不硬载入——请自己搭，或先用 CE / CB',
     ),
   ],
   A5: [
@@ -55,7 +55,7 @@ export const CANDIDATES: Record<string, readonly Candidate[]> = {
     snap('A5-CG', '共栅 CG', '栅极交流接地，输入电阻低、带宽宽', '信号从 s 进 · g 接地', 'A5-CG', 'A5', { config: 'CG' }),
     none(
       'A5-CD', '共漏 CD', '源极跟随器，输出近似跟随输入', 'd 接 Vdd · 输出取自 s',
-      'CD 骨架把 n-rl 复用成 Rss，A5 归约表会把 Rl 误判成空载；没有可直接复用的装配骨架，不硬载入',
+      '共漏接法没有现成骨架：图上看不到源极电阻（它被旁路电容短接了），照搬骨架会让负载电阻被误判成空载。不硬载入——请自己搭，或先用 CS / CG',
     ),
   ],
   A6: [

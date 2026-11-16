@@ -118,7 +118,11 @@ const readOutcome = () =>
     // 「结果读数」必须来自结果本体，不能靠顶部参数徽标凑数（那只是把参数回显一遍）
     const badge = document.querySelector('[data-testid=param-badge]');
     if (badge) text = text.split(badge.innerText).join('');
-    const preview = (text.match(/params：[^\\n]*/) ?? [''])[0];
+    // 黑盒 #25：预览参数改成键值 chips 后可能软换行 —— 取元素本体并归一换行
+    const previewEl = main?.querySelector('[data-testid=preview-params]');
+    const previewText = previewEl ? previewEl.innerText : '';
+    const preview = previewText ? previewText.replace(/\\s*\\n\\s*/g, '　') : (text.match(/params：[^\\n]*/) ?? [''])[0];
+    if (previewText) text = text.replace(previewText, '');
     // 归约预览那一行也剔掉：它本来就跟着参数变，不能替结果读数作证
     const withoutPreview = text
       .split('\\n')
@@ -182,7 +186,7 @@ const triState = () =>
     return {
       rows,
       panel,
-      preview: (all.match(/params：[^\\n]*/) ?? [''])[0],
+      preview: (() => { const el = document.querySelector('[data-testid=preview-params]'); return el ? el.innerText.replace(/\\s*\\n\\s*/g, '　') : (all.match(/params：[^\\n]*/) ?? [''])[0]; })(),
       disabled: document.querySelector('[data-testid=solve-button]')?.disabled,
       note: document.querySelector('[data-testid=confirm-gate-note]')?.innerText ?? '',
       hasResult: Boolean(document.querySelector('.print-result')),

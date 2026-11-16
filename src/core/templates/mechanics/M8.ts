@@ -348,7 +348,7 @@ export function solveM8(input: SolverInput): Solution {
         checks,
         steps.length,
         [
-          ...sol.checks.map(() => '库 checks[]'),
+          ...sol.checks.map(() => '求解内核自检'),
           '本页自算',
           '本页自算',
           '本页自算',

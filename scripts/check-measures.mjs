@@ -148,7 +148,7 @@ ok('④', parallelRoute.kind === 'generic' && parallelRoute.reason === 'unmodele
 if (parallelRoute.kind === 'generic') {
   const parallelGain = measureOf(parallelRoute.measures, 'gain');
   const gain = numberOf(parallelGain?.headline?.split('=').pop());
-  ok('④', Number.isFinite(gain) && Math.abs(gain - -252.5253) < 0.01, `④ 并联后 gain=${gain}，按图应为 −252.53（模板仍是 −45.54）`);
+  ok('④', Number.isFinite(gain) && Math.abs(gain - -252.5253) < 0.51, `④ 并联后 gain=${gain}，按图应为 −252.53（黑盒 #23 起标题只留 3 位有效数字，容差 0.51）`);
   console.log(`④  A3 并联 100Ω → generic(${parallelRoute.reason})，gain=${gain}（模板 Av 仍是 −45.54：图变了答案就得变）`);
 }
 

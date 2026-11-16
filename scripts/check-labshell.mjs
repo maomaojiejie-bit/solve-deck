@@ -343,6 +343,9 @@ await send('Runtime.enable');
 }
 
 try {
+  // CDP socket 还连着就会吊住 Node 事件循环：PASS 打完了进程也不退，
+  // 把整条 `npm run build` 卡死在这一步。先断 socket 再收浏览器 / 服务。
+  socket.close();
   browser.kill();
   server.close();
   rmSync(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 300 });

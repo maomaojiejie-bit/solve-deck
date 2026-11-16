@@ -379,7 +379,7 @@ export function solveA3(input: SolverInput): Solution {
       title: '求 gm / rπ / ro',
       formula_tex: 'g_m=\\frac{I_C}{V_T},\\quad r_\\pi=\\frac{\\beta}{g_m},\\quad r_o=\\frac{V_A}{I_C}',
       substitution: `IC=${(params.Ic * 1e3).toFixed(3)}mA，β=${params.beta}，VA=${params.VA}V`,
-      value: `gm=${(gmOf(params) * 1e3).toFixed(3)}mS，rπ=${(rpiOf(params) / 1000).toFixed(2)}kΩ，ro=${(roOf(params) / 1000).toFixed(0)}kΩ`,
+      value: `gm=${(gmOf(params) * 1e3).toFixed(1)}mS，rπ=${(rpiOf(params) / 1000).toFixed(2)}kΩ，ro=${(roOf(params) / 1000).toFixed(0)}kΩ`,
       basis: 'BJT 小信号参数定义',
       highlight: ['pi-n-rpi', 'pi-n-gm', 'pi-n-ro'],
     },
@@ -387,8 +387,8 @@ export function solveA3(input: SolverInput): Solution {
       i: 3,
       title: 'MNA 求 Av / Ri / Ro',
       formula_tex: 'A_v=\\frac{v_o}{v_s}',
-      substitution: `Av=${point.Av.toFixed(5)}，Ri=${(point.Ri / 1000).toFixed(3)}kΩ，Ro=${(point.Ro / 1000).toFixed(3)}kΩ`,
-      value: `Av=${point.Av.toFixed(4)}`,
+      substitution: `Av=${Number(point.Av.toPrecision(4))}，Ri=${(point.Ri / 1000).toFixed(3)}kΩ，Ro=${(point.Ro / 1000).toFixed(3)}kΩ`,
+      value: `Av=${Number(point.Av.toPrecision(4))}`,
       basis: '节点电压法（含 ro）',
       highlight: params.config === 'CC' ? ['pi-n-ro', 'n-rl', 'n-gnd'] : ['pi-n-ro', 'n-rc', 'n-rl'],
     },
@@ -402,7 +402,7 @@ export function solveA3(input: SolverInput): Solution {
             ? 'k\\frac{R_i}{R_s+R_i},\\ k=\\frac{(1+g_m r_o)R_{CL}}{R_{CL}+r_o}'
             : '\\frac{(\\beta+1)R_{eff}}{R_s+r_\\pi+(\\beta+1)R_{eff}}'
       }`,
-      substitution: `闭式 Av=${analytic.Av.toFixed(5)}；忽略 ro 教学近似 Av=${noRo.Av.toFixed(5)}；${
+      substitution: `闭式 Av=${Number(analytic.Av.toPrecision(4))}；忽略 ro 教学近似 Av=${Number(noRo.Av.toPrecision(4))}；${
         params.config === 'CE' ? '反相电压放大' : params.config === 'CB' ? '同相、低输入阻抗' : '电压跟随、低输出阻抗'
       }`,
       value: `闭式 vs MNA 偏差 ${(Math.abs((analytic.Av - point.Av) / point.Av) * 100).toExponential(2)}%；忽略 ro 误差 ${(Math.abs((noRo.Av - point.Av) / point.Av) * 100).toFixed(2)}%`,

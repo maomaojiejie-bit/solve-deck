@@ -58,7 +58,7 @@ function ApproxLine({ row }: { row: ApproxRow }) {
       </div>
       <div className="mt-0.5 flex items-baseline justify-between gap-2 font-mono text-[10px] text-faint">
         <span className="truncate">
-          精 {row.exact} · 近 {row.approx}
+          精确 {row.exact} · 近似 {row.approx}
         </span>
         {row.expectPct !== undefined ? (
           <span className="shrink-0">一阶预期 {formatPct(row.expectPct)}</span>

@@ -140,6 +140,8 @@ export function reduce(
 
   const params: Record<string, number | string> = {};
   const appliedRules: string[] = [...userRules, ...expansion.rules];
+  /** 黑盒 #19：落了骨架默认值的键 → 人话解释，参数行求解前就标注。 */
+  const defaultsUsed: Record<string, string> = {};
   let L: number | null = null;
 
   for (const pick of picks.picks) {
@@ -224,7 +226,10 @@ export function reduce(
         }
       } else if (pick.missing !== undefined) {
         value = pick.missing;
-        if (pick.rule) appliedRules.push(pick.rule);
+        if (pick.rule) {
+          appliedRules.push(pick.rule);
+          defaultsUsed[pick.key] = pick.rule;
+        }
       }
     }
 
@@ -236,7 +241,7 @@ export function reduce(
 
   // 悬空端口 / 未接线提醒进 problems 但不阻断（isBlockingProblem 识别）；硬闸门才判 U。
   const problems = [...blocking, ...open.warnings, ...expansion.warnings];
-  return { params, appliedRules, problems, outOfScope: blocking.length > 0 || expansion.fatal };
+  return { params, appliedRules, problems, outOfScope: blocking.length > 0 || expansion.fatal, defaultsUsed };
 }
 
 /* ── 文档署名的两个入口：严格模型 → 归约 ─────────────────────────── */

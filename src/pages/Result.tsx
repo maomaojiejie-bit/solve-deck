@@ -52,6 +52,7 @@ import { ConfidenceBadge, confidenceTone } from '../ui/ConfidenceBadge';
 import { confidenceSummary, formatDisplayValue, skippedChecks } from '../ui/confidenceSummary';
 import { StepPlayer } from '../ui/StepPlayer';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { LoadingPlate } from '../ui/LoadingPlate';
 import { ReadoutPanel } from '../ui/ReadoutPanel';
 import { buildReadouts } from '../core/readouts.ts';
 import { assumptionLines, parseSimplifications } from '../core/scope/simplifications';
@@ -421,13 +422,20 @@ function displayResult(
   subject?: string,
 ): Record<string, number | string> {
   const family = subject === 'analog' ? 'analog' : 'other';
+  const rest = { ...result };
+  // 黑盒 #24：Av 与「Av 闭式（含 ro）」数值相同（同一 MNA 口径的两种写法）——
+  // 按 DataPanel 的 4 位有效数字口径逐字相等时不再重复占行；有差异（组态变体 /
+  // 参数实验场改值后）则照常并列。必须在 humanizeKeys 之前比：键名还没换成展示标签。
+  if (rest.Av !== undefined && rest.AvApprox !== undefined) {
+    const shownAv = formatDisplayValue(Number(rest.Av));
+    const shownApprox = formatDisplayValue(Number(rest.AvApprox));
+    if (shownAv === shownApprox) delete rest.AvApprox;
+  }
   if (entryId === 'A7' && Number(result.T) < 100) {
-    const rest = { ...result };
     delete rest.AfDeep;
     delete rest.errorAtT1000;
-    return humanizeKeys(humanizeValues(rest, family, entryId), entryId);
   }
-  return humanizeKeys(humanizeValues(result, family, entryId), entryId);
+  return humanizeKeys(humanizeValues(rest, family, entryId), entryId);
 }
 
 function formatPrintTime(iso?: string): string {
@@ -641,6 +649,8 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
   const [urlOutOfRange, setUrlOutOfRange] = useState<{ key: string; raw: string }[]>([]);
 
   const [stepIndex, setStepIndex] = useState(0);
+  /** 黑盒 #27：步骤列的 <ol>，当前步自动滚到可视区。 */
+  const stepListRef = useRef<HTMLOListElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<PlayerSpeed>(1);
   const [checksOpen, setChecksOpen] = useState(false);
@@ -892,6 +902,14 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
     }
   }, [solution, stepIndex]);
 
+  /** 黑盒 #27：当前步自动滚进步骤列可视区 —— 第 4/5 步不再被裁在折叠线外。 */
+  useEffect(() => {
+    const list = stepListRef.current;
+    if (!list) return;
+    const active = list.querySelector<HTMLElement>(`[data-step="${stepIndex}"]`);
+    active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [stepIndex]);
+
   const liveSelection = useMemo(
     () => liveSelectionFor(entry.id, params, values, solution ?? null),
     [entry.id, params, values, solution],
@@ -916,8 +934,8 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
 
   if (solution === undefined) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-muted">
-        加载已校验快照…
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingPlate title="加载已校验快照" detail="取这一题的标准答案与图形…" />
       </div>
     );
   }
@@ -936,7 +954,7 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
               <span className="truncate text-sm text-ink">{displayTitle}</span>
             </div>
           </header>
-          <main className="mx-auto w-full max-w-3xl px-4 py-16">
+          <main className="mx-auto w-full max-w-3xl px-4 pb-44 pt-16">
             <div
               data-testid="param-error-banner"
               className="rounded-xl border border-danger/50 bg-danger/10 p-6"
@@ -979,7 +997,7 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
             <span className="truncate text-sm text-ink">{displayTitle}</span>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-3xl px-4 py-16">
+        <main className="mx-auto w-full max-w-3xl px-4 pb-44 pt-16">
           <div className="rounded-xl border border-line bg-panel elev p-8 text-center">
             <h2 className="text-lg text-ink">施工中</h2>
             <p className="mt-2 text-sm text-muted">
@@ -1520,18 +1538,18 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
 
       {/* 断点：<1024 单栏堆叠；1024–1279 两栏（步骤 | 画布，数据栏整行落到下方两列）；
           ≥1280 才三栏 —— 1080 下强行三栏，两侧各 340 只剩 336 给画布，电路和公式全糊。 */}
-      <div className="result-grid mx-auto grid max-w-[1600px] grid-cols-1 gap-4 px-4 pb-32 pt-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_minmax(280px,340px)]">
+      <div className="result-heavy result-grid mx-auto grid max-w-[1600px] grid-cols-1 gap-4 px-4 pb-32 pt-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_minmax(280px,340px)]">
         <aside className="print-steps min-h-0">
           <section className="rounded-xl border border-line bg-panel elev lg:sticky lg:top-[64px] lg:max-h-[calc(100vh-11rem)] lg:overflow-auto">
             <header className="no-print flex items-center justify-between border-b border-line px-3 py-2 text-[10px] uppercase tracking-[0.12em] text-faint">
               <span>步骤 · {stepCount}</span>
               <span>{playing ? '播放中' : '已暂停'}</span>
             </header>
-            <ol className="flex flex-col gap-1.5 p-2">
+            <ol ref={stepListRef} className="flex flex-col gap-1.5 p-2">
               {solution.steps.map((step) => {
                 const active = step.i === stepIndex;
                 return (
-                  <li key={step.i}>
+                  <li key={step.i} data-step={step.i}>
                     <button
                       type="button"
                       onClick={() => selectStep(step.i)}
@@ -1583,6 +1601,99 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
             {canvasPane}
           </main>
         )}
+
+          <section className="print-confidence rounded-xl border border-line bg-panel elev lg:col-span-2">
+            <header className="flex items-center justify-between border-b border-line px-3 py-2 text-[11px]">
+              <span className="text-muted">校验</span>
+              <span className={tone === 'gray' ? 'text-muted' : 'text-danger'}>
+                {tone === 'gray' ? '未校验预览' : tone === 'green' ? '已校验' : '未通过'}
+              </span>
+            </header>
+            <div className="space-y-2 p-3 text-[11px]">
+              <p data-testid="confidence-counts" className="text-muted">
+                未通过 {solution.confidence.failedCount} · 跳过 {solution.confidence.skippedCount}
+              </p>
+              {/* W21-A A4：跳过的项单独一行，点开看是哪几项、为什么，不混进绿章。 */}
+              {skippedChecks(solution.confidence).length > 0 ? (
+                <details data-testid="skipped-details" className="no-print rounded border border-amber/40 bg-amber/5 px-2 py-1">
+                  <summary className="cursor-pointer text-amber">
+                    跳过 {skippedChecks(solution.confidence).length} 项
+                  </summary>
+                  <ul className="mt-1 space-y-0.5 text-muted">
+                    {skippedChecks(solution.confidence).map((item) => (
+                      <li key={item.name}>· {item.name}：{item.reason}</li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
+              {/*
+                W21-A A5：17 位裸浮点只在「自检」里给完整精度；validatedAt /
+                contract 这类研发信息也移出主面板，不再压在教学结论旁边。
+              */}
+              <details data-testid="self-check" className="no-print rounded border border-line px-2 py-1">
+                <summary className="cursor-pointer text-muted">完整精度 · 自检</summary>
+                <dl className="mt-1 grid gap-0.5 font-mono text-[10px] leading-4 text-muted">
+                  {Object.entries(solution.result).map(([key, value]) => (
+                    <div key={key} className="flex justify-between gap-2">
+                      <dt>{key}</dt>
+                      <dd className="text-right">{String(value)}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-1 break-all font-mono text-[10px] text-muted">
+                  validatedAt: {solution.validatedAt} · contract {solution.contractVersion}
+                </p>
+              </details>
+              {checksOpen ? (
+                <div className="no-print space-y-1.5">
+                  {solution.confidence.checks.map((item) => (
+                    <div key={item.name} className="rounded border border-line p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-ink" title={item.name}>
+                          {CHECK_NAME_LABELS[item.name] ?? item.name}
+                        </span>
+                        <span className={`rounded border px-1.5 py-0.5 text-[10px] ${STATE_CLASS[item.state]}`}>
+                          {CHECK_STATE_LABELS[item.state] ?? item.state}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-muted">{tidyCheckText(item.detail)}</p>
+                      {item.skipReason ? (
+                        <p className="mt-0.5 text-muted">跳过原因：{tidyCheckText(item.skipReason)}</p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setChecksOpen(true)}
+                  className="no-print text-cyan hover:underline"
+                >
+                  {/* R-36：检查项是按 checks[] 实数计的（6 通过 + 2 跳过 = 8），
+                      「六项」这个写死的数与徽标口径对不上 —— 改成动态计数。 */}
+                  展开全部校核（{solution.confidence.checks.length} 项）
+                </button>
+              )}
+              <div className="print-only space-y-1.5">
+                {solution.confidence.checks.map((item) => (
+                  <div key={`print-${item.name}`} className="rounded border border-line p-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-ink" title={item.name}>
+                        {CHECK_NAME_LABELS[item.name] ?? item.name}
+                      </span>
+                      <span className={`rounded border px-1.5 py-0.5 text-[10px] ${STATE_CLASS[item.state]}`}>
+                        {CHECK_STATE_LABELS[item.state] ?? item.state}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-muted">{tidyCheckText(item.detail)}</p>
+                    {item.skipReason ? (
+                      <p className="mt-0.5 text-muted">跳过原因：{tidyCheckText(item.skipReason)}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
 
         <aside className="print-side flex min-w-0 flex-col gap-3 lg:col-span-2 xl:col-span-1 xl:flex xl:flex-col xl:items-stretch">
           <div className={`no-print hidden gap-2 sm:grid lg:col-span-2 ${canLab ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
@@ -1680,98 +1791,6 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
             </section>
           ) : null}
 
-          <section className="print-confidence rounded-xl border border-line bg-panel elev">
-            <header className="flex items-center justify-between border-b border-line px-3 py-2 text-[11px]">
-              <span className="text-muted">校验</span>
-              <span className={tone === 'gray' ? 'text-muted' : 'text-danger'}>
-                {tone === 'gray' ? '未校验预览' : tone === 'green' ? '已校验' : '未通过'}
-              </span>
-            </header>
-            <div className="space-y-2 p-3 text-[11px]">
-              <p data-testid="confidence-counts" className="text-muted">
-                未通过 {solution.confidence.failedCount} · 跳过 {solution.confidence.skippedCount}
-              </p>
-              {/* W21-A A4：跳过的项单独一行，点开看是哪几项、为什么，不混进绿章。 */}
-              {skippedChecks(solution.confidence).length > 0 ? (
-                <details data-testid="skipped-details" className="no-print rounded border border-amber/40 bg-amber/5 px-2 py-1">
-                  <summary className="cursor-pointer text-amber">
-                    跳过 {skippedChecks(solution.confidence).length} 项
-                  </summary>
-                  <ul className="mt-1 space-y-0.5 text-muted">
-                    {skippedChecks(solution.confidence).map((item) => (
-                      <li key={item.name}>· {item.name}：{item.reason}</li>
-                    ))}
-                  </ul>
-                </details>
-              ) : null}
-              {/*
-                W21-A A5：17 位裸浮点只在「自检」里给完整精度；validatedAt /
-                contract 这类研发信息也移出主面板，不再压在教学结论旁边。
-              */}
-              <details data-testid="self-check" className="no-print rounded border border-line px-2 py-1">
-                <summary className="cursor-pointer text-muted">完整精度 · 自检</summary>
-                <dl className="mt-1 grid gap-0.5 font-mono text-[10px] leading-4 text-muted">
-                  {Object.entries(solution.result).map(([key, value]) => (
-                    <div key={key} className="flex justify-between gap-2">
-                      <dt>{key}</dt>
-                      <dd className="text-right">{String(value)}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <p className="mt-1 break-all font-mono text-[10px] text-muted">
-                  validatedAt: {solution.validatedAt} · contract {solution.contractVersion}
-                </p>
-              </details>
-              {checksOpen ? (
-                <div className="no-print space-y-1.5">
-                  {solution.confidence.checks.map((item) => (
-                    <div key={item.name} className="rounded border border-line p-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-ink" title={item.name}>
-                          {CHECK_NAME_LABELS[item.name] ?? item.name}
-                        </span>
-                        <span className={`rounded border px-1.5 py-0.5 text-[10px] ${STATE_CLASS[item.state]}`}>
-                          {CHECK_STATE_LABELS[item.state] ?? item.state}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-muted">{tidyCheckText(item.detail)}</p>
-                      {item.skipReason ? (
-                        <p className="mt-0.5 text-muted">跳过原因：{tidyCheckText(item.skipReason)}</p>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setChecksOpen(true)}
-                  className="no-print text-cyan hover:underline"
-                >
-                  {/* R-36：检查项是按 checks[] 实数计的（6 通过 + 2 跳过 = 8），
-                      「六项」这个写死的数与徽标口径对不上 —— 改成动态计数。 */}
-                  展开全部校核（{solution.confidence.checks.length} 项）
-                </button>
-              )}
-              <div className="print-only space-y-1.5">
-                {solution.confidence.checks.map((item) => (
-                  <div key={`print-${item.name}`} className="rounded border border-line p-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-ink" title={item.name}>
-                        {CHECK_NAME_LABELS[item.name] ?? item.name}
-                      </span>
-                      <span className={`rounded border px-1.5 py-0.5 text-[10px] ${STATE_CLASS[item.state]}`}>
-                        {CHECK_STATE_LABELS[item.state] ?? item.state}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-muted">{tidyCheckText(item.detail)}</p>
-                    {item.skipReason ? (
-                      <p className="mt-0.5 text-muted">跳过原因：{tidyCheckText(item.skipReason)}</p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
 
           {solution.warnings.length > 0 ? (
             <section className="print-warnings rounded-xl border border-line bg-panel elev">

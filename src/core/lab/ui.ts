@@ -25,6 +25,8 @@ export interface UiPreview {
   params: Record<string, number | string>;
   problems: string[];
   appliedRules: string[];
+  /** 黑盒 #19：落了骨架默认值的键 → 解释；参数行据此在求解前标注。 */
+  defaultsUsed: Record<string, string>;
   semantic: SemanticCheck;
   tier: LabTier;
 }
@@ -134,6 +136,7 @@ export function previewOf(templateId: string, graph: CanvasGraph, rules: readonl
     params: result.params,
     problems: result.problems,
     appliedRules: result.appliedRules,
+    defaultsUsed: result.defaultsUsed ?? {},
     semantic,
     tier: verdict.tier,
   };

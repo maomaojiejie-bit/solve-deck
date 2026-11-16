@@ -249,7 +249,7 @@ try {
     '求解按钮解禁',
   );
   await evaluate(`(() => { const b=[...document.querySelectorAll('button')].find(x=>x.textContent.includes('分步求解')); b.click(); return true; })()`);
-  await waitFor(`document.body.innerText.includes('等效图待确认语义')`, 'N 档横幅', 30000);
+  await waitFor(`document.body.innerText.includes('等效图未核对')`, 'N 档横幅', 30000);
   await sleep(900);
   const noDerived = await evaluate(
     `(() => { const badge=[...document.querySelectorAll('span')].find(x=>x.textContent.includes('N · ')); return Boolean(badge); })()`,
@@ -487,7 +487,7 @@ try {
   console.log('lab-19 / quickfill-a3：两种模式 + 推得角标 + 常驻一致性提示');
 
   /* ── 20/21 P0：删 Rc / 删 Rl 连带删专属导线（画布对照） ── */
-  const paramsText = `(() => (document.body.innerText.match(/params：[^\\n]*/) ?? [''])[0])()`;
+  const paramsText = `(() => { const el = document.querySelector('[data-testid=preview-params]'); return el ? el.innerText.replace(/\\s*\\n\\s*/g, '　') : (document.body.innerText.match(/params：[^\\n]*/) ?? [''])[0]; })()`;
   await send('Page.navigate', { url: `http://127.0.0.1:${PORT}/#/lab/t/A3` });
   await waitFor(`document.body.innerText.includes('画布')`, '20 前置重载');
   await waitFor(`document.querySelectorAll('svg').length > 0`, '骨架 SVG');

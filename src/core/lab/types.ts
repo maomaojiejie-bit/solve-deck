@@ -228,6 +228,8 @@ export interface ReduceResult {
   problems: string[];
   /** true → 置信度 U 档，不求解。 */
   outOfScope: boolean;
+  /** 黑盒 #19：哪些参数键落了骨架默认值（键 → 人话解释），求解前参数行就标注。 */
+  defaultsUsed?: Record<string, string>;
 }
 
 /** 装配后的模型（graph → model 产物，reduce 的输入）。 */

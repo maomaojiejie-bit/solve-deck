@@ -15,8 +15,8 @@ import {
 export function UnitModeSelect({ testId = 'unit-mode', label = '读数单位制' }: { testId?: string; label?: string }) {
   const mode = useSyncExternalStore(subscribeUnitMode, getUnitMode, () => 'auto' as UnitMode);
   return (
-    <label className="no-print inline-flex items-center gap-1 text-[10px] text-muted">
-      <span className="hidden lg:inline">单位</span>
+    <label className="no-print inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] text-muted">
+      <span>单位</span>
       <select
         data-testid={testId}
         aria-label={label}

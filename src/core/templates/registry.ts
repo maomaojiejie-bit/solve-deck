@@ -537,7 +537,7 @@ export const TEMPLATES: readonly TemplateEntry[] = [
     example: 'src/examples/A2.json',
     params: [
       { key: 'Vcc', label: 'Vcc', unit: 'V', kind: 'number', min: 5, max: 20, step: 0.5, defaultValue: 12 },
-      { key: 'R1', label: 'R1', unit: 'Ω', kind: 'number', min: 1_000, max: 100_000, step: 1, defaultValue: 33_000, log: true },
+      { key: 'R1', label: 'R1', unit: 'Ω', kind: 'number', min: 1_000, max: 100_000, step: 1, defaultValue: 47_000, log: true },
       { key: 'R2', label: 'R2', unit: 'Ω', kind: 'number', min: 1_000, max: 100_000, step: 1, defaultValue: 10_000, log: true },
       { key: 'Rc', label: 'Rc', unit: 'Ω', kind: 'number', min: 100, max: 100_000, step: 1, defaultValue: 3_300, log: true },
       { key: 'Re', label: 'Re', unit: 'Ω', kind: 'number', min: 100, max: 100_000, step: 1, defaultValue: 1_000, log: true },
@@ -596,7 +596,7 @@ export const TEMPLATES: readonly TemplateEntry[] = [
       { key: 'Rg1', label: 'Rg1', unit: 'Ω', kind: 'number', min: 100_000, max: 10_000_000, step: 1_000, defaultValue: 2_000_000, log: true },
       { key: 'Rg2', label: 'Rg2', unit: 'Ω', kind: 'number', min: 100_000, max: 10_000_000, step: 1_000, defaultValue: 1_000_000, log: true },
       { key: 'Rd', label: 'Rd', unit: 'Ω', kind: 'number', min: 100, max: 100_000, step: 1, defaultValue: 2_000, log: true },
-      { key: 'Rs', label: 'Rs', unit: 'Ω', kind: 'number', min: 100, max: 100_000, step: 1, defaultValue: 1_000, log: true },
+      { key: 'Rs', label: 'Rs', unit: 'Ω', kind: 'number', min: 100, max: 1_000_000, step: 1, defaultValue: 180_000, log: true },
       { key: 'Vth', label: 'Vth', unit: 'V', kind: 'number', min: 0.5, max: 2, step: 0.05, defaultValue: 1 },
       { key: 'Kn', label: 'Kn', unit: 'A/V²', kind: 'number', min: 1e-4, max: 5e-3, step: 1e-6, defaultValue: 5e-4, log: true },
       { key: 'lambda', label: 'λ', unit: '1/V', kind: 'number', min: 0, max: 0.1, step: 0.001, defaultValue: 0.02 },
@@ -721,7 +721,7 @@ export const TEMPLATES: readonly TemplateEntry[] = [
     variants: [
       {
         id: 'M3-cantilever',
-        title: 'M3 · 悬臂梁（固定端 + 跨中集中力 a=L/2）',
+        title: '悬臂梁弯曲内力：固定端反力偶、自由端挠度、V(x)/M(x) 从固定端起画',
         short: '悬臂梁',
         config: 'cantilever',
         example: 'src/examples/M3-cantilever.json',
@@ -992,8 +992,22 @@ export function getTemplateRoute(
 ): { entry: TemplateEntry; variant?: TemplateVariant } | undefined {
   const entry = TEMPLATE_BY_ID.get(templateId);
   if (entry) return { entry };
-  return VARIANT_BY_ID.get(templateId);
+  const variantRoute = VARIANT_BY_ID.get(templateId);
+  if (!variantRoute) return undefined;
+  // 全覆盖 F7：变体显示自己的描述，不借用母型标题（索引卡 / 工具栏 / 收藏与
+  // M3 同名的问题）。浅拷贝换 title，solver / 快照等引用原样共享。
+  // 必须缓存同一实例：调用方以 entry 为 React effect 依赖，每次新对象会无限重跑。
+  const { variant } = variantRoute;
+  if (!variant?.title) return variantRoute;
+  let wrapped = VARIANT_ENTRY_WRAPPED.get(templateId);
+  if (!wrapped) {
+    wrapped = { ...variantRoute.entry, title: variant.title };
+    VARIANT_ENTRY_WRAPPED.set(templateId, wrapped);
+  }
+  return { entry: wrapped, variant };
 }
+
+const VARIANT_ENTRY_WRAPPED = new Map<string, TemplateEntry>();
 
 /** scopeGate 只放行真正完成的题型；P1 为空。 */
 export const SCOPE_WHITELIST: readonly TemplateId[] = TEMPLATES.filter(

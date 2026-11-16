@@ -42,7 +42,7 @@
       "title": "求 gm / rπ / ro",
       "formula_tex": "g_m=\\frac{I_C}{V_T},\\quad r_\\pi=\\frac{\\beta}{g_m},\\quad r_o=\\frac{V_A}{I_C}",
       "substitution": "IC=1.000mA，β=100，VA=100V",
-      "value": "gm=38.462mS，rπ=2.60kΩ，ro=100kΩ",
+      "value": "gm=38.5mS，rπ=2.60kΩ，ro=100kΩ",
       "basis": "BJT 小信号参数定义",
       "highlight": [
         "pi-n-rpi",
@@ -54,8 +54,8 @@
       "i": 3,
       "title": "MNA 求 Av / Ri / Ro",
       "formula_tex": "A_v=\\frac{v_o}{v_s}",
-      "substitution": "Av=1.60784，Ri=0.026kΩ，Ro=1.999kΩ",
-      "value": "Av=1.6078",
+      "substitution": "Av=1.608，Ri=0.026kΩ，Ro=1.999kΩ",
+      "value": "Av=1.608",
       "basis": "节点电压法（含 ro）",
       "highlight": [
         "pi-n-ro",
@@ -67,7 +67,7 @@
       "i": 4,
       "title": "手推闭式（含 ro）与教学近似",
       "formula_tex": "A_v=k\\frac{R_i}{R_s+R_i},\\ k=\\frac{(1+g_m r_o)R_{CL}}{R_{CL}+r_o}",
-      "substitution": "闭式 Av=1.60784；忽略 ro 教学近似 Av=1.60875；同相、低输入阻抗",
+      "substitution": "闭式 Av=1.608；忽略 ro 教学近似 Av=1.609；同相、低输入阻抗",
       "value": "闭式 vs MNA 偏差 0.00e+0%；忽略 ro 误差 0.06%",
       "basis": "含 ro 闭式；忽略 ro 仅作教学对照",
       "highlight": []
@@ -1146,7 +1146,7 @@
     "skippedCount": 0,
     "allPassed": true
   },
-  "validatedAt": "2026-11-10T10:12:21.780Z",
+  "validatedAt": "2026-11-15T23:38:23.058Z",
   "contractVersion": "v2.2",
   "warnings": []
 }

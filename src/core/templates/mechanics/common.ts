@@ -404,7 +404,7 @@ export function checksMatrix(
     check.rel_error === 0 ? '0' : check.rel_error.toExponential(2),
     check.pass ? '通过' : '未通过',
     check.note,
-    sources?.[index] ?? '库 checks[]',
+    sources?.[index] ?? '求解内核自检',
   ]);
   return {
     id: 'checks',

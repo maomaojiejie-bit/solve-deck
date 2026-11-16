@@ -299,37 +299,67 @@ function deflectionOf(
 
   const displByNode = new Map(frame.displacements.map((item) => [item.nodeId, item]));
   const points: { gx: number; v: number }[] = [];
+  // B1：段内 M 线性 ⇒ θ 二次、v 三次 —— 下面两个公式在段内是精确的，
+  // 曲线按 12 个子点画（不再是折线），δmax 用段内 θ=0 的解析驻点取（不再只在采样站里挑）。
+  const SUBDIVISIONS = 12;
+  let deltaMax = 0;
+  let atX = Number.NaN;
   for (const member of frame.members) {
     const curve = frame.memberCurves.find((item) => item.edgeId === member.edgeId);
     const start = displByNode.get(member.fromNodeId);
     if (!curve || !start || curve.samples.length < 2) continue;
-    // 单位刚度解：v''=M，起点 (v0, θ0)，梯形积分
+    // 单位刚度解：v''=M，起点 (v0, θ0)
     let theta = start.theta;
     let v = start.v;
     points.push({ gx: curve.samples[0].gx, v: v / eiPhys });
+    const consider = (value: number, gx: number) => {
+      if (!Number.isFinite(value)) return;
+      if (!Number.isFinite(atX) || Math.abs(value) > Math.abs(deltaMax)) {
+        deltaMax = value;
+        atX = gx;
+      }
+    };
+    consider(v / eiPhys, curve.samples[0].gx);
     for (let index = 1; index < curve.samples.length; index += 1) {
       const prev = curve.samples[index - 1];
       const next = curve.samples[index];
       const dx = next.x - prev.x;
       if (dx === 0) continue;
-      // 采样点之间 M 按线性插值：θ 的增量是梯形（线性 M 精确），
-      // v 的增量是 ∫θ —— 对线性 M 它就是二次式，梯形会低估 6%（M5 单载荷 1.875≠2.000）。
-      const dTheta = ((prev.M + next.M) / 2) * dx;
-      const dv = theta * dx + (prev.M * dx * dx) / 2 + ((next.M - prev.M) * dx * dx) / 6;
-      theta += dTheta;
-      v += dv;
-      points.push({ gx: next.gx, v: v / eiPhys });
+      const dM = next.M - prev.M;
+      const gxSpan = next.gx - prev.gx;
+      // 加密子点：v(t) = v + θt + M₀t²/2 + ΔM·t³/(6dx)（对线性 M 精确）
+      for (let k = 1; k <= SUBDIVISIONS; k += 1) {
+        const t = (dx * k) / SUBDIVISIONS;
+        const vT = v + theta * t + (prev.M * t * t) / 2 + (dM * t * t * t) / (6 * dx);
+        points.push({ gx: prev.gx + (gxSpan * k) / SUBDIVISIONS, v: vT / eiPhys });
+      }
+      // 段内驻点：解 a·t² + b·t + c = 0，其中 a=ΔM/(2dx)、b=M₀、c=θ₀
+      const roots: number[] = [];
+      const a = dM / (2 * dx);
+      const b = prev.M;
+      const c = theta;
+      if (Math.abs(a) < 1e-12) {
+        if (Math.abs(b) > 1e-12) roots.push(-c / b);
+      } else {
+        const disc = b * b - 4 * a * c;
+        if (disc >= 0) {
+          const sq = Math.sqrt(disc);
+          roots.push((-b + sq) / (2 * a), (-b - sq) / (2 * a));
+        }
+      }
+      for (const t of roots) {
+        if (!(t > 0 && t < dx)) continue;
+        const vT = v + theta * t + (b * t * t) / 2 + (dM * t * t * t) / (6 * dx);
+        consider(vT / eiPhys, prev.gx + (gxSpan * t) / dx);
+      }
+      // 推进到段末（与原梯形/二次推进逐位一致：dv 用段首 θ）
+      v += theta * dx + (prev.M * dx * dx) / 2 + (dM * dx * dx) / 6;
+      theta += ((prev.M + next.M) / 2) * dx;
+      consider(v / eiPhys, next.gx);
     }
   }
   if (points.length === 0) return { why: '位移场是空的：这张图没有可积分的构件' };
-  let deltaMax = 0;
-  let atX = points[0].gx;
-  for (const point of points) {
-    if (Math.abs(point.v) > Math.abs(deltaMax)) {
-      deltaMax = point.v;
-      atX = point.gx;
-    }
-  }
+  if (!Number.isFinite(atX)) atX = points[0].gx;
   return { points, deltaMax, atX, ei: eiPhys };
 }
 
@@ -409,14 +439,39 @@ function beamMeasures(graph: CanvasGraph, frame: FrameSolution): Measure[] {
 
   /* 支座反力 */
   if (frame.reactions.length > 0) {
-    measures.push({
-      id: 'react',
-      title: '支座反力（全局坐标，y 向上；力偶逆时针为正）',
-      rows: frame.reactions.map((reaction) => ({
-        label: shownId(labels, reaction.nodeId),
-        value: `Fx ${fmtMeasure(reaction.fx)} · Fy ${fmtMeasure(reaction.fy)} · Mz ${fmtMeasure(reaction.mz)}`,
-      })),
-    });
+    // 全覆盖 F2：扭转题（轴 / 扭矩）不走梁的 Fx/Fy/Mz 三列 —— 全 0 的假列会让
+    // 学生以为「固定端没有反力偶」。给真实的 Mx：绕轴平衡 ΣMx=0，固定端吃下
+    // 全部外扭矩（静定轴只有一个约束端；多约束端不在通用解覆盖内，不硬造分配）。
+    const torques = loadsOf(graph).filter((item) => item.kind === 'torqueArrow');
+    const isShaft =
+      graph.edges.some((edge) => edge.kind === 'shaft') || torques.length > 0;
+    const fixedEnds = graph.nodes.filter((node) => node.support?.type === 'fixed');
+    if (isShaft && fixedEnds.length === 1) {
+      // 外扭矩两个来源：meta.T（M2 骨架把 T 放参数里，画布上只有反力偶 + 文字）
+      // 与用户手放的扭矩箭头。
+      const metaT = Number(graph.meta?.T);
+      const tsum =
+        (Number.isFinite(metaT) ? metaT : 0) + torques.reduce((sum, item) => sum + item.value, 0);
+      measures.push({
+        id: 'react',
+        title: '扭矩反力（绕轴，右手定则；ΣMx=0）',
+        rows: [
+          {
+            label: shownId(labels, fixedEnds[0].id),
+            value: `Mx ${fmtMeasure(-tsum)} kN·m`,
+          },
+        ],
+      });
+    } else if (!isShaft || fixedEnds.length === 0) {
+      measures.push({
+        id: 'react',
+        title: '支座反力（全局坐标，y 向上；力偶逆时针为正）',
+        rows: frame.reactions.map((reaction) => ({
+          label: shownId(labels, reaction.nodeId),
+          value: `Fx ${fmtMeasure(reaction.fx)} · Fy ${fmtMeasure(reaction.fy)} · Mz ${fmtMeasure(reaction.mz)}`,
+        })),
+      });
+    }
   }
 
   /* 内力：只有真的存在横向载荷 / 弯矩时才出（压杆不出空图） */
@@ -436,7 +491,10 @@ function beamMeasures(graph: CanvasGraph, frame: FrameSolution): Measure[] {
           member.edgeId,
           members.find((item) => item.edgeId === member.edgeId),
         ),
-        value: `N ${fmtMeasure(member.N[0])}/${fmtMeasure(member.N[1])} · Q ${fmtMeasure(member.Q[0])}/${fmtMeasure(member.Q[1])} · M ${fmtMeasure(member.M[0])}/${fmtMeasure(member.M[1])}`,
+        // 全覆盖 F8：桁架杆只传轴力，Q/M 列恒 0 还占地方 —— 只给 N；梁杆保持 N/Q/M 三列。
+        value: hasTruss && !hasBending
+          ? `N ${fmtMeasure(member.N[0])}/${fmtMeasure(member.N[1])}`
+          : `N ${fmtMeasure(member.N[0])}/${fmtMeasure(member.N[1])} · Q ${fmtMeasure(member.Q[0])}/${fmtMeasure(member.Q[1])} · M ${fmtMeasure(member.M[0])}/${fmtMeasure(member.M[1])}`,
       })),
       chart: internalChart(frame),
       note: '端值顺序：0 = 起点，L = 末端。',
@@ -685,7 +743,7 @@ function circuitMeasures(graph: CanvasGraph, circuit: CircuitSolution): Measure[
       measures.push({
         id: 'gain',
         title: testSourceOnly ? '电压增益（1V 测试源）' : '电压增益（图上信号源）',
-        headline: `Av = V(${outputNet}) / V(${inputNet}) = ${fmtMeasure(gain, 5)}`,
+        headline: `Av = V(${outputNet}) / V(${inputNet}) = ${fmtMeasure(gain, 3)}`,
         rows: [
           { label: `输入 ${inputNet}`, value: inputVoltage, unit: 'V' },
           { label: `输出 ${outputNet}`, value: outputVoltage, unit: 'V' },

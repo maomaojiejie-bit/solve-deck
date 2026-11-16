@@ -64,7 +64,7 @@ export function tierOf(input: {
 }): LabVerdict {
   // 梁页用词：同一份校验口径，但「等效电路」「等效图」是电路页的话。
   const noun = input.family === 'beam' ? '解析解' : '等效电路';
-  const noun2 = input.family === 'beam' ? '按图现算的结论卡' : '等效图';
+  const noun2 = input.family === 'beam' ? '结论卡' : '等效图';
   if (input.outOfScope || input.scopeOk === 'fail') {
     return {
       tier: 'U',
@@ -80,7 +80,7 @@ export function tierOf(input: {
   if (input.semantic === 'skipped' || input.semantic === 'fail') {
     return {
       tier: 'N',
-      headline: `数值已验证，${noun2}待确认语义`,
+      headline: `数值已验证 · ${noun2}未核对`,
       detail: `器件语义标签未全部确认，${noun}不渲染；数值结果照常给出，第 4 帧用「等价模型 + 方程」代替。${input.family === 'beam' ? '' : `想看题库讲解稿的${noun}：在归约预览点「按拓扑标全」把关键语义标齐，再求解一次即可（F 档）；把图改成骨架不一致时，通用求解会自动按端口推导戴维南等效电路。`}`,
     };
   }
@@ -95,7 +95,7 @@ export function tierOf(input: {
   return {
     tier: 'F',
     headline: `${noun}已验证`,
-    detail: `校验口径见顶部徽标与「自检」，跳过的项不记为通过；完整播放，${noun2}与 appliedRules 证据卡随解给出。`,
+    detail: `校验口径见顶部徽标与「自检」，跳过的项不记为通过；完整播放，${noun2}与改动台账证据卡随解给出。`,
   };
 }
 
@@ -107,7 +107,7 @@ export const N_TIER_STEP4_TITLE = '等价模型 + 方程';
  * 数值是真的（netSolve / frameSolve 现算），只是没有讲解稿 —— 不假装有。
  */
 export function genericVerdict(family: 'circuit' | 'beam', detail?: string): LabVerdict {
-  const what = family === 'beam' ? '力学通用求解（刚度法）' : '电路通用求解（MNA）';
+  const what = family === 'beam' ? '力学通用求解（刚度法）' : '电路通用求解（节点电压法）';
   return {
     tier: 'N',
     headline: '按这张图求解：题库讲解稿对不上它',

@@ -37,7 +37,7 @@ ok('①', f.tier === 'F' && n.tier === 'N' && u.tier === 'U', `三档映射错�
 const headlines = [f.headline, n.headline, u.headline];
 ok('①', new Set(headlines).size === 3, `三档 headline 不互斥：${headlines.join(' | ')}`);
 ok('①', f.headline.includes('等效电路已验证'), `F 文案不符：${f.headline}`);
-ok('①', n.headline.includes('等效图待确认语义'), `N 文案不符：${n.headline}`);
+ok('①', n.headline.includes('等效图未核对'), `N 文案不符：${n.headline}`);
 ok('①', u.headline.includes('不适用') && u.headline.includes('替代入口'), `U 文案不符：${u.headline}`);
 ok('①', (u.substitute ?? []).some((item) => item.hash === '#/scope'), 'U 档替代入口没有 #/scope');
 ok('①', (u.substitute ?? []).length >= 3, `U 档替代入口不足三个：${(u.substitute ?? []).length}`);

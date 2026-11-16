@@ -12,6 +12,7 @@ import type { RenderSpec } from '../core/types';
 import type { PointerHit } from '../core/lab/pointer.ts';
 import type { PlaceGhost } from '../core/lab/place.ts';
 import { snapGrid } from '../core/lab/pins.ts';
+import { LoadingInline } from '../ui/LoadingPlate';
 
 const Schematic = lazy(() => import('./Schematic').then((module) => ({ default: module.Schematic })));
 const TruthTable = lazy(() => import('./Table').then((module) => ({ default: module.TruthTable })));
@@ -85,7 +86,7 @@ const ZERO_COLOR = 'var(--sch-live)';
 
 const FIGURE_FALLBACK = (
   <div className="flex min-h-[200px] items-center justify-center text-xs text-muted">
-    加载图形…
+    <LoadingInline text="加载图形…" />
   </div>
 );
 
@@ -203,6 +204,12 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
   const [viewBox, setViewBox] = useState('');
   const [cursor, setCursor] = useState<[number, number] | null>(null);
   const [hoverPin, setHoverPin] = useState<string | null>(null);
+  /**
+   * 黑盒 #2：力学族结点圆心 r=8 的引脚热区盖住了 [data-node] r=18 的拖动热区，
+   * 点圆心得走「点引脚」分支只选中不拖动。非「加杆 / 连线进行中」时让引脚热区
+   * 不吃指针 —— 结点拖动交给下面的大热区；要连构件再自动恢复。
+   */
+  const pinsInteractive = canvas.family !== 'beam' || Boolean(canvas.linkMode || canvas.wireFirst);
 
   /** 主体 svg 的 viewBox 随节点坐标变化，overlay 必须同步，否则橡皮筋会偏。 */
   useEffect(() => {
@@ -603,7 +610,7 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
                 stroke={selected || hovered ? ACCENT : 'var(--schematic-idle)'}
                 strokeWidth={selected || hovered ? 2 : 1}
                 opacity={selected || hovered ? 1 : 0.45}
-                className="pin-hit pointer-events-auto cursor-crosshair"
+                className={`pin-hit cursor-crosshair ${pinsInteractive ? 'pointer-events-auto' : 'pointer-events-none'}`}
                 onPointerEnter={() => setHoverPin(pin.key)}
                 onPointerLeave={() => setHoverPin((current) => (current === pin.key ? null : current))}
               >
@@ -746,7 +753,7 @@ function Figure({ spec, stepIndex, liveSelection, canvas }: FigureProps) {
           {canvas ? <EditableLayer spec={spec} canvas={canvas}>{body}</EditableLayer> : body}
         </Suspense>
         {spec.type === 'matrix' ? (
-          <p className="mt-2 text-[10px] text-muted">表格对照：本图种无图内高亮</p>
+          <p className="mt-2 text-[10px] text-muted">此表是数字汇总，不与画布联动高亮</p>
         ) : null}
       </div>
     </figure>

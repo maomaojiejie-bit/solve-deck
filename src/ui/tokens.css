@@ -1130,3 +1130,11 @@ svg text {
 details:not([open]) > :not(summary) {
   display: none !important;
 }
+
+/* 全覆盖 F9：已求解的长结果页（5–6 屏）让合成器拿不到稳定帧（截图/滚动超时）。
+   首屏外的大块结果 content-visibility:auto —— 滚到附近才完整排版；
+   DOM 查询 / innerText 会强制 layout，不影响门禁与读屏。 */
+.result-heavy {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}

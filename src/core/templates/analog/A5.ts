@@ -323,7 +323,7 @@ export function solveA5(input: SolverInput): Solution {
       i: 2,
       title: '确定 gm 与 ro',
       formula_tex: `g_m=\\frac{2I_D}{V_{OV}},\\quad r_o=\\frac{1}{\\lambda I_D}`,
-      substitution: `gm=${(params.gm * 1e3).toFixed(3)}mS，ro=${(params.ro / 1e6).toFixed(2)}MΩ`,
+      substitution: `gm=${(params.gm * 1e3).toFixed(1)}mS，ro=${(params.ro / 1e6).toFixed(2)}MΩ`,
       value: '小信号参数由直流工作点决定',
       basis: 'MOS 小信号参数定义',
       highlight: ['pi-n-gm', 'pi-n-ro'],
@@ -332,8 +332,8 @@ export function solveA5(input: SolverInput): Solution {
       i: 3,
       title: 'MNA 求 Av / Ri / Ro',
       formula_tex: `A_v=\\frac{v_o}{v_s}`,
-      substitution: `Av=${point.Av.toFixed(5)}，Ro=${(point.Ro / 1000).toFixed(3)}kΩ`,
-      value: `Av=${point.Av.toFixed(4)}`,
+      substitution: `Av=${Number(point.Av.toPrecision(4))}，Ro=${(point.Ro / 1000).toFixed(3)}kΩ`,
+      value: `Av=${Number(point.Av.toPrecision(4))}`,
       basis: '节点电压法（含 gds/ro）',
       highlight: ['pi-n-ro', 'n-rd', 'n-rl'],
     },
@@ -341,7 +341,7 @@ export function solveA5(input: SolverInput): Solution {
       i: 4,
       title: '手推闭式（含 ro）与教学近似',
       formula_tex: `A_v=${params.config === 'CS' ? '-g_m(R_D\\parallel R_L\\parallel r_o)' : params.config === 'CG' ? 'k\\frac{R_i}{R_s+R_i},\\ k=\\frac{(1+g_m r_o)R_{DL}}{R_{DL}+r_o}' : '\\frac{g_m R_{eff}}{1+g_m R_{eff}}'}`,
-      substitution: `闭式 Av=${analytic.Av.toFixed(5)}；忽略 ro 教学近似 Av=${noRo.Av.toFixed(5)}；${
+      substitution: `闭式 Av=${Number(analytic.Av.toPrecision(4))}；忽略 ro 教学近似 Av=${Number(noRo.Av.toPrecision(4))}；${
         params.config === 'CS' ? '反相电压放大' : params.config === 'CG' ? '同相、低输入阻抗' : '电压跟随'
       }`,
       value: `闭式 vs MNA 偏差 ${(Math.abs((analytic.Av - point.Av) / point.Av) * 100).toExponential(2)}%；忽略 ro 误差 ${(Math.abs((noRo.Av - point.Av) / point.Av) * 100).toFixed(2)}%`,

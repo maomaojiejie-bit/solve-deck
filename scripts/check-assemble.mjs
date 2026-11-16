@@ -1589,7 +1589,7 @@ function endpointReachesDevice(graph, x, y, tol = 0.6) {
     /合法 \$\{param\.min \?\? '−∞'\}~\$\{param\.max \?\? '\+∞'\}/.test(labSrc6),
     '㊱④ 装配台确认框越界不标红（与参数实验场口径不一致）');
 
-  ok('㊱', /event\.key === 'Escape' && \(resetArmed \|\| clearArmed \|\| pendingCandidate \|\| pendingDelete \|\| shareFallback \|\| candidatesOpen \|\| wrapPanel\)/.test(labSrc6),
+  ok('㊱', /event\.key === 'Escape' && \(resetArmed \|\| clearArmed \|\| pendingCandidate \|\| pendingLoadCandidate \|\| pendingDelete \|\| shareFallback \|\| candidatesOpen \|\| wrapPanel \|\| favoriteOpen \|\| exportOpen\)/.test(labSrc6),
     '㊱⑤ 确认条 / 兜底条不响应 Esc');
 
   ok('㊱', /peekTemplateId/.test(labSrc6) && !/href=\{`#\/t\/\$\{pickId\}`\}/.test(labSrc6),

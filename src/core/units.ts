@@ -63,7 +63,7 @@ const num = (value: number): string => String(Number(value.toPrecision(4)));
 /** 带前缀单位 → 基本单位（factor 是「乘多少变成 SI」）。 */
 const TO_SI: Record<string, [number, string]> = {
   kN: [1e3, 'N'], MN: [1e6, 'N'],
-  kPa: [1e3, 'Pa'], MPa: [1e6, 'Pa'], GPa: [1e9, 'Pa'],
+  kPa: [1e3, 'Pa'], GPa: [1e9, 'Pa'],
   'kΩ': [1e3, 'Ω'], 'MΩ': [1e6, 'Ω'],
   kV: [1e3, 'V'], mV: [1e-3, 'V'],
   mA: [1e-3, 'A'], 'μA': [1e-6, 'A'],
@@ -92,7 +92,8 @@ export function forceUnitText(value: number, unit: string, mode: UnitMode): stri
     const scaled = TO_SI[unit];
     if (scaled) return `${num(value * scaled[0])} ${scaled[1]}`;
     if (ELECTRICAL.has(unit)) return `${num(value)} ${unit}`;
-    if (unit === 'MPa') return `${num(value * 1e6)} Pa`;
+    // 全覆盖 F1：应力不折回生 Pa —— 9 位数没人读，同页表格也写 MPa；SI 档保持 MPa。
+    if (unit === 'MPa') return `${num(value)} MPa`;
     return null;
   }
   // eng：电气量沿用 auto（已有自适应前缀），力学量换成工程单位，小长度换 mm

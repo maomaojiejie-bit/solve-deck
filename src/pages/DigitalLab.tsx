@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { SiteNav } from '../ui/SiteNav';
 import { gateSolve, type GateSolveOutcome } from '../core/lab/gateSolve';
 
 const EXAMPLES: { label: string; text: string }[] = [
@@ -64,10 +65,12 @@ export function DigitalLab({ onBack }: DigitalLabProps) {
             ← 返回
           </button>
           <span className="text-[13px] text-muted">数字求值</span>
-          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
-          <a href="#/lab" className="focus-ring ml-auto text-[13px] text-muted transition-colors hover:text-ink">
-            装配台
-          </a>
+          {/* 黑盒 #31：与装配台同一套 SiteNav、同一顺序（知识库 · 数字求值 · 范围 · 装配台） */}
+          <SiteNav current="digital">
+            <a href="#/lab" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">
+              装配台
+            </a>
+          </SiteNav>
           <ThemeToggle />
         </div>
       </header>
@@ -225,7 +228,10 @@ export function DigitalLab({ onBack }: DigitalLabProps) {
 
               {/* ② 每输出最小化式 */}
               <div className="card elev rounded-2xl p-4">
-                <h2 className="text-sm font-semibold">每输出的最小化式（QMC）</h2>
+                <h2 className="text-sm font-semibold">
+                  每个输出的最简逻辑式
+                  <span className="ml-1 text-[11px] font-normal text-muted" title="用 Quine–McCluskey 法从真值表化简">（自动化简）</span>
+                </h2>
                 <div className="mt-2 flex flex-col gap-2 font-mono text-[12px]">
                   {solution.outputs.map((output) => (
                     <div key={output.name} className="rounded border border-line/60 bg-panel/40 p-2">
@@ -243,7 +249,7 @@ export function DigitalLab({ onBack }: DigitalLabProps) {
                 <h2 className="text-sm font-semibold">门数与层深</h2>
                 <p className="mt-2 font-mono text-[12px]">
                   门数 {solution.gateCount} · 最长层深 {solution.depth}
-                  <span className="text-muted">（输入层 = 0；XNOR 按 XOR+NOT 两级如实计）</span>
+                  <span className="text-muted">（从输入到输出逐级数；同或门按「异或 + 非」两级门计）</span>
                 </p>
                 <p className="mt-1 text-[11px] leading-5 text-muted">
                   输入 {solution.inputs.join(', ')}；组合逻辑求值，不做时序仿真。

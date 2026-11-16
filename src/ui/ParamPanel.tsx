@@ -14,6 +14,11 @@ interface ParamPanelProps {
    *  只有装配台右栏那份提供开关；/t/ 题面页那份不传，行为不变。 */
   live?: boolean;
   onLiveChange?: (live: boolean) => void;
+  /** 黑盒 #19：落了骨架默认值的键 → 解释。求解前参数行就标「骨架默认值」。 */
+  defaultsUsed?: Record<string, string>;
+  /** A3：键 → 不可写的原因（写入目标不在画布上，如 q：图上没有均布载荷）。
+   *  在列的键输入框只读置灰 + 给原因，不再让用户白打一个被静默丢弃的数。 */
+  readOnlyHints?: Record<string, string>;
   /** R-36 A9：同页可能有两份参数实验场（装配台右栏 + 嵌入讲解稿各一份），
    *  标题与读屏名必须能区分开，不然学生改错面板、读屏两条同名播报。 */
   title?: string;
@@ -54,6 +59,8 @@ export function ParamPanel({
   values,
   solveMs,
   error,
+  defaultsUsed,
+  readOnlyHints,
   onChange,
   onReset,
   onResetAll,
@@ -98,7 +105,7 @@ export function ParamPanel({
         <span className="flex items-center justify-end gap-2">
           <label
             className="flex items-center gap-1 text-[10px] text-muted"
-            title="实时：拖动/改值就跟着重算，并把这一项当作你已确认（闸门不撤）。关掉则改值回到未确认，需要重新确认后才重算。"
+            title="实时：拖动/改值就跟着重算，并把这一项当作你已确认（已确认的标记不撤）。关掉则改值回到未确认，需要重新确认后才重算。"
             hidden={!onLiveChange}
           >
             <input
@@ -125,7 +132,7 @@ export function ParamPanel({
       </header>
       <div className="space-y-1 p-2">
         <p className="px-1 pb-1 text-[10px] leading-4 text-muted">
-          拖动即时重算（120 ms 节流，松手前就在跟着变）；「实时」开着时改值算你确认过这一项，确认闸门不撤 ——
+          拖动即时重算（120 ms 节流，松手前就在跟着变）；「实时」开着时改值算你确认过这一项，已确认的标记不撤 ——
           关掉「实时」则改值回到未确认，重新确认后才重算（当前步骤不重置）。
         </p>
         {params.map((param) => {
@@ -188,6 +195,7 @@ export function ParamPanel({
           const outOfRange =
             !infinite &&
             ((param.min !== undefined && value < param.min) || (param.max !== undefined && value > param.max));
+          const writeBlock = readOnlyHints?.[param.key];
           return (
             // R-36：一行塞不下 7 个元素（303px 栏宽里恢复按钮被压到 16px、滑杆被挤没）。
             // 拆两行：上行 = 标签 + 滑杆 + 恢复；下行 = 数值框 + 单位 + 工程值 + 区间提示。
@@ -196,6 +204,15 @@ export function ParamPanel({
                 <span className="w-12 shrink-0 text-[11px] text-muted" title={param.label}>
                   {param.label}
                 </span>
+                {defaultsUsed?.[param.key] ? (
+                  <span
+                    data-testid={`param-default-${param.key}`}
+                    title={defaultsUsed[param.key]}
+                    className="shrink-0 rounded border border-amber/50 bg-amber/10 px-1 text-[9px] text-amber"
+                  >
+                    骨架默认值
+                  </span>
+                ) : null}
                 <input
                   type="range"
                   min={0}
@@ -203,6 +220,8 @@ export function ParamPanel({
                   step={1}
                   value={sliderOf(param, value)}
                   onChange={(event) => throttledChange(param.key, valueOf(param, Number(event.target.value)))}
+                  readOnly={writeBlock !== undefined}
+                  aria-disabled={writeBlock !== undefined || undefined}
                   aria-label={labelled(param.label)}
                   // W22-D F11：读屏要听到工程值与单位（「2000 Ω」），不是归一化刻度 0–1000。
                   // 内部 value 仍走归一化映射（sliderOf / valueOf），只把语义翻给 AT。
@@ -231,6 +250,9 @@ export function ParamPanel({
                   step={param.step}
                   value={drafts[param.key] ?? (infinite ? '' : String(value))}
                   placeholder={infinite ? '∞' : undefined}
+                  readOnly={writeBlock !== undefined}
+                  title={writeBlock}
+                  onFocus={(event) => event.target.select()}
                   onChange={(event) => {
                     const text = event.target.value;
                     setDrafts((current) => ({ ...current, [param.key]: text }));
@@ -250,13 +272,26 @@ export function ParamPanel({
                   aria-invalid={outOfRange || undefined}
                   data-param-input={param.key}
                   className={`w-[76px] shrink-0 rounded border bg-panel-2 px-1 py-0.5 text-right text-[11px] tabular-nums text-ink ${
-                    outOfRange ? 'border-danger text-danger' : 'border-line'
+                    writeBlock !== undefined
+                      ? 'cursor-not-allowed border-line opacity-50'
+                      : outOfRange
+                        ? 'border-danger text-danger'
+                        : 'border-line'
                   }`}
                 />
                 <span className="w-8 shrink-0 text-[9px] text-muted">{param.unit ?? ''}</span>
                 <span className="w-14 shrink-0 text-right text-[9px] tabular-nums text-muted">
                   {formatValue(param, value)}
                 </span>
+                {writeBlock ? (
+                  <span
+                    data-testid="param-readonly-hint"
+                    title={writeBlock}
+                    className="w-[72px] shrink-0 text-[9px] leading-3 text-muted"
+                  >
+                    {writeBlock}
+                  </span>
+                ) : null}
                 {outOfRange ? (
                   <span className="w-[72px] shrink-0 text-[9px] leading-3 text-danger" data-testid="param-range-flag">
                     合法 {param.min ?? '−∞'}~{param.max ?? '+∞'}

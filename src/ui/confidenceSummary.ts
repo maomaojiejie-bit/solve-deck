@@ -27,12 +27,12 @@ export function skippedChecks(report: ConfidenceReport): { name: string; reason:
 }
 
 /**
- * W21-A A5 · 展示层数值：4–5 位有效数字，整数原样保留。
- * 完整精度不丢，只进「自检」抽屉（Result.tsx 的 raw-precision）。
+ * W21-A A5 · 展示层数值：4 位有效数字，整数原样保留（黑盒 #23：表内 4 位，
+ * 与读数体检的 4 位对齐；完整精度不丢，只进「自检」抽屉）。
  */
 const SIGNIFICANT = new Intl.NumberFormat('en-US', {
-  minimumSignificantDigits: 5,
-  maximumSignificantDigits: 5,
+  minimumSignificantDigits: 4,
+  maximumSignificantDigits: 4,
   useGrouping: false,
 });
 

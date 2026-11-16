@@ -9,6 +9,21 @@ interface AboutProps {
 // base './' 时 BASE_URL 是 './'；子路径部署后仍是相对路径。
 const SHOT_BASE = `${import.meta.env.BASE_URL}shots/`;
 
+/** 开源仓库：全站只有这一处写死 GitHub 地址，换仓库改这里即可。 */
+const GITHUB_URL = 'https://github.com/maomaojiejie-bit/solve-deck';
+const GITHUB_ISSUES_URL = `${GITHUB_URL}/issues`;
+
+function GitHubIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" className={className}>
+      <path
+        fill="currentColor"
+        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+      />
+    </svg>
+  );
+}
+
 /**
  * 数字从哪来（W21-C C1-1 重写版）：只有两种来源 —— 求解内核，或本页自算。
  * 不出现内部命令名、不出现实现目录名；每型在结果页的「自检」抽屉里可核对完整精度。
@@ -28,7 +43,7 @@ const BOUNDARIES = [
   '机构（几何可变）同样拒绝。',
   'M7 压杆稳定只在 λ ≥ λp 时给数；λ < λp 一律黄底拒绝作答，但会在 λ 轴上标出当前位置。',
   '每个结论都带六项校验；校验不过就不给结论。',
-  '装配台只支持骨架 + 白名单器件：可装配的 16 个入口（含 M3 悬臂变体）逐型列在下面的覆盖账本里。',
+  '装配台只支持骨架 + 受支持的器件：可装配的 16 个入口（含 M3 悬臂变体）逐型列在下面的覆盖账本里。',
   '截面只有矩形 / 圆 / 圆管三类，没有型钢表；A / E / I / b / h / d / G / μ 是骨架级参数，在装配台右侧「确认已知量」里确认。',
 ];
 
@@ -63,6 +78,17 @@ export function About({ onBack }: AboutProps) {
           <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
           <a href="#/" className="focus-ring ml-auto text-[13px] text-muted transition-colors hover:text-ink">
             返回首页
+          </a>
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="GitHub 仓库（新窗口打开）"
+            title="源码在 GitHub 上（新窗口打开）"
+            className="focus-ring flex items-center gap-1.5 text-[13px] text-muted transition-colors hover:text-ink"
+          >
+            <GitHubIcon />
+            <span className="hidden sm:inline">GitHub</span>
           </a>
           <ThemeToggle />
         </div>
@@ -233,6 +259,37 @@ export function About({ onBack }: AboutProps) {
           </div>
         </section>
 
+        <section data-testid="opensource-section">
+          <h2 className="mb-2 text-[20px] font-medium text-ink">开源</h2>
+          <p className="max-w-[620px] text-[15px] leading-7 text-muted">
+            源码在 GitHub 上，纯前端静态站：React + TypeScript + Vite + TailwindCSS，
+            求解内核、40 道门禁脚本与三路径交叉校验全部在浏览器里本地运行 —— 没有后端，也没有任何遥测。
+            发现算错、看不懂或想加题型，欢迎提 Issue：报错题截图 + 期望值就够定位。
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="focus-ring inline-flex h-10 items-center gap-2 rounded-lg bg-ink px-4 text-[13px] font-medium text-bg transition-opacity hover:opacity-90"
+            >
+              <GitHubIcon className="text-bg" />
+              查看源码
+            </a>
+            <a
+              href={GITHUB_ISSUES_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="focus-ring inline-flex h-10 items-center rounded-lg border border-line px-4 text-[13px] text-ink transition-colors hover:border-line-2"
+            >
+              提问题（Issues）
+            </a>
+            <a href="#/scope" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">
+              先看能解什么 →
+            </a>
+          </div>
+        </section>
+
         <section className="rounded-xl border border-line bg-panel p-5">
           <h2 className="text-sm text-ink">技术与边界</h2>
           <p className="mt-2 text-[12px] text-ink">
@@ -249,6 +306,22 @@ export function About({ onBack }: AboutProps) {
           </ul>
         </section>
       </main>
+
+      <footer className="no-print border-t border-line">
+        <div className="mx-auto flex w-full max-w-[1120px] flex-wrap items-center gap-x-4 gap-y-2 px-6 py-6 text-[12px] text-muted">
+          <span className="id-mono text-faint">solve-deck</span>
+          <span className="text-faint">先看懂一道题，再把它算出来</span>
+          <span className="flex-1" aria-hidden="true" />
+          <a href={GITHUB_URL} target="_blank" rel="noreferrer" className="focus-ring flex items-center gap-1.5 transition-colors hover:text-ink">
+            <GitHubIcon />
+            <span>GitHub</span>
+          </a>
+          <a href={GITHUB_ISSUES_URL} target="_blank" rel="noreferrer" className="focus-ring transition-colors hover:text-ink">
+            反馈问题
+          </a>
+          <span className="text-faint">纯前端 · 无账号 · 不联网</span>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -55,7 +55,7 @@ export const PLACE_TOOLS: { tool: PlaceTool; label: string; hint: string }[] = [
   { tool: 'point', label: '集中力', hint: '在杆上按下并朝受力方向拖出，松手即落' },
   { tool: 'udl', label: '均布', hint: '在杆上按一下，落整跨均布 q' },
   { tool: 'support', label: '支座', hint: '点结点换类型（循环）；点杆中切段再加支座' },
-  { tool: 'node', label: '结点', hint: '点空白放一个结点（吸 20 网格）' },
+  { tool: 'node', label: '结点', hint: '点空白放结点（吸 20 网格）；点杆身在落点切段插结点' },
 ];
 
 /** 命中：比 PointerHit 多带坐标与人话（渲染与门禁都读它）。 */
@@ -320,7 +320,11 @@ export function ghostOf(graph: CanvasGraph, tool: PlaceTool, hit: PlaceHit, opts
       const snapped = snapBlank(hit.x, hit.y);
       return { text: `放一个结点（吸附到网格 ${snapped.x}, ${snapped.y}）`, point: snapped, kind: 'blank' };
     }
-    return { text: `${hit.kind === 'member' ? '杆上' : hit.kind === 'joint' ? '这里是结点' : '这里有东西'}：要让空白处才放新结点`, point: { x: hit.x, y: hit.y }, kind: hit.kind };
+    if (hit.kind === 'member') {
+      // 用户实测（2026-11-16）：结点要能放在杆上 —— 杆上落点即切段（A–B 在 t 处插结点拆成两根）。
+      return { text: `在杆上放结点并切段（t=${hit.t.toFixed(2)}）`, point: { x: hit.x, y: hit.y }, kind: 'member' };
+    }
+    return { text: `${hit.kind === 'joint' ? '这里是结点' : '这里有东西'}：换到空白处或杆上放`, point: { x: hit.x, y: hit.y }, kind: hit.kind };
   }
   // tool='off'：不画 ghost（选中/拖动沿用老路径）。
   if (hit.kind === 'body') {
@@ -423,8 +427,12 @@ export function placePlan(graph: CanvasGraph, tool: PlaceTool, hit: PlaceHit, op
     return { ops: [], refused: '支座要落在结点或杆上。' };
   }
   if (tool === 'node') {
+    if (hit.kind === 'member') {
+      // 用户实测（2026-11-16）：结点落在杆上 = 切段（原来是拒答「要到空白处」）。
+      return { ops: [{ op: 'splitMember', edgeId: hit.edgeId, t: hit.t }] };
+    }
     if (hit.kind !== 'blank') {
-      return { ops: [], refused: '这个位置已经有东西了：要到空白处才放新结点。' };
+      return { ops: [], refused: '这个位置已经有东西了：换到空白处或杆上放。' };
     }
     const snapped = snapBlank(hit.x, hit.y);
     return { ops: [{ op: 'addNode', x: snapped.x, y: snapped.y }] };

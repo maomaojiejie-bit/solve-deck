@@ -192,7 +192,7 @@ export function solveM1(input: SolverInput): Solution {
       '\\Delta L = \\frac{NL}{EA}',
       `L=${params.L} m，E=${params.E} GPa，数值积分互校 ${(numeric.deltaL * 1000).toFixed(6)} mm`,
       `ΔL = ${deltaL.toFixed(4)} mm（**变形不在库的能力内，这里为解析补充**）`,
-      '胡克定律（库不计算变形）',
+      '胡克定律（不计算变形）',
       ['e-member', 'n-span'],
     ),
     step(
@@ -201,7 +201,7 @@ export function solveM1(input: SolverInput): Solution {
       '\\sigma_{max} \\le [\\sigma]',
       `σmax=${(sol.stresses.sigma_max ?? 0).toFixed(3)} MPa，[σ]=${params.allow} MPa`,
       verdict.text,
-      '强度条件 + 库 checks[]（平衡 / 应力积分）',
+      '强度条件（平衡与应力积分，求解内核自检）',
       ['e-member', 'n-span'],
     ),
   ];

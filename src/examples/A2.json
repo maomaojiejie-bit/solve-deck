@@ -3,7 +3,7 @@
   "subject": "analog",
   "parsed_given": {
     "Vcc": 12,
-    "R1": 33000,
+    "R1": 47000,
     "R2": 10000,
     "Rc": 3300,
     "Re": 1000,
@@ -16,7 +16,7 @@
       "i": 0,
       "title": "求基极戴维南等效",
       "formula_tex": "V_{BB}=\\frac{R_2}{R_1+R_2}V_{CC},\\quad R_B=R_1\\parallel R_2",
-      "substitution": "VBB=2.791V，RB=7674Ω",
+      "substitution": "VBB=2.105V，RB=8246Ω",
       "value": "把分压偏置化成 VBB 串联 RB",
       "basis": "戴维南等效（直流）",
       "highlight": [
@@ -39,8 +39,8 @@
       "i": 2,
       "title": "读出工作点",
       "formula_tex": "I_C=\\beta I_B,\\quad I_E=(\\beta+1)I_B",
-      "substitution": "IB=19.238μA，IC=1.924mA",
-      "value": "IC=0.001924A，IE=0.001943A",
+      "substitution": "IB=12.863μA，IC=1.286mA",
+      "value": "IC=0.001286A，IE=0.001299A",
       "basis": "BJT 放大区电流关系",
       "highlight": [
         "n-q",
@@ -51,7 +51,7 @@
       "i": 3,
       "title": "回代 VCE 与工作区判据",
       "formula_tex": "V_{CE}=V_{CC}-I_CR_C-I_ER_E",
-      "substitution": "VCE=3.7083V，VCEsat=0.2V",
+      "substitution": "VCE=6.4559V，VCEsat=0.2V",
       "value": "VCE>VCEsat，放大区成立",
       "basis": "工作区不等式回代",
       "highlight": [
@@ -62,7 +62,7 @@
       "i": 4,
       "title": "确认工作点",
       "formula_tex": "Q=(I_B,\\;I_C,\\;V_{CE})",
-      "substitution": "19.24μA / 1.92mA / 3.708V",
+      "substitution": "12.86μA / 1.29mA / 6.456V",
       "value": "active",
       "basis": "三组不等式恰好一组成立",
       "highlight": [
@@ -72,11 +72,11 @@
   ],
   "result": {
     "zone": "active",
-    "IB": 0.000019238176760111283,
-    "IC": 0.0019238176760111283,
-    "IE": 0.0019430558527712396,
+    "IB": 0.000012863337080456077,
+    "IC": 0.0012863337080456078,
+    "IE": 0.001299197045126064,
     "VBE": 0.7,
-    "VCE": 3.708345816392037
+    "VCE": 6.45590171832343
   },
   "render_specs": [
     {
@@ -97,7 +97,7 @@
           "x": 476,
           "y": 160,
           "kind": "res",
-          "label": "R1 33.0k",
+          "label": "R1 47.0k",
           "rot": 90,
           "labelSide": "left"
         },
@@ -373,11 +373,11 @@
           "labels": [
             {
               "id": "n-q",
-              "text": "Ib=19.24μA Ic=1.92mA"
+              "text": "Ib=12.86μA Ic=1.29mA"
             },
             {
               "id": "n-rc",
-              "text": "VCE=3.708V"
+              "text": "VCE=6.456V"
             }
           ]
         },
@@ -409,11 +409,11 @@
           "labels": [
             {
               "id": "n-q",
-              "text": "Ib=19.24μA Ic=1.92mA"
+              "text": "Ib=12.86μA Ic=1.29mA"
             },
             {
               "id": "n-rc",
-              "text": "VCE=3.708V"
+              "text": "VCE=6.456V"
             }
           ]
         },
@@ -445,11 +445,11 @@
           "labels": [
             {
               "id": "n-q",
-              "text": "Ib=19.24μA Ic=1.92mA"
+              "text": "Ib=12.86μA Ic=1.29mA"
             },
             {
               "id": "n-rc",
-              "text": "VCE=3.708V"
+              "text": "VCE=6.456V"
             }
           ]
         }
@@ -463,7 +463,7 @@
     "residualOk": "pass",
     "boundaryOk": "pass",
     "goldenOk": "pass",
-    "maxResidual": 7.185239432963082e-16,
+    "maxResidual": 1.6857245762964381e-16,
     "checks": [
       {
         "name": "scopeOk",
@@ -493,14 +493,14 @@
       {
         "name": "residualOk",
         "state": "pass",
-        "detail": "maxResidual=7.185239432963082e-16，tolerance=0.000001"
+        "detail": "maxResidual=1.6857245762964381e-16，tolerance=0.000001"
       }
     ],
     "failedCount": 0,
     "skippedCount": 0,
     "allPassed": true
   },
-  "validatedAt": "2026-11-10T10:12:20.449Z",
+  "validatedAt": "2026-11-16T01:11:04.001Z",
   "contractVersion": "v2.2",
   "warnings": []
 }

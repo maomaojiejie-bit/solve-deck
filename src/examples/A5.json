@@ -39,7 +39,7 @@
       "i": 2,
       "title": "确定 gm 与 ro",
       "formula_tex": "g_m=\\frac{2I_D}{V_{OV}},\\quad r_o=\\frac{1}{\\lambda I_D}",
-      "substitution": "gm=1.000mS，ro=5.00MΩ",
+      "substitution": "gm=1.0mS，ro=5.00MΩ",
       "value": "小信号参数由直流工作点决定",
       "basis": "MOS 小信号参数定义",
       "highlight": [
@@ -51,8 +51,8 @@
       "i": 3,
       "title": "MNA 求 Av / Ri / Ro",
       "formula_tex": "A_v=\\frac{v_o}{v_s}",
-      "substitution": "Av=-1.66611，Ro=1.999kΩ",
-      "value": "Av=-1.6661",
+      "substitution": "Av=-1.666，Ro=1.999kΩ",
+      "value": "Av=-1.666",
       "basis": "节点电压法（含 gds/ro）",
       "highlight": [
         "pi-n-ro",
@@ -64,7 +64,7 @@
       "i": 4,
       "title": "手推闭式（含 ro）与教学近似",
       "formula_tex": "A_v=-g_m(R_D\\parallel R_L\\parallel r_o)",
-      "substitution": "闭式 Av=-1.66611；忽略 ro 教学近似 Av=-1.66667；反相电压放大",
+      "substitution": "闭式 Av=-1.666；忽略 ro 教学近似 Av=-1.667；反相电压放大",
       "value": "闭式 vs MNA 偏差 1.33e-14%；忽略 ro 误差 0.03%",
       "basis": "含 ro 闭式；忽略 ro 仅作教学对照",
       "highlight": []
@@ -1002,7 +1002,7 @@
     "skippedCount": 0,
     "allPassed": true
   },
-  "validatedAt": "2026-11-10T10:12:21.103Z",
+  "validatedAt": "2026-11-15T23:38:22.308Z",
   "contractVersion": "v2.2",
   "warnings": []
 }

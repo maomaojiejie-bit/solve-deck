@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { getTemplateRoute } from './core/templates/registry';
 import { Home } from './pages/Home';
 import { ErrorBoundary } from './ui/ErrorBoundary';
+import { LoadingPlate } from './ui/LoadingPlate';
 
 const Result = lazy(() =>
   import('./pages/Result').then((module) => ({ default: module.Result })),
@@ -123,8 +124,8 @@ export function App() {
       ) : (
         <Suspense
           fallback={
-            <div className="flex min-h-screen items-center justify-center text-sm text-muted">
-              加载只读预览…
+            <div className="flex min-h-screen items-center justify-center">
+              <LoadingPlate title="加载只读预览" detail="正在取这一页的分包…" />
             </div>
           }
         >

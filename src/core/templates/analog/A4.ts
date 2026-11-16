@@ -34,7 +34,8 @@ export const A4_DEFAULT: A4Params = {
   Rg1: 2_000_000,
   Rg2: 1_000_000,
   Rd: 2_000,
-  Rs: 1_000,
+  // 全覆盖 F3：Rs=180k ⇒ VOV≈0.247V（0.1–0.3V 常见区间内，ID≈15µA，VDS≈9.2V 饱和）。
+  Rs: 180_000,
   Vth: 1,
   Kn: 5e-4,
   lambda: 0.02,

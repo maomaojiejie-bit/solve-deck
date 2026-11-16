@@ -1200,7 +1200,7 @@ function buildChecks(
     actual: solve.residRel,
     rel_error: solve.residRel,
     pass: solve.residRel < 1e-9,
-    note: '未知量按 3/4 方程求解',
+    note: '全部未知量由平衡方程一次解出',
   });
 
   return checks;
@@ -1208,7 +1208,7 @@ function buildChecks(
 
 /** 库的 warnings[]：这一版只保留「不计算变形」这一条硬边界。 */
 export const MECH_WARNINGS = [
-  '本工具不计算变形（挠度/转角/变形协调均无）：静定反力、内力与应力不需要 section.E；要挠度请另行积分 EI·v\'\'=M 并代入边界条件',
+  '本题不计算变形（挠度/转角）：反力、内力与应力不需要截面参数；要看挠度请载入 M5「弯曲变形」型，或补全截面参数后用通用求解',
 ];
 
 

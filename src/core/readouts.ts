@@ -356,15 +356,32 @@ function readoutsA3(given: Rec, result: Rec): ReadoutReport {
     if (config === 'CE' && gm && rc && rl && ro) {
       const parallel = 1 / (1 / rc.value + 1 / rl.value + 1 / ro.value);
       const bound = gm.value * parallel;
+      const rpiRow = pick(result, 'rpi', 'Ω');
+      const rsRow = rs;
+      // B3：这一行的数值以前印的是 av.text（含 Rs 分压的整机增益 −45.54），
+      // 标签却写「增益上限」—— 数值与标签不匹配。真正的上限是 gm·(Rc∥RL∥ro)。
       readings.push(
         strict(
-          '增益上限 gm·(Rc∥RL∥ro)',
-          av.text,
+          '增益上限 |gm·(Rc∥RL∥ro)|',
+          formatScalar(Number(bound.toPrecision(4)), ''),
           `|Av| ≤ ${Number(bound.toPrecision(4))}`,
           Math.abs(av.value) <= bound * (1 + 1e-9),
-          '增益不可能超过「跨导 × 集电极总负载」：源电阻还会再分掉 rπ/(Rs+rπ) 这一份，所以实际必然更小。',
+          '增益不可能超过「跨导 × 集电极总负载」；实际的 Av 还要再过源电阻 Rs 的分压。',
         ),
       );
+      // 含 Rs 分压的整机增益单独一行：结果区的 Av 就是这个数。
+      if (rpiRow && rsRow) {
+        const eff = bound * (rpiRow.value / (rpiRow.value + rsRow.value));
+        readings.push(
+          strict(
+            'Av（含 Rs 分压）',
+            av.text,
+            `|Av| ≤ ${Number(eff.toPrecision(4))}`,
+            Math.abs(av.value) <= eff * (1 + 1e-9),
+            '源电阻 Rs 在输入端分掉 rπ/(Rs+rπ) 一份，整机增益比上面的上限更小 —— 结果区报的 Av 就是这个数。',
+          ),
+        );
+      }
     }
   }
 

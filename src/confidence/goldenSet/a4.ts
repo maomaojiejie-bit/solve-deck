@@ -8,13 +8,13 @@ export const A4_GOLDEN: GoldenCase<Record<string, number | string>>[] = [
     input: {},
     expected: {
       zone: 'saturation',
-      ID: 0.0010814037230204771,
-      VGS: 2.918596276979523,
-      VDS: 8.755788830938569,
-      VOV: 1.9185962769795228,
+      ID: 0.000015399468821085502,
+      VGS: 1.2280956122046098,
+      VDS: 9.197296674562438,
+      VOV: 0.22809561220460983,
     },
     residualThreshold: 1e-6,
-    handCheck: 'VG=4V；ID≈1.081mA，VGS=2.919V，VDS=8.756V>VOV=1.919V，饱和成立。',
+    handCheck: 'VG=4V；Rs=180k ⇒ ID≈15.4µA，VGS=1.228V，VOV=0.228V（0.1–0.3V 常见区间内），VDS=9.20V>VOV，饱和成立。',
     provenance: 'self-authored',
   },
   {

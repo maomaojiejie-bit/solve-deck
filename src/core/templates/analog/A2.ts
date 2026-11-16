@@ -35,7 +35,9 @@ export interface A2Point {
 
 export const A2_DEFAULT: A2Params = {
   Vcc: 12,
-  R1: 33_000,
+  // 全覆盖 F3：默认工作点要过自己的体检（VCE 在 33%–67% Vcc）——
+  // R1=47k ⇒ VBB=2.105V ⇒ IC≈1.39mA ⇒ VCE≈6.0V（50% Vcc）。
+  R1: 47_000,
   R2: 10_000,
   Rc: 3_300,
   Re: 1_000,

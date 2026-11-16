@@ -1,5 +1,5 @@
 /* ============================================================================
-   动效层（只给首页新视觉用；其它页面不引用任何这里的类）
+   动效层（首页 + 装配台工作面；两处共用同一套手势语言）
    ----------------------------------------------------------------------------
    纪律：
    - 每一条动效都必须能说清「它在交代什么」，装饰性抖动一律不做。
@@ -358,11 +358,362 @@
   }
 }
 
+/* ⑰ 装配台工作面：同一套语言的「三块玻璃 + 环境光」 ------------------------
+   装配台一屏正好三块面板（装配 / 画布 / 已知量），所以玻璃只给它们三层，
+   不再往面板内部叠半透层 —— 玻璃一多，底下那张图就糊了。                */
+.lab-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 环境光：大半径柔光斑，给玻璃取色的东西。深色底下 22% 就够，再亮就成装饰 */
+.lab-glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(96px);
+}
+
+.lab-glow-a {
+  top: -26vh;
+  left: -18vw;
+  width: 44vmax;
+  height: 44vmax;
+  background: color-mix(in srgb, var(--color-cyan) 20%, transparent);
+}
+
+.lab-glow-b {
+  top: 42%;
+  right: -20vw;
+  width: 38vmax;
+  height: 38vmax;
+  background: color-mix(in srgb, var(--color-amber) 14%, transparent);
+}
+
+/* 面板玻璃：半透底 + 模糊 + 顶边一道内高光（没有它，半透卡就是一块灰板） */
+.lab-panel {
+  background-color: color-mix(in srgb, var(--color-panel) 88%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-bg) 60%, transparent);
+}
+
+/* 面板小标题：等宽大写 + 前导小点，和首页 §编号 同一手感 */
+.lab-panel-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--color-muted);
+}
+
+.lab-panel-head::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-cyan);
+}
+
+/* 工具条上的小键：和首页副按钮同一套描边，hover 才亮边 */
+.lab-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  border: 1px solid var(--color-line);
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  transition:
+    border-color 0.3s var(--ease-draft),
+    color 0.3s var(--ease-draft),
+    background-color 0.3s var(--ease-draft);
+}
+
+.lab-chip:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-cyan) 55%, transparent);
+  color: var(--color-ink);
+}
+
+.lab-chip:disabled {
+  opacity: 0.35;
+}
+
+/* 题型的骨架卡：抬起 + 边角亮起来（悬停上浮 + 边缘流光在 .float/.edge 上） */
+.lab-tile {
+  background-color: color-mix(in srgb, var(--color-panel) 78%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
+.lab-tile:hover {
+  border-color: color-mix(in srgb, var(--color-cyan) 45%, transparent);
+}
+
+/* 装配台里的通用卡（结果卡 / 最近使用 / 收藏 / 讲解稿）：跟 .lab-panel 同一层玻璃，只是更薄。
+   改版之后下半页的结果区不会是「另一个年代」的东西 */
+.lab-surface .card {
+  background-color: color-mix(in srgb, var(--color-panel) 84%, transparent);
+  background-image: none;
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--color-bg) 55%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--color-bg) 45%, transparent);
+}
+/* ⑱ 主题切换：从开关位置长出来的圆形揭幕 -----------------------------------
+   两档实现，视觉上是同一件事「新主题以点击处为圆心铺开」：
+   ① 支持 View Transitions 的浏览器 —— 新旧快照叠着，新快照用 clip-path 圆放大，
+      连 body 上的径向渐变一起过渡（渐变本身 transition 不了，只能靠快照）。
+   ② 其余浏览器 —— :root[data-theme-switching] 期间给全体元素挂 320ms 颜色过渡。
+   两条都只在切换那一下生效，其余时间零开销。 */
+::view-transition-old(root) {
+  /* 旧快照原地不动，露出一块被新快照盖住的画面 = 揭幕感 */
+  animation: none;
+  opacity: 1;
+}
+
+::view-transition-new(root) {
+  animation: theme-reveal 560ms var(--ease-draft) both;
+  transform-origin: 50% 50%;
+}
+
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0px at var(--theme-x, 100%) var(--theme-y, 0%));
+    opacity: 1;
+  }
+  to {
+    clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, 100%) var(--theme-y, 0%));
+    opacity: 1;
+  }
+}
+
+/* 兜底：只过渡「颜色类」属性，不碰 transform / 尺寸 */
+html[data-theme-switching='1'] *,
+html[data-theme-switching='1'] *::before,
+html[data-theme-switching='1'] *::after {
+  transition-property: background-color, background-image, border-color, color, fill, stroke,
+    box-shadow, outline-color !important;
+  transition-duration: 320ms !important;
+  transition-timing-function: var(--ease-draft) !important;
+}
+
+/* 主题扭：图标换位时转 60° 再落位 —— 交代「这盏灯换了」，不是装饰性抖动 */
+.theme-mark {
+  animation: theme-mark-turn 380ms var(--ease-spring) both;
+}
+
+@keyframes theme-mark-turn {
+  from {
+    transform: rotate(-60deg) scale(0.72);
+    opacity: 0.25;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* ⑲ 载入占位板：制图风格转针 + 走光条 -------------------------------------- */
+.lab-load {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 56px 16px 64px;
+  text-align: center;
+}
+
+.lab-load-mark {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 2px;
+}
+
+.lab-load-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  border-top-color: var(--color-cyan);
+  animation: load-spin 1.1s linear infinite;
+}
+
+.lab-load-ring-in {
+  inset: 8px;
+  border-top-color: transparent;
+  border-bottom-color: color-mix(in srgb, var(--color-cyan) 55%, transparent);
+  animation-duration: 1.7s;
+  animation-direction: reverse;
+}
+
+/* 圆心十字：静态件，给转针一个「测点」 */
+.lab-load-plumb::before,
+.lab-load-plumb::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: var(--color-line-2);
+  translate: -50% -50%;
+}
+
+.lab-load-plumb::before {
+  width: 9px;
+  height: 1px;
+}
+
+.lab-load-plumb::after {
+  width: 1px;
+  height: 9px;
+}
+
+@keyframes load-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.lab-load-title {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--color-ink);
+}
+
+.lab-load-sub {
+  max-width: 46ch;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  color: var(--color-faint);
+}
+
+.lab-load-sub-fail {
+  color: var(--color-danger);
+}
+
+.lab-load-bars {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.lab-load-bars > i {
+  position: relative;
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.lab-load-bars > i::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-cyan) 46%, transparent),
+    transparent
+  );
+  animation: load-shimmer 1.35s var(--ease-out-quart) infinite;
+}
+
+@keyframes load-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* 失败态：转针收成一道静止的警示弧，不再假装在转 */
+.lab-load[data-error='1'] .lab-load-ring {
+  animation: none;
+  border-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
+  border-top-color: var(--color-danger);
+}
+
+.lab-load[data-error='1'] .lab-load-ring-in {
+  display: none;
+}
+
+/* ⑳ 浮层入场：下拉菜单从右上角弹出（锚点就在右上） ------------------------ */
+.pop-menu {
+  transform-origin: top right;
+  animation: sd-pop 140ms var(--ease-draft) both;
+}
+
+/* 行内载入：画布 / 快照占位里的一句话，配一支 10px 转针 ------------------- */
+.lab-load-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lab-load-inline-ring {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-line-2);
+  border-top-color: var(--color-cyan);
+  animation: load-spin 900ms linear infinite;
+}
+
 /* ⑯ 兜底：减少动态效果 ----------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .rv {
     opacity: 1 !important;
     transform: none !important;
+  }
+
+  /* 主题切换：不做圆形揭幕，直接换色（320ms 的颜色过渡也一起关掉） */
+  ::view-transition-new(root) {
+    animation: none !important;
+    clip-path: none !important;
+  }
+
+  html[data-theme-switching='1'] *,
+  html[data-theme-switching='1'] *::before,
+  html[data-theme-switching='1'] *::after {
+    transition-property: none !important;
+  }
+
+  .theme-mark {
+    animation: none !important;
+  }
+
+  .lab-load-ring {
+    animation: none !important;
+    border-top-color: var(--color-cyan);
+  }
+
+  .lab-load-bars > i::after {
+    animation: none !important;
+    transform: none !important;
+    opacity: 0.45;
+  }
+
+  .pop-menu {
+    animation: none !important;
+  }
+
+  .lab-load-inline-ring {
+    animation: none !important;
+    border-top-color: var(--color-cyan);
   }
 
   .spot::after,
