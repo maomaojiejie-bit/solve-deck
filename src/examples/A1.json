@@ -300,7 +300,9 @@
     "skippedCount": 0,
     "allPassed": true
   },
-  "validatedAt": "2026-11-10T10:12:20.233Z",
+  "validatedAt": "2026-11-16T05:44:15.651Z",
   "contractVersion": "v2.2",
-  "warnings": []
+  "warnings": [
+    "模型口径：V_D = V_f + I·R_z（导通段把二极管 / 稳压管画成 V_f 串 Rz 的一阶线性模型；截止段 I=0、V_D=V_S）。"
+  ]
 }

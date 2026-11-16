@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { getExample } from '../examples';
 import { getTemplateRoute, type ParamValue } from '../core/templates/registry';
 import { CONTRACT_VERSION, type RenderSpec, type Solution } from '../core/types';
@@ -99,6 +99,7 @@ import { Result } from './Result';
 import type { CanvasGraph, GraphOp } from '../core/lab/types';
 import { buildStandaloneSvg, downloadBlob, findGraphSvg, graphFileName, svgToPngBlob } from '../ui/exportGraph';
 import { UnitModeSelect } from '../ui/UnitModeSelect.tsx';
+import { getUnitMode, subscribeUnitMode } from '../core/units.ts';
 import { copyText } from '../ui/clipboard.ts';
 import { templateZeroForceInfo, zeroForceMembers, type ZeroForceInfo } from '../core/lab/zeroForce';
 import { slantedMemberNote } from '../core/lab/geometry';
@@ -434,12 +435,24 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   const [pendingParamSolve, setPendingParamSolve] = useState<string | null>(null);
   /** 参数实验场实时档：拖动即重算（改值算「你确认过这一项」，确认闸门不撤）。 */
   const [liveExperiment, setLiveExperiment] = useState(true);
+  // 修复计划 T1.3：订阅单位制 —— 切换后立即重渲染（渲染期格式化的数字/单位即刻变），
+  // 求解期预格式化的 headline 串则靠下面的 effect 静默重解刷新。
+  const unitMode = useSyncExternalStore(subscribeUnitMode, getUnitMode, () => getUnitMode());
   /** A1/A2：参数表输入框的打字草稿 —— 打字期间留本地文本（空串不提交、不把 0 写进模型），
    *  失焦丢草稿回到真实值（顺带把 020 归一成 20，聚焦时全选旧值实现「替换」而非「拼接」）。 */
   const [paramDrafts, setParamDrafts] = useState<Record<string, string>>({});
   const [clearArmed, setClearArmed] = useState(false);
   const [showZeroMembers, setShowZeroMembers] = useState(false);
   const [candidatesOpen, setCandidatesOpen] = useState(false);
+  /** 修复计划 T2.2：换结构浮层钳到视口内 —— 1152 宽下按钮右对齐会把 900px
+   *  面板推出右缘，量出溢出量后用 translateX 拉回来（不依赖 offset parent）。 */
+  const candidatesPanelRef = useRef<HTMLDivElement | null>(null);
+  const [candidatesShift, setCandidatesShift] = useState(0);
+  /** 修复计划 T3.8：清空确认 popover 弹出即聚焦「确认清空」（键盘直达，Esc 可放掉）。 */
+  const clearYesRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (clearArmed) clearYesRef.current?.focus();
+  }, [clearArmed]);
   /** 载入候选前的「会丢掉改动」确认（Esc / 取消都能放掉）。 */
   const [pendingLoadCandidate, setPendingLoadCandidate] = useState<Candidate | null>(null);
   const [peeked, setPeeked] = useState<string | null>(null);
@@ -1250,7 +1263,10 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     onToast('已恢复骨架');
   };
 
-  const allConfirmed = params.length > 0 && params.every((p) => confirmed[p.key]);
+  // 修复计划 T1.1：写入目标不在画布上的参数（q：图上没有均布载荷）不参与确认闸 ——
+  // 它本来就不进计算，卡着「未确认」只会让人以为机器坏了。
+  const writableParams = params.filter((p) => (pickId ? paramWriteBlock(pickId, graph, p.key) === null : false));
+  const allConfirmed = params.length > 0 && writableParams.length > 0 && writableParams.every((p) => confirmed[p.key]);
 
   /** R-36：收藏 = 把当前张图存成一条 SavedGraph（首页可一键载回）。 */
   const openFavorite = () => {
@@ -1361,6 +1377,29 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
       setStage('editing');
       return;
     }
+    // 修复计划 T1.2：越界参数不给静默求解 —— 求解前拦下，红 banner 常驻（不是
+    // 一闪而过的 toast），带合法区间；改回区间红条自然消失。
+    const outOfRange = writableParams.filter((param) => {
+      const value = displayValues[param.key];
+      return (
+        typeof value === 'number' &&
+        Number.isFinite(value) &&
+        ((param.min !== undefined && value < param.min) || (param.max !== undefined && value > param.max))
+      );
+    });
+    if (outOfRange.length > 0) {
+      setSolution(null);
+      setGeneric(null);
+      setVerdict(null);
+      setRefusal(
+        outOfRange.map(
+          (param) =>
+            `${param.label ?? param.key} = ${displayValues[param.key]}${param.unit ? ` ${param.unit}` : ''} 超出合法区间 ${param.min ?? '−∞'} ~ ${param.max ?? '+∞'}${param.unit ? ` ${param.unit}` : ''}：改回区间后再求解`,
+        ),
+      );
+      setStage('refused');
+      return;
+    }
     setStage('solving');
     const started = performance.now();
     // W15-S4 两级入口：归约无硬伤 → 模板五步；有硬伤不再拒答，先问通用求解器；
@@ -1455,8 +1494,15 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
       setSolveMs(performance.now() - started);
       setStage('solved');
     } catch (error) {
-      onToast(`求解失败：${error instanceof Error ? error.message : String(error)}`);
-      setStage('editing');
+      // 修复计划 T1.2：求解异常不能只靠 toast（一闪就没）—— 常驻红 banner +
+      // 回到 refused，toast 只做辅助播报。
+      const message = error instanceof Error ? error.message : String(error);
+      setSolution(null);
+      setGeneric(null);
+      setVerdict(null);
+      setRefusal([`求解失败：${message}`]);
+      setStage('refused');
+      onToast(`求解失败：${message}`);
     }
   };
 
@@ -1472,6 +1518,30 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     recomputeArmed.current = false;
     void solveRef.current?.(true);
   }, [ui, stage]);
+  // 修复计划 T1.3：已求解状态下切单位制 → 静默重解一次（同一张图同一批参数），
+  // 读数 headline 里的单位跟着变；未求解时切制只影响渲染期格式化，无需重解。
+  useEffect(() => {
+    if (stage === 'solved') void solveRef.current?.(true);
+  }, [unitMode]);
+  // 修复计划 T2.2：浮层溢出视口就整体平移回视口内（右缘优先对齐视口右 −8px，
+  // 左缘同理；宽度已是 min(900px, 100vw−2rem)，两侧同时溢出不会发生）。
+  const clampCandidates = useCallback(() => {
+    const el = candidatesPanelRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const shift = rect.right > vw - 8 ? vw - 8 - rect.right : rect.left < 8 ? 8 - rect.left : 0;
+    setCandidatesShift(shift);
+  }, []);
+  useLayoutEffect(() => {
+    if (!candidatesOpen) {
+      setCandidatesShift(0);
+      return;
+    }
+    clampCandidates();
+    window.addEventListener('resize', clampCandidates);
+    return () => window.removeEventListener('resize', clampCandidates);
+  }, [candidatesOpen, clampCandidates]);
 
   /** 黑盒 #4：按钮触发的求解成功 → 结果区滚进首屏（实时重算不带标记，不滚）。
    *  即时跳转而不是 smooth：smooth 依赖渲染帧，遮挡 / 后台窗口会整段不滚。 */
@@ -1585,20 +1655,25 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     setPendingParamSolve(null);
     void solveRef.current?.();
   }, [pendingParamSolve]);
-  /** ㉛④：一键确认全部 —— 默认值也要点一次，这是真闸门。 */
+  /** ㉛④：一键确认全部 —— 默认值也要点一次，这是真闸门。
+   *  修复计划 T1.1：只确认「写得进图」的参数；不可写的（q：图上没有均布载荷）
+   *  不参与确认闸，也不占「N 项」的数。
+   *  修复计划 T1.2：越界的值**允许确认**（确认 = 签收「我看过这个数」），
+   *  越界拦截统一在 solve() 里做常驻红条 —— 否则 a=0 连确认都点不了，
+   *  求解按钮永远灰着，用户不知道卡在哪。 */
   const confirmAllParams = () => {
-    const bad = params.filter((param) => {
+    const bad = writableParams.filter((param) => {
       const value = displayValues[param.key];
       return typeof value === 'number' && ((param.min !== undefined && value < param.min) || (param.max !== undefined && value > param.max));
     });
-    if (bad.length > 0) {
-      onToast(`${bad.map((param) => param.label ?? param.key).join('、')} 超出合法范围，先改回再确认`);
-      return;
-    }
     const next: Record<string, boolean> = { ...confirmed };
-    for (const param of params) next[param.key] = true;
+    for (const param of writableParams) next[param.key] = true;
     setConfirmed(next);
-    onToast(`已确认全部 ${params.length} 项，可以求解了`);
+    onToast(
+      bad.length > 0
+        ? `已确认全部 ${writableParams.length} 项 —— ${bad.map((param) => param.label ?? param.key).join('、')} 超出合法区间，求解会被拦下`
+        : `已确认全部 ${writableParams.length} 项，可以求解了`,
+    );
   };
 
   const shareLink = () => {
@@ -1635,6 +1710,12 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   /** P1：电路题的器件白名单（picks.ts 里本来就有，给 rejects 用的那一份）。
    *  只有白名单里的种类才摆「加入器件」——运放页不给晶体管，二极管页不给 MOSFET。 */
   const circuitWhitelist = (pickId && PICKS[pickId]?.whitelist) ?? null;
+  /** 修复计划 T3.5：空态提示按白名单点名可加的器件（接地在 CIRCUIT_ADDS 里，去重）。 */
+  const allowedAdds = CIRCUIT_ADDS.filter((item) => !circuitWhitelist || circuitWhitelist.includes(item.kind));
+  const circuitAddHint = [
+    ...allowedAdds.map((item) => `+ ${item.label}`),
+    ...(allowedAdds.some((item) => item.kind === 'gnd') ? [] : ['+ 接地']),
+  ].join(' / ');
   /** ㊱⑦：只有真在可装配清单里的题型才有「看原题」；空 id / 未知 id 不给死链。 */
   const peekTemplateId = pickId && PICKS[pickId] ? pickId : null;
   /** W17-C：力学「物件」组含结点（dot 是自由度载体，可删、连带杆先确认）；
@@ -2015,7 +2096,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     {/* 全覆盖 F6：候选面板从通栏块改为按钮下方浮层 —— 快速换拓扑
                         不再把整个工作台推下一屏；收起方式不变（Esc / 收起按钮）。 */}
                     {candidatesOpen ? (
-                      <div className="absolute right-0 top-full z-40 mt-1 w-[min(900px,calc(100vw-2rem))]">
+                      <div
+                        ref={candidatesPanelRef}
+                        className="absolute right-0 top-full z-40 mt-1 w-[min(900px,calc(100vw-2rem))]"
+                        style={{ transform: `translateX(${candidatesShift}px)` }}
+                      >
                         <CandidatePanel
                           templateId={pickId}
                           peeked={peeked}
@@ -2030,16 +2115,48 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                 <button type="button" data-testid="reset-skeleton" onClick={resetSkeleton} className={`lab-chip focus-ring ${resetArmed || loadedFromLink || ui.dirty ? 'border-amber/60 bg-amber/10 text-amber' : ''}`}>
                   {resetArmed ? '恢复骨架 · 待确认' : '恢复骨架'}
                 </button>
-                <button
-                  type="button"
-                  data-testid="clear-canvas"
-                  onClick={armClearCanvas}
-                  disabled={canvasEmpty}
-                  title={canvasEmpty ? '画布已经是空的' : '清掉全部图元，从零自己搭电路 / 模型（可撤销）'}
-                  className="lab-chip focus-ring disabled:opacity-30"
-                >
-                  清空画布
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    data-testid="clear-canvas"
+                    onClick={armClearCanvas}
+                    disabled={canvasEmpty}
+                    aria-expanded={clearArmed}
+                    title={canvasEmpty ? '画布已经是空的' : '清掉全部图元，从零自己搭电路 / 模型（可撤销）'}
+                    className={`lab-chip focus-ring disabled:opacity-30 ${clearArmed ? 'border-amber/60 bg-amber/10 text-amber' : ''}`}
+                  >
+                    清空画布
+                  </button>
+                  {/* 修复计划 T3.8：确认条改成贴着按钮的 popover（不再把整页工作台推下去），
+                      弹出即聚焦「确认清空」，Esc 关闭走全局放料。 */}
+                  {clearArmed ? (
+                    <div
+                      data-testid="clear-canvas-confirm"
+                      role="alertdialog"
+                      aria-label="确认清空画布"
+                      className="absolute right-0 top-full z-40 mt-1 w-[min(420px,calc(100vw-2rem))] flex flex-wrap items-center gap-2 rounded-xl border border-amber/50 bg-panel px-3 py-2 text-[11px] leading-5 text-amber shadow-lg"
+                    >
+                      <span className="min-w-0 flex-1">清空会删掉画布上全部器件、导线、结点与标注（参数表与本题求解器保留）—— 确认吗？</span>
+                      <button
+                        type="button"
+                        data-testid="clear-canvas-yes"
+                        ref={clearYesRef}
+                        onClick={confirmClearCanvas}
+                        className="focus-ring rounded border border-amber/60 px-2 py-0.5 font-medium text-amber hover:bg-amber/20"
+                      >
+                        确认清空
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="clear-canvas-no"
+                        onClick={() => setClearArmed(false)}
+                        className="focus-ring rounded border border-line px-2 py-0.5 text-muted hover:border-cyan/50"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
                 <button type="button" onClick={shareLink} className="lab-chip focus-ring">
                   复制链接
                 </button>
@@ -2200,33 +2317,6 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   type="button"
                   data-testid="favorite-cancel"
                   onClick={() => setFavoriteOpen(false)}
-                  className="focus-ring rounded border border-line px-2 py-0.5 text-muted hover:border-cyan/50"
-                >
-                  取消
-                </button>
-              </div>
-            ) : null}
-
-            {clearArmed ? (
-              <div
-                data-testid="clear-canvas-confirm"
-                role="alertdialog"
-                aria-label="确认清空画布"
-                className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber/50 bg-amber/10 px-3 py-2 text-[11px] leading-5 text-amber"
-              >
-                <span>清空会删掉画布上全部器件、导线、结点与标注（参数表与本题求解器保留）—— 确认吗？</span>
-                <button
-                  type="button"
-                  data-testid="clear-canvas-yes"
-                  onClick={confirmClearCanvas}
-                  className="focus-ring rounded border border-amber/60 px-2 py-0.5 font-medium text-amber hover:bg-amber/20"
-                >
-                  确认清空
-                </button>
-                <button
-                  type="button"
-                  data-testid="clear-canvas-no"
-                  onClick={() => setClearArmed(false)}
                   className="focus-ring rounded border border-line px-2 py-0.5 text-muted hover:border-cyan/50"
                 >
                   取消
@@ -3017,7 +3107,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     })}
                     edges={graph.edges}
                     onWire={(from, to) => mutate({ op: 'addEdge', from, to })}
-                    onMember={(from, to) => mutate({ op: 'addMember', from, to, kind: isBeam ? 'truss' : 'frame' })}
+                    onMember={(from, to) =>
+                      // 修复计划 T3.10：梁族手搭默认按「梁」建构件（弯矩才有得算），
+                      // 桁架题（S5）保持桁架杆；电路连线走 addEdge 不经过这里。
+                      mutate({ op: 'addMember', from, to, kind: pickId === 'S5' ? 'truss' : isBeam ? 'beam' : 'frame' })
+                    }
                   />
                 </section>
 
@@ -3034,9 +3128,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                       data-testid="empty-canvas-hint"
                       className="pointer-events-none absolute left-1/2 top-1/2 z-10 w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-dashed border-line bg-panel/90 px-3 py-2 text-center text-[11px] leading-5 text-muted"
                     >
+                      {/* 修复计划 T3.5：空态提示按题型白名单点名器件（A3 是 +Vs / +R / +D / +接地，
+                          不是写死的 +R / +V / +C / +接地 —— 页面上根本没有 +V / +C 可点）。 */}
                       {isBeam
                         ? '画布已空 · 左侧「结点」放两个端点 →「加构件」连成跨 → 加支座 →「集中力」点在跨内'
-                        : '画布已空 · 左侧「加入器件」开始自建（+R / +V / +C / +接地）'}
+                        : `画布已空 · 左侧「加入器件」开始自建（${circuitAddHint}）`}
                       <br />
                       想回原题图点顶部「恢复骨架」。
                     </p>
@@ -3164,7 +3260,8 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                       data-testid="selection-bar"
                       className="mt-2 flex items-center gap-2 rounded-lg border border-cyan/50 bg-panel px-2 py-1 text-[11px] text-cyan"
                     >
-                      已选：导线 {selectedWire}
+                      {/* 修复计划 T3.4：不再给用户看裸 id（e-pin-4），改报两端引脚名；id 留在 title 里备查 */}
+                      已选：导线 {wireDisplayName(graph, selectedWire)}
                       <button
                         type="button"
                         data-testid="wire-delete"
@@ -3414,7 +3511,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     <p data-testid="confirm-gate-note" className="text-[11px] font-medium leading-4 text-amber">画布已空 · 先放器件 / 连构件，再回来核对数值</p>
                   ) : !allConfirmed ? (
                     <p data-testid="confirm-gate-note" className="text-[11px] font-medium leading-4 text-danger">
-                      还有 {params.filter((one) => !confirmed[one.key]).length} 项没确认 —— 未确认前不求解、不给校验章
+                      还有 {writableParams.filter((one) => !confirmed[one.key]).length} 项没确认 —— 未确认前不求解、不给校验章
                     </p>
                   ) : (
                     <p data-testid="confirm-gate-note" className="text-[11px] leading-4 text-ok">全部已确认 · 三处数值都取自归约结果</p>
@@ -3427,7 +3524,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                       title="默认值也要你点一次 —— 这一下就是「我看过这些数了」的签收"
                       className="focus-ring rounded border border-cyan/50 px-2 py-1 text-[10px] text-cyan hover:border-cyan"
                     >
-                      一键确认全部（{params.filter((one) => !confirmed[one.key]).length} 项）
+                      一键确认全部（{writableParams.filter((one) => !confirmed[one.key]).length} 项）
                     </button>
                   ) : null}
                   <ul className="space-y-1.5">
@@ -3447,18 +3544,22 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                       const writeBlock = paramWriteBlock(pickId, graph, param.key);
                       const draft = paramDrafts[param.key];
                       return (
-                        <li key={param.key} data-testid="param-row" data-param={param.key} className="flex items-center gap-2 text-[11px]">
+                        <li key={param.key} data-testid="param-row" data-param={param.key} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
                           <input
                             type="checkbox"
                             aria-label={`确认 ${param.label ?? param.key}`}
                             checked={Boolean(confirmed[param.key])}
+                            disabled={writeBlock !== null}
+                            title={writeBlock ?? undefined}
                             onChange={(event) => setConfirmed((current) => ({ ...current, [param.key]: event.target.checked }))}
-                            className="accent-[var(--color-cyan,#6366f1)]"
+                            className="accent-[var(--color-cyan,#6366f1)] disabled:opacity-40"
                           />
                           {/* P1：这里以前印的是内部参数键（M1 的 `allow`、A3 的 `beta`），
                               同一行的 aria-label 却已经写「许用应力 [σ]」「β」—— 屏幕上是英文、
                               读屏是中文。改用 registry 的 label，键名挪到 title 里备查。 */}
-                          <span className="text-muted" title={param.key}>
+                          {/* 修复计划 T2.4：标签不竖排（whitespace-nowrap），长提示折行不撑宽（min-w-0 break-words）
+                              —— 右栏 320px 下 scrollWidth === clientWidth，不再横向溢出。 */}
+                          <span className="whitespace-nowrap text-muted" title={param.key}>
                             {param.label ?? param.key}
                           </span>
                           <input
@@ -3492,19 +3593,19 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                               writeBlock !== null ? 'cursor-not-allowed border-line opacity-50' : outOfRange ? 'border-danger' : 'border-line'
                             }`}
                           />
-                          <span className="text-[10px] text-muted">{param.unit ?? ''}</span>
+                          <span className="shrink-0 whitespace-nowrap text-[10px] text-muted">{param.unit ?? ''}</span>
                           {writeBlock ? (
-                            <span data-testid="param-readonly-hint" className="shrink-0 rounded bg-panel-2 px-1 text-[10px] text-muted">
+                            <span data-testid="param-readonly-hint" className="min-w-0 flex-1 break-words rounded bg-panel-2 px-1 text-[10px] leading-4 text-muted">
                               {writeBlock}
                             </span>
                           ) : null}
                           {outOfRange ? (
-                            <span data-testid="param-range-flag" className="shrink-0 rounded bg-danger/15 px-1 text-[10px] text-danger">
+                            <span data-testid="param-range-flag" className="min-w-0 break-words rounded bg-danger/15 px-1 text-[10px] leading-4 text-danger">
                               超出 {`合法 ${param.min ?? '−∞'}~${param.max ?? '+∞'}`}
                             </span>
                           ) : null}
                           {infinite ? (
-                            <span data-testid="param-infinite-flag" className="shrink-0 rounded bg-panel-2 px-1 text-[10px] text-muted">
+                            <span data-testid="param-infinite-flag" className="min-w-0 flex-1 break-words rounded bg-panel-2 px-1 text-[10px] leading-4 text-muted">
                               ∞ · 图上没有它，按规则当作不存在
                             </span>
                           ) : null}
@@ -3578,14 +3679,19 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                           <p className="mt-1 text-[10px] text-amber/80">可点「恢复骨架」回到原始结构，或在左侧加 / 删构件后重新求解。</p>
                         </div>
                       ) : (
-                        /* 黑盒 #25：裸串会贴到面板右缘裁断 —— 每个键值一枚 chip，装不下就换行。 */
+                        /* 黑盒 #25：裸串会贴到面板右缘裁断 —— 每个键值一枚 chip，装不下就换行。
+                           修复计划 T3.6：图与骨架不一致、归约给不出参数时不再留一张空卡。 */
                         <div data-testid="preview-params" className="mt-1 text-[10px] leading-4 text-muted">
                           params：
-                          {Object.entries(preview.params).map(([key, value]) => (
-                            <span key={key} className="mb-0.5 mr-1.5 inline-block whitespace-nowrap rounded border border-line/70 bg-bg px-1 font-mono">
-                              {key}={typeof value === 'number' ? Number(value.toPrecision(6)) : value}
-                            </span>
-                          ))}
+                          {Object.keys(preview.params).length === 0 ? (
+                            <span className="text-faint">这张图与骨架差异太大，归约给不出参数表 —— 点「恢复骨架」回原题，或按题型把支座 / 载荷 / 器件补回。</span>
+                          ) : (
+                            Object.entries(preview.params).map(([key, value]) => (
+                              <span key={key} className="mb-0.5 mr-1.5 inline-block whitespace-nowrap rounded border border-line/70 bg-bg px-1 font-mono">
+                                {key}={typeof value === 'number' ? Number(value.toPrecision(6)) : value}
+                              </span>
+                            ))
+                          )}
                         </div>
                       )}
                       {critical.length > 0 ? (
@@ -4206,6 +4312,23 @@ function TwoClickHelper({
       </div>
     </div>
   );
+}
+
+/**
+ * 修复计划 T3.4：导线的用户可见名 —— 两端引脚 / 结点名（`Rc·端 b – Q·基极 b`），
+ * 裸 id（e-pin-4 / e-wire-2）只进 title。找不到端点时回退裸 id。
+ */
+function wireDisplayName(graph: CanvasGraph, wireId: string): string {
+  const edge = graph.edges.find((one) => one.id === wireId);
+  if (!edge) return wireId;
+  const nodeName = (id: string) => {
+    const node = graph.nodes.find((one) => one.id === id);
+    return (node?.label ?? '').trim() || id.replace(/^n-/, '').toUpperCase();
+  };
+  const from = nodeName(edge.from);
+  const to = nodeName(edge.to);
+  if (!from || !to) return wireId;
+  return `${from} – ${to}`;
 }
 
 /**

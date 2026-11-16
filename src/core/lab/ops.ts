@@ -3,7 +3,7 @@
  * 每个结构 op 产出一条人话规则，进 appliedRules 证据卡与导出 PDF。
  */
 
-import { applyParams, valueFromLabel } from './picks.ts';
+import { applyParamsWithReport, valueFromLabel } from './picks.ts';
 import { deviceName } from './labels.ts';
 import { anchorsOfNode, findAnchor, relayout } from './pins.ts';
 import { expandComposites, portPins, type CompositeDef } from './composite.ts';
@@ -1032,7 +1032,14 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
       return { graph: next, rules };
     }
     case 'applyParams': {
-      return { graph: applyParams(templateId, graph, op.values as Record<string, ParamValue>), rules: ['参数表改动已写回图（位置挪载荷、数值改器件）'] };
+      // 修复计划 T1.1：台账只报真正写进图的键。写入目标不在画布上（q：图上没有
+      // 均布载荷）就不再印假的「参数表改动已写回图」。
+      const report = applyParamsWithReport(templateId, graph, op.values as Record<string, ParamValue>);
+      const rules =
+        report.written.length > 0
+          ? [`参数表改动已写回图（位置挪载荷、数值改器件）：${report.written.join('、')}`]
+          : [];
+      return { graph: report.graph, rules };
     }
     /**
      * W20：右栏「截面」。写成一个整体对象，清空时整个键删掉 ——

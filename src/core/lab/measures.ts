@@ -216,9 +216,9 @@ export function fmtMeasure(value: number | string, digits = 6): string {
  * （`|M|max = 20 kN·m`）以前是写死的，于是同一屏里 N 与 kN·m 混着出现。
  * auto 档逐字沿用 fmtMeasure（几十条门禁断言的就是它），只有 si / eng 才换算。
  */
-export function fmtMeasureUnit(value: number, unit: string): string {
+export function fmtMeasureUnit(value: number, unit: string, digits = 6): string {
   const mode = getUnitMode();
-  if (mode === 'auto') return `${fmtMeasure(value)} ${unit}`;
+  if (mode === 'auto') return `${fmtMeasure(value, digits)} ${unit}`;
   return formatScalar(value, unit, mode);
 }
 
@@ -483,8 +483,8 @@ function beamMeasures(graph: CanvasGraph, frame: FrameSolution): Measure[] {
       id: 'internal',
       title: '内力（N 拉为正 / Q 顺时针为正 / M 下侧受拉为正）',
       headline: hasBending
-        ? `|M|max = ${fmtMeasureUnit(frame.extremes.Mmax, 'kN·m')} @ x = ${fmtMeasureUnit(frame.extremes.atX, 'm')} · |Q|max = ${fmtMeasureUnit(frame.extremes.Qmax, 'kN')}`
-        : `各构件轴力（桁架）：max |N| = ${fmtMeasureUnit(Math.max(...frame.memberEndForces.map((member) => Math.max(Math.abs(member.N[0]), Math.abs(member.N[1]))), 0), 'kN')}`,
+        ? `|M|max = ${fmtMeasureUnit(frame.extremes.Mmax, 'kN·m', 4)} @ x = ${fmtMeasureUnit(frame.extremes.atX, 'm', 4)} · |Q|max = ${fmtMeasureUnit(frame.extremes.Qmax, 'kN', 4)}`
+        : `各构件轴力（桁架）：max |N| = ${fmtMeasureUnit(Math.max(...frame.memberEndForces.map((member) => Math.max(Math.abs(member.N[0]), Math.abs(member.N[1]))), 0), 'kN', 4)}`,
       rows: frame.memberEndForces.map((member) => ({
         label: shownMember(
           labels,

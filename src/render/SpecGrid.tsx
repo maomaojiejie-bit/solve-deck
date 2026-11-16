@@ -202,6 +202,8 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
   const wrapRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const [viewBox, setViewBox] = useState('');
+  /** 修复计划 T2.3：拖动期间冻结的 viewBox（起点那帧）。null = 未拖动，fit 正常。 */
+  const [dragViewBox, setDragViewBox] = useState<string | null>(null);
   const [cursor, setCursor] = useState<[number, number] | null>(null);
   const [hoverPin, setHoverPin] = useState<string | null>(null);
   /**
@@ -214,8 +216,18 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
   /** 主体 svg 的 viewBox 随节点坐标变化，overlay 必须同步，否则橡皮筋会偏。 */
   useEffect(() => {
     const svg = wrapRef.current?.querySelector<SVGSVGElement>('svg[role="img"]');
-    if (svg) setViewBox(svg.getAttribute('viewBox') ?? '');
-  }, [spec, canvas.pins]);
+    if (!svg) return;
+    // 修复计划 T2.3：拖动进行中冻结 viewBox —— fit 会跟着节点坐标每帧重算，
+    // 主 svg 的缩放一边变、clientToWorld 的换算比例就一边漂，拖 140px 不跟手 140px。
+    // 冻结 = 把拖动起点那帧的 viewBox 反复写回主 svg（压掉 fit 的更新），
+    // overlay 同步用同一份；松手 / Esc 后恢复 fit（React 在本次提交里写入终值）。
+    if (dragViewBox) {
+      svg.setAttribute('viewBox', dragViewBox);
+      setViewBox(dragViewBox);
+      return;
+    }
+    setViewBox(svg.getAttribute('viewBox') ?? '');
+  }, [spec, canvas.pins, dragViewBox]);
 
   const mainSvg = () => wrapRef.current?.querySelector<SVGSVGElement>('svg[role="img"]') ?? null;
 
@@ -278,6 +290,8 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
         worldY: wy,
         moved: false,
       };
+      // 修复计划 T2.3：按下即冻结 viewBox（见同步 effect 里的说明）。
+      setDragViewBox(svg.getAttribute('viewBox'));
       try {
         event.currentTarget.setPointerCapture(event.pointerId);
       } catch {
@@ -325,6 +339,7 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
     }
     const drag = dragRef.current;
     dragRef.current = null;
+    setDragViewBox(null);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -378,6 +393,7 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
       if (!drag) return;
       canvas.onNodeMoveCancel(drag.nodeId, drag.startX, drag.startY);
       dragRef.current = null;
+      setDragViewBox(null);
       setCursor(null);
     };
     window.addEventListener('keydown', onKey);

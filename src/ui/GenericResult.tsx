@@ -14,7 +14,7 @@
 import { useState } from 'react';
 import { Chart } from '../render/Chart';
 import { SpecGrid } from '../render/SpecGrid';
-import { fmtMeasure, type Measure } from '../core/lab/measures';
+import { fmtMeasure, fmtMeasureUnit, type Measure } from '../core/lab/measures';
 import type { CircuitSolution } from '../core/lab/netSolve';
 import type { FrameSolution } from '../core/lab/frameSolve';
 import { fmtAmp, fmtOhm, fmtVolt, type CircuitEquivalent } from '../core/lab/equivalent.ts';
@@ -207,18 +207,19 @@ function FramePanels({ frame, labels }: { frame: FrameSolution; labels?: Record<
           <thead>
             <tr className="border-b border-line text-muted">
               <th className="px-1 py-0.5 font-medium">支座</th>
-              <th className="px-1 py-0.5 font-medium">Fx</th>
-              <th className="px-1 py-0.5 font-medium">Fy</th>
-              <th className="px-1 py-0.5 font-medium">Mz</th>
+              {/* 修复计划 T2.1：反力/端值不再裸 fmtMeasure —— 单位进表头，数字走 fmtMeasureUnit */}
+              <th className="px-1 py-0.5 font-medium">Fx (kN)</th>
+              <th className="px-1 py-0.5 font-medium">Fy (kN)</th>
+              <th className="px-1 py-0.5 font-medium">Mz (kN·m)</th>
             </tr>
           </thead>
           <tbody>
             {frame.reactions.map((reaction) => (
               <tr key={reaction.nodeId} className="border-b border-line/40">
                 <td className="px-1 py-0.5" data-testid="reaction-row">{shown(reaction.nodeId)}</td>
-                <td className="px-1 py-0.5">{fmtMeasure(reaction.fx)}</td>
-                <td className="px-1 py-0.5">{fmtMeasure(reaction.fy)}</td>
-                <td className="px-1 py-0.5">{fmtMeasure(reaction.mz)}</td>
+                <td className="px-1 py-0.5">{fmtMeasureUnit(reaction.fx, 'kN', 4)}</td>
+                <td className="px-1 py-0.5">{fmtMeasureUnit(reaction.fy, 'kN', 4)}</td>
+                <td className="px-1 py-0.5">{fmtMeasureUnit(reaction.mz, 'kN·m', 4)}</td>
               </tr>
             ))}
           </tbody>
@@ -227,9 +228,9 @@ function FramePanels({ frame, labels }: { frame: FrameSolution; labels?: Record<
       <div className="rounded-xl border border-line bg-panel/40 p-3">
         <p className={EYEBROW}>极值与残差</p>
         <p className="mt-2 font-mono text-[11px]">
-          |M|max = {fmtMeasure(frame.extremes.Mmax)} @ 全局 x = {fmtMeasure(frame.extremes.atX)}
+          |M|max = {fmtMeasureUnit(frame.extremes.Mmax, 'kN·m', 4)} @ 全局 x = {fmtMeasureUnit(frame.extremes.atX, 'm', 4)}
         </p>
-        <p className="font-mono text-[11px]">|Q|max = {fmtMeasure(frame.extremes.Qmax)}</p>
+        <p className="font-mono text-[11px]">|Q|max = {fmtMeasureUnit(frame.extremes.Qmax, 'kN', 4)}</p>
         <p className="mt-1 font-mono text-[11px] text-muted">
           ΣFx = {frame.residual.sumFx.toExponential(2)} · ΣFy = {frame.residual.sumFy.toExponential(2)} · ΣM ={' '}
           {frame.residual.sumM.toExponential(2)}
@@ -241,9 +242,9 @@ function FramePanels({ frame, labels }: { frame: FrameSolution; labels?: Record<
           <thead>
             <tr className="border-b border-line text-muted">
               <th className="px-1 py-0.5 font-medium">构件</th>
-              <th className="px-1 py-0.5 font-medium">N(0) / N(L)</th>
-              <th className="px-1 py-0.5 font-medium">Q(0) / Q(L)</th>
-              <th className="px-1 py-0.5 font-medium">M(0) / M(L)</th>
+              <th className="px-1 py-0.5 font-medium">N(0/L) (kN)</th>
+              <th className="px-1 py-0.5 font-medium">Q(0/L) (kN)</th>
+              <th className="px-1 py-0.5 font-medium">M(0/L) (kN·m)</th>
             </tr>
           </thead>
           <tbody>
@@ -251,13 +252,13 @@ function FramePanels({ frame, labels }: { frame: FrameSolution; labels?: Record<
               <tr key={member.edgeId} className="border-b border-line/40">
                 <td className="px-1 py-0.5">{memberName(member.edgeId)}</td>
                 <td className="px-1 py-0.5">
-                  {fmtMeasure(member.N[0])} / {fmtMeasure(member.N[1])}
+                  {fmtMeasureUnit(member.N[0], 'kN', 4)} / {fmtMeasureUnit(member.N[1], 'kN', 4)}
                 </td>
                 <td className="px-1 py-0.5">
-                  {fmtMeasure(member.Q[0])} / {fmtMeasure(member.Q[1])}
+                  {fmtMeasureUnit(member.Q[0], 'kN', 4)} / {fmtMeasureUnit(member.Q[1], 'kN', 4)}
                 </td>
                 <td className="px-1 py-0.5">
-                  {fmtMeasure(member.M[0])} / {fmtMeasure(member.M[1])}
+                  {fmtMeasureUnit(member.M[0], 'kN·m', 4)} / {fmtMeasureUnit(member.M[1], 'kN·m', 4)}
                 </td>
               </tr>
             ))}

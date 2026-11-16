@@ -574,10 +574,21 @@ function fmt(value: number): string {
 
 /** ③ 参数表 → 图：挪载荷位置、改器件值、刷新标签。返回新图（不动原骨架）。 */
 export function applyParams(templateId: string, graph: CanvasGraph, values: Record<string, ParamValue>): CanvasGraph {
+  return applyParamsWithReport(templateId, graph, values).graph;
+}
+
+/** 同上，但回报「实际写进图的键」。写入目标不在画布上（例：q —— 图上没有均布
+ *  载荷）的键不算写进：ops 的改动台账据此不再宣称假的「已写回图」。 */
+export function applyParamsWithReport(
+  templateId: string,
+  graph: CanvasGraph,
+  values: Record<string, ParamValue>,
+): { graph: CanvasGraph; written: string[] } {
   const picks = PICKS[templateId];
   const nodes = graph.nodes.map((node) => ({ ...node, ...(node.params ? { params: { ...node.params } } : {}) }));
   const next: CanvasGraph = { ...graph, nodes, meta: { ...graph.meta } };
-  if (!picks) return next;
+  const written: string[] = [];
+  if (!picks) return { graph: next, written };
 
   const L = Number(values.L ?? 0);
   const member = graph.edges.find((edge) => ['beam', 'shaft', 'line', 'trussMember'].includes(edge.kind));
@@ -590,6 +601,7 @@ export function applyParams(templateId: string, graph: CanvasGraph, values: Reco
     const value: number | string = raw;
     if (typeof value === 'string') {
       next.meta[pick.key] = value;
+      written.push(pick.key);
       continue;
     }
     for (const source of pick.sources) {
@@ -600,6 +612,7 @@ export function applyParams(templateId: string, graph: CanvasGraph, values: Reco
            图里没变、求解仍是旧值。多源时找到谁写谁，找不到再试下一个备选。 */
         if (!device && pick.sources.length > 1) continue;
         if (device) {
+          written.push(pick.key);
           if (source.src === 'device') {
             device.value = value;
             /* 只换数值，名字照旧：以前写 `${pick.key} …`，于是 A3 的晶体管
@@ -620,6 +633,7 @@ export function applyParams(templateId: string, graph: CanvasGraph, values: Reco
         if (load) {
           load.value = value;
           load.label = `${pick.key} = ${Number(value.toPrecision(5))}${pick.unit ? ` ${pick.unit}` : ''}`;
+          written.push(pick.key);
         }
         break;
       }
@@ -627,12 +641,16 @@ export function applyParams(templateId: string, graph: CanvasGraph, values: Reco
         const load = findLoads(next, source.type)[source.index ?? 0];
         if (load && aNode && bNode && L > 0) {
           load.x = aNode.x + (value / L) * (bNode.x - aNode.x);
+          written.push(pick.key);
         }
         break;
       }
       if (source.src === 'spanText') {
         const text = next.nodes.find((node) => node.kind === 'text' && /^L\s*=/.test(node.label ?? ''));
-        if (text) text.label = `L = ${Number(value.toPrecision(5))} m`;
+        if (text) {
+          text.label = `L = ${Number(value.toPrecision(5))} m`;
+          written.push(pick.key);
+        }
         next.meta[pick.key] = value;
         break;
       }
@@ -642,9 +660,10 @@ export function applyParams(templateId: string, graph: CanvasGraph, values: Reco
           if (text?.label) text.label = text.label.replace(NUMBER_IN_LABEL, `${Number(value.toPrecision(6))}`);
         }
         next.meta[pick.key] = value;
+        written.push(pick.key);
         break;
       }
     }
   }
-  return next;
+  return { graph: next, written };
 }

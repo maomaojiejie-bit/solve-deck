@@ -231,8 +231,7 @@ export function solveA1(input: SolverInput): Solution {
       mode: params.mode,
       Vs: params.Vs,
       R: params.R,
-      Vf: params.Vf,
-      Vz: params.Vz,
+      Vf: params.Vf,      Vz: params.Vz,
       Rz: params.Rz,
     },
     steps,
@@ -248,6 +247,10 @@ export function solveA1(input: SolverInput): Solution {
     confidence: pendingConfidence(),
     validatedAt: '',
     contractVersion: CONTRACT_VERSION,
-    warnings: [],
+    // 修复计划 T3.2：结果卡写明模型口径 —— 表里的 Vout 就是这条式子算出来的，
+    // 不再让人把 0.7426 V 当成「理想二极管 0.7V」的近似。
+    warnings: [
+      `模型口径：V_D = ${params.mode === 'zener' ? 'V_Z' : 'V_f'} + I·R_z（导通段把二极管 / 稳压管画成 ${params.mode === 'zener' ? 'V_Z' : 'V_f'} 串 Rz 的一阶线性模型；截止段 I=0、V_D=V_S）。`,
+    ],
   };
 }

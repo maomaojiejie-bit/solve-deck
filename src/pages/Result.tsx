@@ -298,13 +298,30 @@ function tidyCheckText(text: string): string {
  * （`RA 10`、`Mmax 20`、`σcr 148`）。现在按题型查表；「R 开头就是电阻」这条启发式
  * 只留给模电 —— 结构里的 `R / Rx / Ry` 是反力，按 Ω 印就闹笑话了。
  */
-function formatResultValue(
-  key: string,
+/** 修复计划 T3.4：config / mode 的内部值 → 用户可读（英文缩写保留备查）。 */
+const CONFIG_VALUE_LABELS: Record<string, string> = {
+  series: '串联 · 普通二极管（series）',
+  zener: '稳压管（zener）',
+  CE: '共射（CE）',
+  CB: '共基（CB）',
+  CC: '共集（CC）',
+  CS: '共源（CS）',
+  CG: '共栅（CG）',
+  CD: '共漏（CD）',
+};
+
+function formatResultValue(  key: string,
   value: number | string,
   family: 'analog' | 'other',
   templateId: string,
 ): number | string {
   if (typeof value === 'string') {
+    // 修复计划 T3.4：组态 / 模式的内部值不再裸印（config-CE / mode=series）——
+    // 表里给中文 + 保留英文缩写备查。
+    if (key === 'config' || key === 'mode') {
+      const label = CONFIG_VALUE_LABELS[value];
+      if (label) return label;
+    }
     // P1：A3/A5 的输入电阻是无穷大时 result 里给字符串 '∞'，原来直接印成
     // `Ri∞`（没有单位，和隔壁 `Ro 1.96kΩ` 不是一个样子）。有单位就带上。
     if (value === '∞') {

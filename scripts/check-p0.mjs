@@ -480,11 +480,16 @@ check('源码层：零 http(s) 运行时请求（唯一白名单 ai/config.ts）
   /* XML 命名空间是标识符，不是请求：`createElementNS('http://www.w3.org/2000/svg')`
      不会发任何包。剥掉再判，否则导出 SVG 这条正当用法会被误伤。 */
   const XML_NAMESPACE = /https?:\/\/www\.w3\.org\/[\w./-]*/g;
+  /* 修复计划外的豁免（About 页 GitHub 关联）：`const GITHUB_URL = 'https://…'`
+     这类**声明式链接常量**只服务于 `<a href>`——浏览器只在用户点击时导航，
+     页面加载不发一个包，与本断言「打开页面绝不外连」的意图一致。
+     只豁免「整行就是常量声明」的形态；fetch / 拼接 / 变量传参照样红。 */
+  const DECLARED_URL_CONST = /^\s*const\s+[A-Z][A-Z0-9_]*\s*=\s*['"]https?:\/\/[^'"]*['"]\s*;?\s*$/gm;
   for (const file of files) {
     const name = relative(root, file).replace(/\\/g, '/');
     if (name === whitelist) continue;
     const text = readFileSync(file, 'utf8');
-    must(!/https?:\/\//.test(text.replace(XML_NAMESPACE, '')), `${name} 含外部 URL（白名单只有 ${whitelist}）`);
+    must(!/https?:\/\//.test(text.replace(XML_NAMESPACE, '').replace(DECLARED_URL_CONST, '')), `${name} 含外部 URL（白名单只有 ${whitelist}）`);
   }
   must(existsSync(join(root, whitelist)), '白名单指向的 config.ts 不存在');
   const config = readFileSync(join(root, whitelist), 'utf8');

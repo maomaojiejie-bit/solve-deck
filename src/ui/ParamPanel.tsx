@@ -220,7 +220,9 @@ export function ParamPanel({
                   step={1}
                   value={sliderOf(param, value)}
                   onChange={(event) => throttledChange(param.key, valueOf(param, Number(event.target.value)))}
-                  readOnly={writeBlock !== undefined}
+                  // 修复计划 T1.1：readOnly 对 input[type=range] 无效（滑杆照样能拖），
+                  // 必须用 disabled 才真正锁住「画布上没有写入目标」的键。
+                  disabled={writeBlock !== undefined}
                   aria-disabled={writeBlock !== undefined || undefined}
                   aria-label={labelled(param.label)}
                   // W22-D F11：读屏要听到工程值与单位（「2000 Ω」），不是归一化刻度 0–1000。
@@ -234,9 +236,10 @@ export function ParamPanel({
                 <button
                   type="button"
                   onClick={() => onReset(param.key)}
-                  title="恢复默认"
-                  aria-label={labelled(`恢复 ${param.label} 默认值（滑杆）`)}
-                  className="h-5 w-5 shrink-0 rounded border border-line text-[11px] leading-none text-muted hover:border-cyan/60 hover:text-cyan"
+                  disabled={writeBlock !== undefined}
+                  title={writeBlock ?? '恢复默认'}
+                  aria-label={writeBlock ? undefined : labelled(`恢复 ${param.label} 默认值（滑杆）`)}
+                  className="h-5 w-5 shrink-0 rounded border border-line text-[11px] leading-none text-muted enabled:hover:border-cyan/60 enabled:hover:text-cyan disabled:opacity-40"
                 >
                   ↺
                 </button>
@@ -287,18 +290,18 @@ export function ParamPanel({
                   <span
                     data-testid="param-readonly-hint"
                     title={writeBlock}
-                    className="w-[72px] shrink-0 text-[9px] leading-3 text-muted"
+                    className="min-w-0 flex-1 break-words text-[9px] leading-3 text-muted"
                   >
                     {writeBlock}
                   </span>
                 ) : null}
                 {outOfRange ? (
-                  <span className="w-[72px] shrink-0 text-[9px] leading-3 text-danger" data-testid="param-range-flag">
+                  <span className="min-w-0 flex-1 break-words text-[9px] leading-3 text-danger" data-testid="param-range-flag">
                     合法 {param.min ?? '−∞'}~{param.max ?? '+∞'}
                   </span>
                 ) : null}
                 {infinite ? (
-                  <span className="w-[72px] shrink-0 text-[9px] leading-3 text-muted" data-testid="param-infinite-flag">
+                  <span className="min-w-0 flex-1 break-words text-[9px] leading-3 text-muted" data-testid="param-infinite-flag">
                     ∞ · 按规则当作不存在
                   </span>
                 ) : null}

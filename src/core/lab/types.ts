@@ -130,7 +130,7 @@ export type GraphOp =
   /** 力学杆件 / 梁段：从「杆件 / 梁段」列表逐条删。 */
   | { op: 'deleteMember'; edgeId: string }
   /** 两次点击两个节点后插一根杆；kind 决定当梁段还是桁架杆算。 */
-  | { op: 'addMember'; from: string; to: string; kind: 'frame' | 'truss' }
+  | { op: 'addMember'; from: string; to: string; kind: 'beam' | 'frame' | 'truss' }
   /**
    * R3-4 U1：在空白处放一个结点（坐标已吸附网格）。结点没有种类可选 ——
    * 它就是自由度载体，支座靠 setSupport 挂上去。

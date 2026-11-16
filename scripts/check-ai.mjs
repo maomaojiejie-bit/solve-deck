@@ -68,7 +68,10 @@ for (const file of files) {
   /* XML 命名空间是标识符不是地址（`createElementNS('http://www.w3.org/2000/svg')`
      一个包都不发）。剥掉再判，与 check-p0 的同名规则保持同一口径。 */
   const withoutNs = text.replace(/https?:\/\/www\.w3\.org\/[\w./-]*/g, '');
-  if (/https?:\/\//.test(withoutNs) && name !== 'src/core/ai/config.ts') leaky.push(name);
+  /* 声明式链接常量（About 页 GitHub 关联）同理：`const GITHUB_URL = 'https://…'`
+     只服务 `<a href>`，页面加载不发一个包。与 check-p0 的 DECLARED_URL_CONST 同口径。 */
+  const withoutConst = withoutNs.replace(/^\s*const\s+[A-Z][A-Z0-9_]*\s*=\s*['"]https?:\/\/[^'"]*['"]\s*;?\s*$/gm, '');
+  if (/https?:\/\//.test(withoutConst) && name !== 'src/core/ai/config.ts') leaky.push(name);
   // 词边界：`mask-image` 这类 CSS 属性里也有 sk- 三个字母，它不是密钥。
   const count = (text.match(/\bsk-/g) ?? []).length;
   if (count > 0) skHits.push({ name, count });
