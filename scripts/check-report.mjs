@@ -150,7 +150,9 @@ console.log('③  N 档：第 4 帧替换 + 等效图过滤 + F 档显式分支�
   // 快照逐字节钉住（check:p3 deepStrictEqual），改模板文案 = 快照漂移，红线
   // 不允许 —— 模板层只扫术语，内部名规则对它豁免（改动需官方 build-example 再生）。
   const layers = ['src/pages', 'src/ui', 'src/core/lab', 'src/core/templates'];
-  const banned = /杆件|梁段|加杆|删杆|选杆|一根杆|\d 根杆|杆行|杆线/;
+  // 巡检 D3（2026-11-16）修订：弯曲题（M3/M4/M5）自建构件叫「梁段」更准，
+  // 梁段从禁用表移除（构件仍是统称）；杆件 / 加杆 / 删杆等照旧禁用。
+  const banned = /杆件|加杆|删杆|选杆|一根杆|\d 根杆|杆行|杆线/;
   const jargon = /check:mech-parity|dsh-mech-workbench|库 checks\[\]|render_spec 单/;
   const libWord = /(?<![题素材词数求仓内核识])库(?!（dsh)/;
   const offenders = [];
@@ -179,7 +181,7 @@ console.log('③  N 档：第 4 帧替换 + 等效图过滤 + F 档显式分支�
   };
   for (const layer of layers) walk(layer);
   ok(
-    'C1 源码：UI 层不再出现「杆件 / 梁段 / 加杆 / 删杆」（统一叫构件）',
+    'C1 源码：UI 层不再出现「杆件 / 加杆 / 删杆」（弯曲构件可叫梁段）',
     offenders.filter((one) => one.includes('术语')).length === 0,
     offenders.filter((one) => one.includes('术语')).slice(0, 6).join(' | '),
   );

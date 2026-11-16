@@ -1370,10 +1370,10 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
           </div>
           <ThemeToggle />
           <div className="print-only print-meta">
+            {/* 巡检 D7：打印页脚去掉内部路由 #/t/A1（像调试残留），题号 + 时间够定位了。 */}
             <span>拆解台 · SolveDeck</span>
             <span>{displayId}</span>
             <span>{printTime}</span>
-            <span>#/t/{displayId}</span>
           </div>
         </div>
       </header>
@@ -1621,14 +1621,17 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
 
           <section className="print-confidence rounded-xl border border-line bg-panel elev lg:col-span-2">
             <header className="flex items-center justify-between border-b border-line px-3 py-2 text-[11px]">
-              <span className="text-muted">校验</span>
+              {/* 巡检 A3：这份清单是「求解链路校核」，与物理恒等式核验（ΣFx=0 那张表）是两回事，
+                  各自计数 —— 原来两份都叫「校验」且都是 8 项，用户看到「8 全过」与「6 过 2 跳」并存。 */}
+              <span className="text-muted">求解链路校核</span>
               <span className={tone === 'gray' ? 'text-muted' : 'text-danger'}>
                 {tone === 'gray' ? '未校验预览' : tone === 'green' ? '已校验' : '未通过'}
               </span>
             </header>
             <div className="space-y-2 p-3 text-[11px]">
               <p data-testid="confidence-counts" className="text-muted">
-                未通过 {solution.confidence.failedCount} · 跳过 {solution.confidence.skippedCount}
+                通过 {solution.confidence.checks.length - solution.confidence.skippedCount - solution.confidence.failedCount} · 跳过{' '}
+                {solution.confidence.skippedCount} · 未通过 {solution.confidence.failedCount} · 共 {solution.confidence.checks.length} 项
               </p>
               {/* W21-A A4：跳过的项单独一行，点开看是哪几项、为什么，不混进绿章。 */}
               {skippedChecks(solution.confidence).length > 0 ? (
@@ -1688,7 +1691,7 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
                 >
                   {/* R-36：检查项是按 checks[] 实数计的（6 通过 + 2 跳过 = 8），
                       「六项」这个写死的数与徽标口径对不上 —— 改成动态计数。 */}
-                  展开全部校核（{solution.confidence.checks.length} 项）
+                  展开求解链路校核（共 {solution.confidence.checks.length} 项）
                 </button>
               )}
               <div className="print-only space-y-1.5">

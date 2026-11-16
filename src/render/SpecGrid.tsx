@@ -223,6 +223,7 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
   const spaceRef = useRef(false);
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [cursor, setCursor] = useState<[number, number] | null>(null);
+  const [fullscreenDenied, setFullscreenDenied] = useState(false);
   const [hoverPin, setHoverPin] = useState<string | null>(null);
   /**
    * 黑盒 #2：力学族结点圆心 r=8 的引脚热区盖住了 [data-node] r=18 的拖动热区，
@@ -525,11 +526,21 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
         onClick={() => {
           const el = wrapRef.current;
           if (!el) return;
-          if (document.fullscreenElement) void document.exitFullscreen();
-          else void el.requestFullscreen?.();
+          if (document.fullscreenElement) {
+            void document.exitFullscreen();
+            return;
+          }
+          // 巡检 B5：Fullscreen API 要求真实用户手势，iframe / 权限策略下会被拒 ——
+          // 失败当场说话，不静默。
+          el.requestFullscreen?.().catch(() => setFullscreenDenied(true));
         }}
         className="rounded px-1 text-[10px] text-muted hover:bg-panel-2 hover:text-ink"
       >全屏</button>
+      {fullscreenDenied ? (
+        <span className="px-1 text-[10px] text-amber" data-testid="fullscreen-denied">
+          浏览器没放行全屏（嵌入页 / 权限策略），放大浏览器窗口吧
+        </span>
+      ) : null}
     </div>
   );
 

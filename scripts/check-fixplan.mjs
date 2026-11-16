@@ -18,6 +18,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawn } from 'node:child_process';
 import { freshSkeleton, labSkeletonSpec } from '../src/core/lab/skeleton.ts';
+import { graphFromSpec } from '../src/core/lab/graphFromSpec.ts';
 import { applyOp } from '../src/core/lab/ops.ts';
 import { PICKS, PICK_IDS, applyParamsWithReport } from '../src/core/lab/picks.ts';
 import { fmtMeasureUnit } from '../src/core/lab/measures.ts';
@@ -51,6 +52,44 @@ const skeleton = (id) => freshSkeleton(id, specOf(id));
   ok('① 有写入时台账点名列出键', withReport.written.includes('P') && withReport.written.includes('a'), JSON.stringify(withReport.written));
   const qReport = applyParamsWithReport('M3', m3, { q: 5 });
   ok('① q（图上没有均布载荷）不算写进', !qReport.written.includes('q'), JSON.stringify(qReport.written));
+}
+
+/* ── ①-b 巡检 A1/A2：自建构件种类 + 结论跟图走 ──────────────────── */
+{
+  // A1：画布两次点击加杆（labUiClick）在弯曲题里必须落 beam 构件；
+  // 清空画布后（无既有边可推断）尤其要靠 PICKS[templateId].element 兜住。
+  const { createUiState, labUiClick, labUiStep } = await import('../src/core/lab/ui.ts');
+  const { frameSolve } = await import('../src/core/lab/frameSolve.ts');
+  const m3spec = specOf('M3');
+  let st = createUiState('M3', graphFromSpec(labSkeletonSpec('M3', m3spec), 'M3', 'beam', {}));
+  st = labUiStep('M3', st, { type: 'op', op: { op: 'clearGraph' } });
+  st = labUiStep('M3', st, { type: 'op', op: { op: 'addNode', x: 0, y: 0 } });
+  st = labUiStep('M3', st, { type: 'op', op: { op: 'addNode', x: 400, y: 0 } });
+  const dots = st.graph.nodes.filter((n) => n.kind === 'dot');
+  st = labUiClick('M3', st, { kind: 'node', key: `${dots[0].id}:center` });
+  st = labUiClick('M3', st, { kind: 'node', key: `${dots[1].id}:center` });
+  const member = st.graph.edges.find((e) => ['beam', 'shaft', 'line', 'trussMember'].includes(e.kind));
+  ok('①-b A1 弯曲题画布加杆落 beam（不再被当桁架杆）', member?.kind === 'beam', `实际 ${member?.kind}`);
+  st = labUiStep('M3', st, { type: 'op', op: { op: 'setSupport', nodeId: dots[0].id, type: 'pin' } });
+  st = labUiStep('M3', st, { type: 'op', op: { op: 'setSupport', nodeId: dots[1].id, type: 'roller' } });
+  st = labUiStep('M3', st, { type: 'op', op: { op: 'addLoad', atNodeId: dots[0].id, type: 'point', value: 20 } });
+  const loadNode = st.graph.nodes.find((n) => n.kind === 'arrow');
+  st = labUiStep('M3', st, { type: 'moveNode', nodeId: loadNode.id, x: 200, y: loadNode.y });
+  let solved = false;
+  try {
+    frameSolve(st.graph);
+    solved = true;
+  } catch (error) {
+    ok('①-b A1 自建简支梁 frameSolve 可解', false, error.message.slice(0, 60));
+  }
+  if (solved) ok('①-b A1 自建简支梁 frameSolve 可解（跨中集中力不再拒）', true);
+  // A2：页面层图变重解的护栏（源码断言：solvedGraphRef 在 solve 成功处记录 + effect 比对）
+  const labSrc = readFileSync(join(root, 'src', 'pages', 'Lab.tsx'), 'utf8');
+  ok('② A2 结论跟图走：solve 成功记录图引用', labSrc.includes('solvedGraphRef.current = graph;'), 'solve() 没绑图');
+  ok('② A2 结论跟图走：图变即静默重解', /ui\.graph === solvedGraphRef\.current/.test(labSrc) && labSrc.includes('巡检 A2'), '缺比对 effect');
+  // A1 ③：GraphMeasures 拒解不再静默 null
+  const gmSrc = readFileSync(join(root, 'src', 'ui', 'GraphMeasures.tsx'), 'utf8');
+  ok('③ GraphMeasures 解不出时出「暂时算不了」卡（不静默 null）', gmSrc.includes('graph-measures-refused') && !/catch \{\s*\n\s*return null/.test(gmSrc), '仍有静默 catch');
 }
 
 /* ── ② confirm-all：确认闸不会永远卡死 ─────────────────────────── */

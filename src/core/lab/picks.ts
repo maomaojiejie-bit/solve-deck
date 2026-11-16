@@ -49,7 +49,7 @@ export interface TemplatePicks {
   /** 力学构件的真实种类（P0-1）：决定装配台给哪些「加入器件」、构件行摊开哪些参数。
    *  family 只区分「力学 / 电路」这套求解机器的走向，元素种类是另一根轴 ——
    *  M1 轴向拉压 / M7 压杆稳定是 bar，M2 扭转是 shaft，梁/框架才是 beam。 */
-  element?: 'beam' | 'bar' | 'shaft';
+  element?: 'beam' | 'bar' | 'shaft' | 'truss';
   picks: PickEntry[];
   /** 器件种类白名单（symbolId）；骨架出现白名单外器件 → 拒。 */
   whitelist?: string[];
@@ -285,6 +285,7 @@ export const PICKS: Record<string, TemplatePicks> = {
   },
   M3: {
     family: 'beam',
+    element: 'beam',
     picks: [
       { key: 'L', sources: [{ src: 'spanText' }, { src: 'meta' }], required: true, unit: 'm' },
       { key: 'a', sources: [{ src: 'loadAt', type: 'point' }], required: true, unit: 'm' },
@@ -305,6 +306,7 @@ export const PICKS: Record<string, TemplatePicks> = {
   },
   'M3-cantilever': {
     family: 'beam',
+    element: 'beam',
     picks: [
       { key: 'L', sources: [{ src: 'spanText' }, { src: 'meta' }], required: true, unit: 'm' },
       { key: 'a', sources: [{ src: 'loadAt', type: 'point' }], required: true, unit: 'm' },
@@ -321,6 +323,7 @@ export const PICKS: Record<string, TemplatePicks> = {
   },
   S5: {
     family: 'beam',
+    element: 'truss',
     picks: [
       { key: 'L', sources: [{ src: 'meta' }], required: true, unit: 'm' },
       { key: 'H', sources: [{ src: 'meta' }], required: true, unit: 'm' },
@@ -443,6 +446,7 @@ export const PICKS: Record<string, TemplatePicks> = {
   },
   M4: {
     family: 'beam',
+    element: 'beam',
     picks: [
       { key: 'L', sources: [{ src: 'spanText' }, { src: 'meta' }], required: true, unit: 'm' },
       { key: 'a', sources: [{ src: 'loadAt', type: 'point' }], required: true, unit: 'm' },
@@ -459,6 +463,7 @@ export const PICKS: Record<string, TemplatePicks> = {
   },
   M5: {
     family: 'beam',
+    element: 'beam',
     picks: [
       { key: 'L', sources: [{ src: 'spanText' }, { src: 'meta' }], required: true, unit: 'm' },
       { key: 'a', sources: [{ src: 'loadAt', type: 'point' }], required: true, unit: 'm' },

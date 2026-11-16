@@ -1376,7 +1376,7 @@ function endpointReachesDevice(graph, x, y, tol = 0.6) {
     '㉝② 自建原图与等效电路没分成两块（原图须标「不是等效电路」，等效须独立成区）');
   ok('㉝', /nTier \? base\.render_specs\.filter\(\(spec\) => !spec\.derivedFrom\)/.test(labSrc3),
     '㉝② N 档又渲染了 derivedFrom 等效图（语义未确认却假装有）');
-  ok('㉝', /在归约预览点「按拓扑标全」/.test(labSrc3) && /在归约预览点「按拓扑标全」/.test(tierSrc),
+  ok('㉝', /按拓扑标全/.test(labSrc3) && /按拓扑标全/.test(tierSrc),
     '㉝③ N 档横幅 / 第 4 帧没告诉用户怎么升 F 档看等效电路');
   console.log('㉝ 自建图解：原图随解重画 · 等效电路不伪造 · N 档给可操作提示');
 }

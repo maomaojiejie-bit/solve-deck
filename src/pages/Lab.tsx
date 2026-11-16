@@ -1176,8 +1176,12 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   const loadCandidate = async (candidate: Candidate) => {
     if (!pickId || !ui || candidate.source.kind === 'none') return;
     if (ui.dirty) {
+      // 巡检 B1：确认条曾经渲染在换结构浮层的内部 —— 浮层盖着它点不到，
+      // 收起浮层又把它连同 pending 一起卸载（点了「载入」却无声无息）。
+      // 现在：先收浮层，确认条独立渲染在工具栏正下方，谁也不挡谁。
       setPendingLoadCandidate(candidate);
-      onToast(`画布有未保存的改动 —— 载入「${candidate.title}」会全部丢掉，确认条里点「仍要载入」`);
+      setCandidatesOpen(false);
+      onToast(`画布有未保存的改动 —— 载入「${candidate.title}」会全部丢掉，下方确认条里点「仍要载入」`);
       return;
     }
     await doLoadCandidate(candidate);
@@ -1197,7 +1201,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
       setUi(null);
       specRef.current = null;
       onStart(`#/lab/t/${candidate.source.baseTemplateId}`);
-      onToast(`「${candidate.title}」用另一张归约表，已切到对应装配台`);
+      onToast(`「${candidate.title}」用另一套参数读法，已切到对应装配台`);
       return;
     }
     const example = await getExample(candidate.source.exampleId);
@@ -1262,8 +1266,8 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
    *  button —— 之前是「再点一次」式，读屏与自动化都够不着）。 */
   const resetSkeleton = () => {
     if (!pickId || !specRef.current) return;
+    // 巡检 B2：确认条已写明「含撤销历史」，toast 不再复读。
     setResetArmed(true);
-    onToast('会丢掉全部改动 —— 确认条里点「确认恢复」');
   };
   const confirmResetSkeleton = () => {
     if (!pickId || !specRef.current) return;
@@ -1349,11 +1353,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     }
   };
 
-  /** 清空画布：先亮确认条（可撤销），确认后整图清空、参数表与求解器保留。 */
+  /** 清空画布：先亮确认条（可撤销），确认后整图清空、参数表与求解器保留。
+   *  巡检 B2：确认条本身已把后果说全，不再叠一条几乎同文的 toast。 */
   const armClearCanvas = () => {
     if (canvasEmpty) return;
     setClearArmed(true);
-    onToast('会清掉画布上全部器件、导线与标注 —— 确认条里点「确认清空」（Ctrl+Z 可撤销）');
   };
   const confirmClearCanvas = () => {
     mutate({ op: 'clearGraph' });
@@ -1456,6 +1460,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
       });
       setVerdict(genericVerdict(route.family));
       setSolveMs(performance.now() - started);
+      solvedGraphRef.current = graph;
       setStage('solved');
       return;
     }
@@ -1487,13 +1492,13 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
       const live = await validateLive(entry, variant, base, solverInput);
       const report = withLabChecks(
         live.confidence,
-        { state: 'pass' as const, detail: current.appliedRules.length > 0 ? `结构改动已逐条核对（${current.appliedRules.length} 条）` : '骨架未改动，归约逐键一致' },
+        { state: 'pass' as const, detail: current.appliedRules.length > 0 ? `结构改动已逐条核对（${current.appliedRules.length} 条）` : '骨架未改动，参数逐键一致' },
         current.semantic,
       );
       const verdictLocal = {
         ...verdictOf(false, [], current.semantic, 0, graph?.family),
         // W21-A A4：横幅与徽标 / 页脚同一个口径，不再宣称「六项全部通过」。
-        detail: `校验口径：${confidenceSummary(report)}；跳过项见「自检」。`,
+        detail: `校验口径：${confidenceSummary(report)}；跳过的项在校核清单里单独列出。`,
       };
       // N 档：数值保留，但第 4 帧换成「等价模型 + 方程」，等效图不渲染
       const nTier = verdictLocal.tier === 'N';
@@ -1519,6 +1524,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
       setSolution(final);
       setVerdict(verdictLocal);
       setSolveMs(performance.now() - started);
+      solvedGraphRef.current = graph;
       setStage('solved');
     } catch (error) {
       // 修复计划 T1.2：求解异常不能只靠 toast（一闪就没）—— 常驻红 banner +
@@ -1550,6 +1556,18 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   useEffect(() => {
     if (stage === 'solved') void solveRef.current?.(true);
   }, [unitMode]);
+  // 巡检 A2：已求解状态下图一变（删器件 / 撤销 / 加杆 / 恢复骨架…）→ 旧结论
+  // 立刻作废，静默重解这张新图。不重解的话屏幕上挂着旧图的 Vout / Mmax 还盖着
+  // 「数值已验证」章 —— 比缺功能更危险的是错的可信感。撤销回骨架时同一条
+  // 路径自动把「图与骨架不一致」的判定一起滚回来。solvedGraphRef 在 solve()
+  // 成功处记录（见两处 setStage('solved')），这里只负责发现错位。
+  const solvedGraphRef = useRef<CanvasGraph | null>(null);
+  useEffect(() => {
+    if (stage !== 'solved') return;
+    if (!ui?.graph || ui.graph === solvedGraphRef.current) return;
+    solvedGraphRef.current = ui.graph;
+    void solveRef.current?.(true);
+  }, [ui, stage]);
   // 修复计划 T2.2：浮层溢出视口就整体平移回视口内（右缘优先对齐视口右 −8px，
   // 左缘同理；宽度已是 min(900px, 100vw−2rem)，两侧同时溢出不会发生）。
   const clampCandidates = useCallback(() => {
@@ -1713,6 +1731,9 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     // 潜伏 bug：带 + 的分享链接会静默回落骨架）——这里显式百分号编码。
     const hash = `#/lab/t/${pickId}?g=${encodeURIComponent(encoded)}`;
     const url = `${window.location.origin}${window.location.pathname}${hash}`;
+    // 巡检 B4：剪贴板授权可能挂 1.2 秒才落兜底 —— 先给乐观反馈「正在复制」，
+    // 别让用户以为没点上连点三下。
+    onToast('正在复制分享链接…');
     void copyText(url).then((ok) => {
       if (ok) {
         setShareFallback(null);
@@ -1953,6 +1974,9 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
             <div className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {SUPPORTED_IDS.map((id, index) => {
                 const route2 = getTemplateRoute(id);
+                // 巡检 D5：M3 与 M3-cantilever 两个卡都顶着「M3」编号 —— 变体卡用
+                // variant.short（悬臂梁）当主标题，编号并列但一眼分得清简支 / 悬臂。
+                const variantTitle = route2?.variant?.short;
                 return (
                   <Reveal key={id} delay={index * 42} fade>
                     <Tilt max={4} className="h-full">
@@ -1962,7 +1986,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                         className="lab-tile sheen float focus-ring group h-full w-full rounded-[10px] border border-line px-3.5 py-3 text-left"
                       >
                         <p className="id-mono text-faint transition-colors group-hover:text-cyan">{id}</p>
-                        <p className="mt-1 text-[12px] leading-5 text-ink">{route2?.entry.title ?? id}</p>
+                        <p className="mt-1 text-[12px] leading-5 text-ink">{variantTitle ?? route2?.entry.title ?? id}</p>
                       </button>
                     </Tilt>
                   </Reveal>
@@ -2088,21 +2112,20 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
               {verdict ? (
                 <span
                   data-testid="tier-badge"
-                  /* P1：徽标只印一个字母（N / F / U），屏幕上没人知道 N 是什么。
-                     补一句 title：字母的意思是「这张图被验到什么程度」。 */
                   title={
                     verdict.tier === 'F'
-                      ? 'F 档 · 等效图也验过了：数值与等效电路两条路径互核一致，可以拿等效图讲'
+                      ? '等效图也验过了：数值与等效电路两条路径互核一致，可以拿等效图讲'
                       : verdict.tier === 'N'
-                        ? 'N 档 · 只验了数值：反力 / 内力 / 增益等算得过校验，但等效图还没法核（关键语义没标全或本题不给等效图）'
-                        : 'U 档 · 还没验成：这张图当前按求解器判据不适用，请看下面的拒答理由与改法'
+                        ? '只验了数值：反力 / 内力 / 增益等算得过校验，但等效图还没法核（关键语义没标全或本题不给等效图）'
+                        : '这张图当前按求解器判据不适用，请看下面的拒答理由与改法'
                   }
-                  className={`max-w-[min(100%,22rem)] shrink-0 truncate rounded border px-2 py-0.5 text-[10px] ${
+                  className={`max-w-[min(100%,26rem)] shrink-0 truncate rounded border px-2 py-0.5 text-[10px] ${
                     verdict.tier === 'F' ? 'border-ok/40 bg-ok/10 text-ok' : verdict.tier === 'N' ? 'border-amber/40 bg-amber/10 text-amber' : 'border-danger/40 bg-danger/10 text-danger'
                   }`}
                 >
-                  {/* 剩余漏洞 1.11：字母含义也写在屏幕上（不再只靠 tooltip，触屏 / 截图也能看到）。 */}
-                  {verdict.tier} · {verdict.tier === 'F' ? '全核对' : verdict.tier === 'N' ? '仅数值' : '不适用'} · {verdict.headline}
+                  {/* 巡检 D2：内部档位字母（F/N/U）不再上屏 —— 直接说验到什么程度；
+                      headline 之外的修饰词砍掉，一行只讲一件事。 */}
+                  {verdict.tier === 'F' ? '数值与等效图都对上了' : verdict.tier === 'N' ? '数值已验证（等效图未核）' : '不适用'} · {verdict.headline}
                 </span>
               ) : null}
               <div className="ml-auto flex shrink-0 flex-wrap justify-end gap-1.5">
@@ -2312,6 +2335,17 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     分步求解
                   </button>
                 </Magnetic>
+                {/* 巡检 C5：三栏 + 整屏结果堆一页，求解后要滚约 1000px 才见数 —— 给一个「看结论」锚点。 */}
+                {stage === 'solved' ? (
+                  <button
+                    type="button"
+                    data-testid="jump-to-result"
+                    onClick={() => document.getElementById('lab-result')?.scrollIntoView({ block: 'start' })}
+                    className="focus-ring whitespace-nowrap rounded-[4px] border border-ok/50 px-2.5 py-1 text-[11px] text-ok hover:bg-ok/10"
+                  >
+                    看结论 ↓
+                  </button>
+                ) : null}
               </div>
             </div>
 
@@ -2395,28 +2429,29 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
               </p>
             ) : null}
 
-            {candidatesOpen ? (
-              <>
-                {pendingLoadCandidate ? (
-                  <div data-testid="load-candidate-confirm" className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber/50 bg-amber/10 px-3 py-2 text-[11px] text-amber">
-                    <span>画布有未保存的改动 —— 载入「{pendingLoadCandidate.title}」会全部丢掉。</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = pendingLoadCandidate;
-                        setPendingLoadCandidate(null);
-                        void doLoadCandidate(next);
-                      }}
-                      className="focus-ring rounded border border-amber/60 px-1.5 py-0.5 hover:bg-amber/20"
-                    >
-                      仍要载入
-                    </button>
-                    <button type="button" onClick={() => setPendingLoadCandidate(null)} className="focus-ring rounded border border-line px-1.5 py-0.5 text-muted">
-                      取消
-                    </button>
-                  </div>
-                ) : null}
-              </>
+            {/* 巡检 B1：确认条不挂在 candidatesOpen 上 —— 浮层一收它就被卸载，
+                pending 的载入请求被静默丢弃。独立渲染 + z-30 压过一切浮层。 */}
+            {pendingLoadCandidate ? (
+              <div
+                data-testid="load-candidate-confirm"
+                className="relative z-30 mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber/50 bg-amber/10 px-3 py-2 text-[11px] text-amber"
+              >
+                <span>画布有未保存的改动 —— 载入「{pendingLoadCandidate.title}」会全部丢掉。</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = pendingLoadCandidate;
+                    setPendingLoadCandidate(null);
+                    void doLoadCandidate(next);
+                  }}
+                  className="focus-ring rounded border border-amber/60 px-1.5 py-0.5 hover:bg-amber/20"
+                >
+                  仍要载入
+                </button>
+                <button type="button" onClick={() => setPendingLoadCandidate(null)} className="focus-ring rounded border border-line px-1.5 py-0.5 text-muted">
+                  取消
+                </button>
+              </div>
             ) : null}
 
             {wrapPanel ? (
@@ -2455,7 +2490,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     }}
                     className="focus-ring mt-1.5 rounded border border-current px-2 py-0.5 text-[10px]"
                   >
-                    标全语义并升 F 档（还缺 {preview.semantic.missing.length} 项）
+                    补全语义标注、核对等效图（还缺 {preview.semantic.missing.length} 项）
                   </button>
                 ) : null}
                 {verdict.substitute ? (
@@ -2533,8 +2568,10 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
 
                   <h3 className="mt-3 text-[11px] text-muted">{isBeam ? '物件（点行或点画布节点 → 选中条）' : '器件（点行选中，Delete 删）'}</h3>
                   {pendingDelete ? (
-                    <div data-testid="delete-confirm" className="mb-2 flex items-center gap-2 rounded-lg border border-amber/50 bg-amber/10 px-2 py-1.5 text-[10px] leading-4 text-amber">
-                      <span>
+                    // 巡检 C3：146px 左栏里一行塞「说明 + 两按钮」会把按钮压成竖排单字。
+                    // 文案整行换行（basis-full），按钮单独一行、不缩不换行。
+                    <div data-testid="delete-confirm" className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-amber/50 bg-amber/10 px-2 py-1.5 text-[10px] leading-4 text-amber">
+                      <span className="min-w-0 flex-1 basis-full">
                         {(() => {
                           const victim = graph.nodes.find((node) => node.id === pendingDelete);
                           if (isBeam && victim && (victim.kind === 'dot' || victim.kind === 'pin')) {
@@ -2555,10 +2592,10 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                           return `删掉「${graph.nodes.find((node) => node.id === pendingDelete)?.label ?? pendingDelete}」后归约会失败（有下游影响）—— 确认要删吗？`;
                         })()}
                       </span>
-                      <button type="button" data-testid="delete-confirm-yes" onClick={confirmDelete} className="focus-ring rounded border border-amber/60 px-1.5 py-0.5 text-amber hover:bg-amber/20">
+                      <button type="button" data-testid="delete-confirm-yes" onClick={confirmDelete} className="focus-ring shrink-0 whitespace-nowrap rounded border border-amber/60 px-1.5 py-0.5 text-amber hover:bg-amber/20">
                         确认删除
                       </button>
-                      <button type="button" onClick={() => setPendingDelete(null)} className="focus-ring rounded border border-line px-1.5 py-0.5 text-muted hover:border-cyan/50">
+                      <button type="button" onClick={() => setPendingDelete(null)} className="focus-ring shrink-0 whitespace-nowrap rounded border border-line px-1.5 py-0.5 text-muted hover:border-cyan/50">
                         取消
                       </button>
                     </div>
@@ -3190,8 +3227,18 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     <span className="draft-rule flex-1" />
                     {/* 剩余漏洞 1.7：拖结点只改布局、不改跨长 —— 跨长真相在参数表 L。
                         画布上直接写明「示意」，免得用户量着图以为是几何在驱动数值。 */}
-                    {isBeam && spanFromMeta ? (
-                      <span data-testid="canvas-not-to-scale" className="shrink-0 rounded border border-amber/40 px-1 text-[9px] leading-4 text-amber" title="跨长取自参数表 L；拖动结点只调布局，不改变计算跨长">
+                    {/* 巡检 E5：角标规则统一 —— 力学画布恒显「示意 · 不按比例」（跨长以参数表
+                        为准这件事对骨架与自建图都成立）；有 L 标注时 title 里补一句去哪看。 */}
+                    {isBeam ? (
+                      <span
+                        data-testid="canvas-not-to-scale"
+                        className="shrink-0 rounded border border-amber/40 px-1 text-[9px] leading-4 text-amber"
+                        title={
+                          spanFromMeta
+                            ? '图上没有 L 标注：跨长取自参数表 L；拖动结点只调布局，不改变计算跨长'
+                            : '示意图按坐标等比画，但跨长以参数表 / L 标注为准；拖动结点只调布局'
+                        }
+                      >
                         示意 · 不按比例
                       </span>
                     ) : null}
@@ -3606,7 +3653,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                     </p>
                   ) : (
                     <p data-testid="confirm-gate-note" className="text-[11px] leading-4 text-ok">
-                      全部已确认 · {writableParams.length} 项数值都取自归约结果
+                      全部已确认 · {writableParams.length} 项数值都取自骨架默认值
                     </p>
                   )}
                   {!allConfirmed && writableParams.length > 0 ? (
@@ -3697,27 +3744,29 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                           />
                           <span className="shrink-0 whitespace-nowrap text-[10px] text-muted">{param.unit ?? ''}</span>
                           {writeBlock ? (
-                            <span data-testid="param-readonly-hint" className="min-w-0 flex-1 break-words rounded bg-panel-2 px-1 text-[10px] leading-4 text-muted">
+                            // 巡检 C1：注文块级另起一行（basis-full），不再与数值挤同一行
+                            // 被压成逐字竖排；来源列（归约/用户）宽度不受它影响。
+                            <span data-testid="param-readonly-hint" className="min-w-0 flex-1 basis-full break-words rounded bg-panel-2 px-1 py-0.5 text-[10px] leading-4 text-muted">
                               {writeBlock}
                             </span>
                           ) : null}
                           {inertParamNote(pickId, param.key, graph?.meta ?? {}) ? (
-                            <span data-testid="param-inert-hint" className="min-w-0 flex-1 break-words rounded bg-panel-2 px-1 text-[10px] leading-4 text-faint">
+                            <span data-testid="param-inert-hint" className="min-w-0 flex-1 basis-full break-words rounded bg-panel-2 px-1 py-0.5 text-[10px] leading-4 text-faint">
                               {inertParamNote(pickId, param.key, graph?.meta ?? {})}
                             </span>
                           ) : null}
                           {noSpanLabel ? (
-                            <span data-testid="param-span-hint" className="min-w-0 flex-1 break-words text-[10px] leading-4 text-amber">
+                            <span data-testid="param-span-hint" className="min-w-0 flex-1 basis-full break-words text-[10px] leading-4 text-amber">
                               图上没有 L 标注：当前按参数表值计算，拖结点不会改 L
                             </span>
                           ) : null}
                           {outOfRange ? (
-                            <span data-testid="param-range-flag" className="min-w-0 break-words rounded bg-danger/15 px-1 text-[10px] leading-4 text-danger">
+                            <span data-testid="param-range-flag" className="min-w-0 flex-1 basis-full break-words rounded bg-danger/15 px-1 py-0.5 text-[10px] leading-4 text-danger">
                               超出 {`合法 ${param.min ?? '−∞'}~${param.max ?? '+∞'}`}
                             </span>
                           ) : null}
                           {infinite ? (
-                            <span data-testid="param-infinite-flag" className="min-w-0 flex-1 break-words rounded bg-panel-2 px-1 text-[10px] leading-4 text-muted">
+                            <span data-testid="param-infinite-flag" className="min-w-0 flex-1 basis-full break-words rounded bg-panel-2 px-1 py-0.5 text-[10px] leading-4 text-muted">
                               ∞ · 图上没有它，按规则当作不存在
                             </span>
                           ) : null}
@@ -3731,7 +3780,8 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                                   : 'text-muted'
                             }`}
                           >
-                            {derivedKeys.includes(param.key) ? '推得' : pKeys.includes(param.key) ? '题面' : isDefault ? '归约' : '用户'}
+                            {/* 巡检 D1：内部词「归约/用户」→「骨架/我改的」，跟上面「取自骨架默认值」同一套话。 */}
+                            {derivedKeys.includes(param.key) ? '推得' : pKeys.includes(param.key) ? '题面' : isDefault ? '骨架' : '我改的'}
                           </span>
                         </li>
                       );
@@ -3759,6 +3809,9 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                               data-testid={`section-${key}`}
                               value={sectionDraft[key]}
                               onChange={(event) => onSectionChange(key, event.target.value)}
+                              /* 巡检 E1：光一个字母 b / h / E 屏幕阅读器读不出是什么 —— 补全称。 */
+                              aria-label={key === 'b' ? '截面宽 b（毫米）' : key === 'h' ? '截面高 h（毫米）' : '弹性模量 E（吉帕）'}
+                              title={key === 'b' ? '截面宽 b（mm）' : key === 'h' ? '截面高 h（mm）' : '弹性模量 E（GPa）'}
                               className="w-16 rounded border border-line bg-bg px-1 py-0.5 text-right text-[11px] text-ink"
                             />
                             <span>{key === 'E' ? 'GPa' : 'mm'}</span>
@@ -3783,7 +3836,8 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
 
                   {preview ? (
                     <div className="rounded-lg border border-line bg-panel-2 p-2">
-                      <p className="text-[11px] text-ink">归约预览</p>
+                      {/* 巡检 D1：内部词「归约」→「从这张图读出」。 */}
+                      <p className="text-[11px] text-ink">从这张图读出的参数</p>
                       {preview.problems.length > 0 ? (
                         <div data-testid="structure-card" className="mt-1 rounded-lg border border-amber/50 bg-amber/10 p-2">
                           <p className="text-[10px] text-amber">结构判据 · 可执行建议</p>
@@ -3798,7 +3852,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                         <div data-testid="preview-params" className="mt-1 text-[10px] leading-4 text-muted">
                           params：
                           {Object.keys(preview.params).length === 0 ? (
-                            <span className="text-faint">这张图与骨架差异太大，归约给不出参数表 —— 点「恢复骨架」回原题，或按题型把支座 / 载荷 / 器件补回。</span>
+                            <span className="text-faint">这张图与骨架差异太大，从图上读不出参数表 —— 点「恢复骨架」回原题，或按题型把支座 / 载荷 / 器件补回。</span>
                           ) : (
                             Object.entries(preview.params).map(([key, value]) => (
                               <span key={key} className="mb-0.5 mr-1.5 inline-block whitespace-nowrap rounded border border-line/70 bg-bg px-1 font-mono">
@@ -3812,7 +3866,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                         <p className="mt-1 text-[10px] leading-4 text-muted">
                           关键语义：{critical.map((tag) => SEMANTIC_LABEL[tag] ?? tag).join(' / ')}
                           {preview.semantic.missing.length > 0 ? ` · 还缺 ${preview.semantic.missing.map((tag) => SEMANTIC_LABEL[tag] ?? tag).join(' / ')}` : ' · 已标全'}
-                          {preview.semantic.missing.length > 0 ? ' —— 在归约预览点「按拓扑标全」（还缺 ' + preview.semantic.missing.length + ' 项）即可升 F 档看等效电路' : ''}
+                          {preview.semantic.missing.length > 0 ? ' —— 在上方点「按拓扑标全」（还缺 ' + preview.semantic.missing.length + ' 项）即可核对等效电路' : ''}
                         </p>
                       ) : null}
                       {critical.length > 0 && preview.semantic.missing.length > 0 ? (
@@ -3951,7 +4005,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                         不是用户改动 —— 真正的改动台账在上方归约预览的 appliedRules。分开标注。 */}
                     <p className={EYEBROW}>求解假设 / 警告</p>
                     <p className="mt-0.5 text-[9px] leading-3 text-faint">
-                      以下是本次求解采用的假设与提醒，不算你的结构改动（改动逐条见上方归约预览）。
+                      以下是本次求解采用的假设与提醒，不算你的结构改动（改动逐条见上方「从这张图读出的参数」）。
                     </p>
                     <ul className="mt-1 space-y-0.5 text-[11px] leading-5 text-amber">
                       {solution.warnings.map((rule: string) => (
@@ -4298,10 +4352,13 @@ function ValueInput({ kind, value, onCommit }: { kind: string; value: number | u
           if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
         }}
         className={`min-w-[64px] w-full max-w-[104px] rounded border bg-bg px-1 text-[10px] outline-none focus:border-cyan/60 ${invalid ? 'border-danger' : 'border-line'}`}
-        title={`器件数值（失焦提交；${valueRangeHint(kind)}）`}
+        title={`器件数值（失焦提交；${valueRangeHint(kind)}）${shown ? ` · 换算 ${shown}` : ''}`}
       />
-      {/* W21-B B5：编辑框留原始数字方便改，旁边的读数是与画布 / 右栏同一个格式器。 */}
-      <span data-testid="device-value-formatted" className="text-[10px] text-muted">{shown || unit}</span>
+      {/* 巡检 C4：行内只留单位字母，换算读数（1kΩ）挪进 title —— 原来「1000 Ω 1kΩ」
+          三段挤在一起几乎叠字。 */}
+      <span data-testid="device-value-formatted" className="shrink-0 text-[10px] text-muted">
+        {unit}
+      </span>
       {invalid ? (
         <span data-testid="device-value-hint" className="text-[10px] text-danger">
           {valueRangeHint(kind)}
@@ -4457,12 +4514,17 @@ function wireDisplayName(graph: CanvasGraph, wireId: string): string {
  * 目标查找逻辑与 picks.ts `applyParams` 逐条对应，两边一起改。
  */
 /**
- * 剩余漏洞 2.6：某些参数在当前模式 / 求解口径下根本不参与计算 ——
- * 与其让人去台账里翻，直接在参数行标「本模式不使用」。
+ * 剩余漏洞 2.6 / 巡检 A5：某些参数在当前模式下不参与计算（或容易被误读成
+ * 「本题有个稳压管」）—— 直接在参数行说清楚，不再让人去台账里翻。
+ * 注意口径（A1 的分段模型是认真的）：series 模式 Rz **参与**计算
+ * （I=(Vs−Vf)/(R+Rz)、Vout=Vf+I·Rz），只有 Vz 用不上；zener 模式反过来。
  */
 function inertParamNote(pickId: string, key: string, meta: CanvasGraph['meta']): string | null {
-  if (pickId === 'A1' && meta.mode === 'series' && (key === 'Vz' || key === 'Rz')) {
-    return '本模式不使用（普通二极管只看 Vf；切到稳压模式才用）';
+  if (pickId === 'A1' && meta.mode === 'series' && key === 'Vz') {
+    return '本模式不使用（普通二极管只看 Vf；切到稳压模式才用）。Rz 是模型里的 2 Ω 级小电阻，参与了电流计算 —— 见求解假设。';
+  }
+  if (pickId === 'A1' && meta.mode === 'zener' && key === 'Vf') {
+    return '本模式不使用（稳压管走 Vz + Rz；切回普通二极管才用 Vf）。';
   }
   if (pickId === 'A3' && key === 'Vt') {
     return '只读常数（热电压 ≈26 mV，参与换算，不写回求解）';
@@ -4600,7 +4662,7 @@ function NotApplicableCard({ view }: { view: NotApplicableView }) {
   );
 }
 
-/* ── 三候选：缩略图 240×140 + 一句 why + 载入 / 只看看 ────────────── */
+/* ── 三候选：缩略图 240×140 + 一句 why + 载入 / 预览 ────────────── */
 
 function CandidatePanel({
   templateId,
@@ -4662,6 +4724,8 @@ function CandidatePanel({
                   data-testid="load-candidate"
                   disabled={disabled}
                   onClick={() => onLoad(candidate)}
+                  /* 巡检 B6：载入候选与「恢复骨架」一样会清空撤销历史 —— 说清楚。 */
+                  title="载入这张结构（会覆盖当前画布与撤销历史）"
                   className="focus-ring rounded border border-cyan/40 px-2 py-0.5 text-[10px] text-cyan disabled:opacity-40"
                 >
                   载入画布
@@ -4673,11 +4737,11 @@ function CandidatePanel({
                   onClick={() => onPeek(candidate)}
                   className="focus-ring rounded border border-line px-2 py-0.5 text-[10px] text-muted disabled:opacity-40"
                 >
-                  只看看
+                  预览
                 </button>
               </div>
               {peeked === candidate.id ? (
-                <p className="mt-1 text-[10px] text-cyan">只看看：图、参数与 dirty 都没动。</p>
+                <p className="mt-1 text-[10px] text-cyan">预览中：画布、参数都还没动，回到列表再点「载入画布」才生效。</p>
               ) : null}
             </article>
           );

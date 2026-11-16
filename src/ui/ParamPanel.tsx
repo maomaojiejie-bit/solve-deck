@@ -150,7 +150,7 @@ export function ParamPanel({
                     aria-label={labelled(`恢复 ${param.label} 默认值`)}
                     className="rounded px-1 text-[11px] text-muted hover:text-cyan"
                   >
-                    ↺
+                    默认
                   </button>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
@@ -239,9 +239,9 @@ export function ParamPanel({
                   disabled={writeBlock !== undefined}
                   title={writeBlock ?? '恢复默认'}
                   aria-label={writeBlock ? undefined : labelled(`恢复 ${param.label} 默认值（滑杆）`)}
-                  className="h-5 w-5 shrink-0 rounded border border-line text-[11px] leading-none text-muted enabled:hover:border-cyan/60 enabled:hover:text-cyan disabled:opacity-40"
+                  className="h-5 w-auto shrink-0 whitespace-nowrap rounded border border-line px-1 text-[9px] leading-none text-muted enabled:hover:border-cyan/60 enabled:hover:text-cyan disabled:opacity-40"
                 >
-                  ↺
+                  默认
                 </button>
               </div>
               <div className="mt-0.5 flex items-center gap-1.5">

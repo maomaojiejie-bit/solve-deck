@@ -252,7 +252,15 @@ export function labUiClick(templateId: string, state: LabUiState, hit: PointerHi
   }
   const op = outcome.verdict.op;
   if (!op) return { ...state, wire: outcome.session };
-  const next = labUiStep(templateId, state, { type: 'op', op });
+  // 巡检 A1：画布两次点击加杆的构件种类要跟模板元素走 —— 弯曲题（M3/M4/M5）
+  // 落 beam，桁架 / 杆系保持 truss。左栏「加构件」按钮路径（Lab.tsx onMember）
+  // 早已分家，这里把画布路径补齐，两条路进 ops 前的 kind 一致。
+  const element = PICKS[templateId]?.element;
+  const fixedOp =
+    op.op === 'addMember' && (element === 'beam' || element === 'bar' || element === 'shaft' || element === 'truss')
+      ? ({ ...op, kind: element === 'beam' ? 'beam' : 'truss' } as typeof op)
+      : op;
+  const next = labUiStep(templateId, state, { type: 'op', op: fixedOp });
   return { ...next, wire: outcome.session };
 }
 

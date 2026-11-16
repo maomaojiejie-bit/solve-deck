@@ -51,7 +51,7 @@ const EYEBROW = 'text-[10px] font-semibold tracking-wide text-muted';
 
 const REASON: Record<GenericResultProps['reason'], string> = {
   skeleton: '这张图与骨架不一致：讲解稿对不上，按图求解',
-  unmodeled: '图上有归约表没覆盖的元件：讲解稿算不到它，按图求解',
+  unmodeled: '图上有讲解稿覆盖不到的元件：按这张图求解',
   healed: '删掉的器件两端已合并：讲解稿按它还在推导，按图求解',
 };
 
@@ -235,6 +235,10 @@ function FramePanels({ frame, labels }: { frame: FrameSolution; labels?: Record<
           ΣFx = {frame.residual.sumFx.toExponential(2)} · ΣFy = {frame.residual.sumFy.toExponential(2)} · ΣM ={' '}
           {frame.residual.sumM.toExponential(2)}
         </p>
+        {/* 巡检 A3：跟「求解链路校核」划清界限 —— 这块查的是方程平衡，不是流程清单。 */}
+        <p className="mt-1 text-[10px] leading-4 text-faint">
+          平衡与残差属于「物理恒等式核验」；另一份「求解链路校核」（题型范围 / 黄金样例那 8 项）查的是求解流程，两份清单各自计数。
+        </p>
       </div>
       <div className="rounded-xl border border-line bg-panel/40 p-3 xl:col-span-2">
         <p className={EYEBROW}>每个构件内力端值（N 拉 / Q 顺时针 / M 下侧受拉 为正）</p>
@@ -417,7 +421,7 @@ export function GenericResult({ family, circuit, frame, measures, reason, notice
       {      /* 从零自建 / 结构改到讲解稿不适用时，通用结果以前只剩数值表 —— 连一张
           刚搭出来的图都没有。这里把当前画布按同一份 RenderSpec 只读重画一遍，
           并如实说明这是「原图」；W23 之后等效电路由下方的自动推导现算给出，
-          题库讲解稿的预置辅图仍只在骨架一致 + 关键语义标全（F 档）时随解出现。 */}
+          题库讲解稿的预置辅图仍只在骨架一致 + 关键语义标全时随解出现。 */}
       {graphSpec && graphSpec.nodes.length > 0 ? (
         <section data-testid="generic-graph-diagram" className="mb-3 rounded-xl border border-line bg-panel-2 p-3">
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">

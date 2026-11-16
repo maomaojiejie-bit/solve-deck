@@ -745,7 +745,8 @@ export function applyOp(templateId: string, graph: CanvasGraph, op: GraphOp): Op
       const kind = op.kind === 'truss' ? 'line' : 'beam';
       const id = `e-member-add-${edges.length}`;
       next.edges = [...edges, { id, from: op.from, to: op.to, kind }];
-      rules.push(`已在 ${op.from}–${op.to} 加一根${op.kind === 'truss' ? '桁架杆' : '构件'}`);
+      // 巡检 D3：弯曲题型里它该叫「梁段」而不是「桁架杆」（A1 死循环的话术源头）。
+      rules.push(`已在 ${op.from}–${op.to} 加一根${op.kind === 'truss' ? '桁架杆' : '梁段'}`);
       return { graph: next, rules };
     }
     case 'addNode': {

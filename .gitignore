@@ -28,3 +28,6 @@ taste-skill/
 .git-rewrite/
 git-rewrite/
 tmp/
+
+# 巡检 / 自动化截图证据（本地保留，不进库）
+.bsk/

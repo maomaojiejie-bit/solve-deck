@@ -14,17 +14,30 @@ import { MeasureCard } from './GenericResult.tsx';
 import type { CanvasGraph } from '../core/lab/types.ts';
 
 export function GraphMeasures({ graph }: { graph: CanvasGraph }) {
-  const solved = useMemo(() => {
-    if (graph.family !== 'beam') return null;
+  const outcome = useMemo<{ solved: ReturnType<typeof interpretQuestion> | null; refused?: string }>(() => {
+    if (graph.family !== 'beam') return { solved: null };
     try {
       const frame = frameSolve(graph);
-      return interpretQuestion(graph, 'beam', { frame });
-    } catch {
-      // 图还没成形（机构 / 没支座）时如实不渲染，不拿模板的数充数。
-      return null;
+      return { solved: interpretQuestion(graph, 'beam', { frame }) };
+    } catch (error) {
+      // 巡检 A1：解不出来也要说人话 —— 静默 return null 让「已求解」徽标
+      // 比内容乐观，用户以为拼好了梁，其实一个数都没算。
+      return { solved: null, refused: error instanceof Error ? error.message : String(error) };
     }
   }, [graph]);
+  const { solved, refused } = outcome;
 
+  if (refused) {
+    return (
+      <section data-testid="graph-measures-refused" className="mb-3 rounded-xl border border-amber/50 bg-amber/10 p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-amber">这张图的量（暂时算不了）</p>
+        <p className="mt-1 text-[11px] leading-5 text-ink">{refused}</p>
+        <p className="mt-1 text-[10px] leading-4 text-muted">
+          顶部「已求解」说的是参数表那条路；这一块是按图现算 —— 图改到能解为止，这里就会出数。
+        </p>
+      </section>
+    );
+  }
   if (!solved || solved.length === 0) return null;
   return (
     <section data-testid="graph-measures" className="mb-3 rounded-xl border border-line bg-panel-2 p-3">

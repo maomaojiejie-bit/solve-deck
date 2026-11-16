@@ -206,7 +206,14 @@ export function fmtMeasure(value: number | string, digits = 6): string {
   if (typeof value === 'string') return value;
   if (!Number.isFinite(value)) return '—';
   if (value !== 0 && Math.abs(value) < 1e-9) return '0';
-  if (Math.abs(value) >= 1e5 || (value !== 0 && Math.abs(value) < 1e-3)) return value.toExponential(3);
+  // 巡检 A4：6.667e+5 这种 JS 科学计数法在教材语境里没人这么写 —— 换成 6.667×10⁵。
+  if (Math.abs(value) >= 1e5 || (value !== 0 && Math.abs(value) < 1e-3)) {
+    const exp = value.toExponential(3);
+    const [mantissa, exponent] = exp.split('e');
+    const superscripts: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+    const sup = exponent.replace(/^(\+|-)?0*/, '').split('').map((ch) => superscripts[ch] ?? ch).join('');
+    return `${mantissa}×10${sup}`;
+  }
   const rounded = Number(value.toPrecision(digits));
   return String(rounded);
 }
@@ -239,6 +246,47 @@ export function internalChart(frame: FrameSolution): ChartSpec | undefined {
     const values = curves.flatMap((curve) => curve.samples.map(pick));
     const lo = Math.min(0, ...values);
     const hi = Math.max(0, ...values);
+    // 巡检 C6：剪力图在集中力处的跳变必须画成竖直线 —— 采样点之间有横向间距，
+    // 直接连线会变成一段斜线，被误读成坡段。跳变处补一个「同 x 双值点」：
+    // 水平走到载荷位置 → 竖直跳到新值。容忍度取量程的 1%。
+    const range = Math.max(hi - lo, 1e-9);
+    const jumpTol = range * 0.01;
+    const seriesOf = () =>
+      curves.map((curve) => {
+        const raw = curve.samples.map((sample) => [sample.gx, pick(sample)] as [number, number]);
+        if (id !== 'q') return { kind: 'line' as const, points: raw, label: curve.edgeId };
+        const stepped: [number, number][] = [];
+        for (let index = 0; index < raw.length; index += 1) {
+          const [x, y] = raw[index];
+          if (index > 0) {
+            const [px, py] = raw[index - 1];
+            if (x > px && Math.abs(y - py) > jumpTol) stepped.push([x, py]);
+          }
+          stepped.push([x, y]);
+        }
+        return { kind: 'line' as const, points: stepped, label: curve.edgeId };
+      });
+    // 巡检 C6：弯矩图把 |M|max 极值点标在图上（原来只活在文字里）。
+    const marks =
+      id === 'm' && Number.isFinite(frame.extremes.atX)
+        ? (() => {
+            let best: [number, number] | null = null;
+            let bestDist = Infinity;
+            for (const curve of curves) {
+              for (const sample of curve.samples) {
+                const d = Math.abs(sample.gx - frame.extremes.atX);
+                if (d < bestDist) {
+                  bestDist = d;
+                  best = [sample.gx, sample.M];
+                }
+              }
+            }
+            if (!best || bestDist > 1e-6) return undefined;
+            const magnitude = Math.abs(frame.extremes.Mmax);
+            const text = `|M|max ${Number(magnitude.toPrecision(4))} kN·m`;
+            return [{ x: best[0], y: best[1], text, side: (best[1] >= 0 ? 'up' : 'down') as 'up' | 'down' }];
+          })()
+        : undefined;
     return {
       id,
       title,
@@ -248,11 +296,8 @@ export function internalChart(frame: FrameSolution): ChartSpec | undefined {
       xDomain,
       yDomain: niceDomain(lo, hi),
       zeroLine: true,
-      series: curves.map((curve) => ({
-        kind: 'line' as const,
-        points: curve.samples.map((sample) => [sample.gx, pick(sample)] as [number, number]),
-        label: curve.edgeId,
-      })),
+      series: seriesOf(),
+      ...(marks ? { marks } : {}),
     };
   };
   const panels = [

@@ -65,8 +65,18 @@ export function validateWire(graph: CanvasGraph, fromKey: string, toKey: string)
   return { ok: true, op: { op: 'addEdge', from: fromKey, to: toKey, kind: 'wire' } };
 }
 
-/** 力学：两个结点 id（S5 的 n-A / n-B / n-C）。 */
-export function validateMember(graph: CanvasGraph, fromNode: string, toNode: string, enforceStatic = true): WireVerdict {
+/** 力学：两个结点 id（S5 的 n-A / n-B / n-C）。
+ *  `element` 由调用方给（PICKS[templateId].element）：弯曲题（M3/M4/M5）落 beam，
+ *  桁架 / 杆系（S5/M1/M2/M7）保持 truss（轴力杆）—— 巡检 A1：画布两次点击
+ *  加杆 previously 硬编码 truss，弯曲题里自建的梁全被当桁架杆，跨中挂集中力
+ *  直接被拒，整块内力输出静默消失。 */
+export function validateMember(
+  graph: CanvasGraph,
+  fromNode: string,
+  toNode: string,
+  enforceStatic = true,
+  element?: 'beam' | 'bar' | 'shaft' | 'truss',
+): WireVerdict {
   const joints = graph.nodes.filter((node) => node.kind === 'dot');
   const members = graph.edges.filter((edge) => edge.kind === 'line' || edge.kind === 'trussMember');
   if (fromNode === toNode || !joints.some((node) => node.id === fromNode) || !joints.some((node) => node.id === toNode)) {
@@ -82,11 +92,20 @@ export function validateMember(graph: CanvasGraph, fromNode: string, toNode: str
   if (enforceStatic && members.length + 1 > max) {
     return { ok: false, reason: `再加一根就超过静定桁架 m = 2j−3 = ${max}；先删掉一根构件，或换题型。` };
   }
-  return { ok: true, op: { op: 'addMember', from: fromNode, to: toNode, kind: 'truss' } };
+  // 落图的构件种类：给 element 就按它（弯曲题落 beam、桁架 / 杆系落 truss）；
+  // 没给就按图里已有构件推断（有 beam/shaft → beam），全 trussMember / 空图退 truss。
+  const memberKind: 'beam' | 'truss' =
+    element === 'beam' ? 'beam' : element === 'truss' || element === 'bar' || element === 'shaft' ? 'truss' : graph.edges.some((edge) => edge.kind === 'beam' || edge.kind === 'shaft') ? 'beam' : 'truss';
+  return { ok: true, op: { op: 'addMember', from: fromNode, to: toNode, kind: memberKind } };
 }
 
-export function validateConnection(graph: CanvasGraph, fromKey: string, toKey: string): WireVerdict {
+export function validateConnection(
+  graph: CanvasGraph,
+  fromKey: string,
+  toKey: string,
+  element?: 'beam' | 'bar' | 'shaft' | 'truss',
+): WireVerdict {
   return graph.family === 'beam'
-    ? validateMember(graph, nodeOf(fromKey), nodeOf(toKey))
+    ? validateMember(graph, nodeOf(fromKey), nodeOf(toKey), undefined, element)
     : validateWire(graph, fromKey, toKey);
 }
