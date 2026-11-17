@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { getTemplateRoute } from './core/templates/registry';
 import { Home } from './pages/Home';
 import { ErrorBoundary } from './ui/ErrorBoundary';
+import { CursorTrail } from './ui/CursorTrail';
 import { LoadingPlate } from './ui/LoadingPlate';
 
 const Result = lazy(() =>
@@ -124,6 +125,8 @@ export function App() {
 
   return (
     <>
+      {/* 鼠标拖尾：全站一层，纯 canvas、不进 React 状态（见 CursorTrail.tsx 注释）。 */}
+      <CursorTrail />
       {route.page === 'home' ? (
         <Home />
       ) : (
