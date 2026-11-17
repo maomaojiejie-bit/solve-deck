@@ -15,7 +15,7 @@
  */
 
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -239,18 +239,25 @@ console.log(JSON.stringify({ collided: ids.length === 2 && ids[0] === ids[1], re
   const profile = mkdtempSync(join(tmpdir(), 'ids-check-'));
   const browser = spawn(
     'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-    ['--headless=new', '--disable-gpu', '--no-first-run', '--no-proxy-server', `--user-data-dir=${profile}`, '--remote-debugging-port=9355', '--window-size=1500,1100', 'about:blank'],
+    ['--headless=new', '--disable-gpu', '--no-first-run', '--no-proxy-server', `--user-data-dir=${profile}`, '--remote-debugging-port=0', '--window-size=1500,1100', 'about:blank'],
     { stdio: 'ignore' },
   );
+  // 端口 0 + DevToolsActivePort：固定端口会被残留 headless 实例抢占，
+  // 旧实例带旧磁盘缓存 ⇒ 门禁假绿（2026-11-17 红案实测）。
+  let debugPort = 0;
+  for (let i = 0; i < 50 && !debugPort; i += 1) {
+    try { debugPort = Number(readFileSync(join(profile, 'DevToolsActivePort'), 'utf8').split('\n')[0]); } catch {}
+    if (!debugPort) await new Promise((r) => setTimeout(r, 200));
+  }
   let page = null;
   for (let i = 0; i < 50 && !page; i += 1) {
     try {
-      const targets = await (await fetch('http://127.0.0.1:9355/json/list')).json();
+      const targets = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json();
       page = targets.find((t) => t.type === 'page' && t.webSocketDebuggerUrl);
     } catch {}
     if (!page) await new Promise((r) => setTimeout(r, 200));
   }
-  if (!page) {
+  if (!debugPort || !page) {
     problems.push('⑦ / headless Edge 没起来');
   } else {
     const ws = new WebSocket(page.webSocketDebuggerUrl);
@@ -359,6 +366,19 @@ console.log(JSON.stringify({ collided: ids.length === 2 && ids[0] === ids[1], re
         ok('⑧', typeof railHit === 'string' && railHit.includes(':'), `⑧ F7 接地轨端点点击没命中引脚：${railHit}`);
       }
 
+      // F11 前置：复合展开后图不再归约回模板 → 通用求解，按设计不给参数实验场。
+      // 先断言这份契约，再恢复骨架测滑杆 —— 在通用态测滑杆是假前提。
+      const genericState = await evaluate(`JSON.stringify({
+        sliders: document.querySelectorAll('input[data-role="slider"]').length,
+        note: [...document.querySelectorAll('p')].some((p) => p.textContent.includes('参数实验场只驱动骨架参数')),
+      })`);
+      const genericParsed = JSON.parse(genericState);
+      ok('⑧', genericParsed.sliders === 0 && genericParsed.note === true, `⑧ F11 前置：通用态应无滑杆且有通用求解说明：${genericState}`);
+      await evaluate("[...document.querySelectorAll('button')].find((b) => b.textContent.includes('恢复骨架'))?.click()");
+      await new Promise((r) => setTimeout(r, 350));
+      await evaluate("document.querySelector('[data-testid=\"reset-skeleton-yes\"]')?.click()");
+      await new Promise((r) => setTimeout(r, 700));
+
       // F11：参数滑杆 aria-valuenow = 工程真值（与同一参数的数字输入框一致），valuetext 带单位非空。
       // R-36b：ParamPanel 数值行拆成两行（滑杆行 / 数值行），改用 data-param-input 按
       // 参数键配对，不再假设滑杆和数字框在同一行 div 里。
@@ -394,7 +414,10 @@ console.log(JSON.stringify({ collided: ids.length === 2 && ids[0] === ids[1], re
     }
     ws.close();
   }
-  browser.kill();
+  spawnSync('taskkill', ['/PID', String(browser.pid), '/T', '/F'], { stdio: 'ignore' });
+  // Edge 可能换 PID 重启、脱离 spawn 父子链：按唯一 profile 路径兜底清整棵树，
+  // 不留残留实例给下一轮门禁抢端口 / 喂旧缓存。
+  spawnSync('powershell', ['-NoProfile', '-Command', `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*${profile}*' -and $_.ProcessId -ne $PID } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { stdio: 'ignore' });
   server.close();
 }
 
@@ -405,3 +428,4 @@ if (problems.length > 0) {
   for (const problem of problems) console.error(`- ${problem}`);
   process.exit(1);
 }
+process.exit(0);

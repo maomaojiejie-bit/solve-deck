@@ -17,7 +17,7 @@ import { existsSync, readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 
 const root = process.cwd();
 const dist = resolve(root, 'dist');
@@ -56,21 +56,29 @@ await new Promise((done) => server.listen(5196, '127.0.0.1', done));
 const profile = mkdtempSync(join(tmpdir(), 'paramlab-'));
 const browser = spawn(
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  ['--headless=new', '--disable-gpu', '--no-first-run', '--no-proxy-server', `--user-data-dir=${profile}`, '--remote-debugging-port=9352', '--window-size=1500,1100', 'about:blank'],
+  ['--headless=new', '--disable-gpu', '--no-first-run', '--no-proxy-server', `--user-data-dir=${profile}`, '--remote-debugging-port=0', '--window-size=1500,1100', 'about:blank'],
   { stdio: 'ignore' },
 );
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// 端口 0 + DevToolsActivePort：固定端口会被残留 headless 实例抢占 ——
+// 旧实例带旧磁盘缓存 ⇒ 假绿；socket 连到别人家的浏览器 ⇒ PASS 后不退、卡死整条 build。
+let debugPort = 0;
+for (let i = 0; i < 50 && !debugPort; i += 1) {
+  try { debugPort = Number(readFileSync(join(profile, 'DevToolsActivePort'), 'utf8').split('\n')[0]); } catch {}
+  if (!debugPort) await sleep(200);
+}
+
 
 let page;
 for (let i = 0; i < 50; i += 1) {
   try {
-    const targets = await (await fetch('http://127.0.0.1:9352/json/list')).json();
+    const targets = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json();
     page = targets.find((t) => t.type === 'page' && t.webSocketDebuggerUrl);
     if (page) break;
   } catch {}
   await sleep(200);
 }
-if (!page) throw new Error('headless 浏览器没起来');
+if (!debugPort || !page) throw new Error('headless 浏览器没起来');
 
 const socket = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((open, reject) => {
@@ -368,7 +376,11 @@ await runCase('A3', 'Rc', '2000', '4700', '电路 A3');
 }
 
 try {
-  browser.kill();
+  socket.close();
+  spawnSync('taskkill', ['/PID', String(browser.pid), '/T', '/F'], { stdio: 'ignore' });
+  // Edge 可能换 PID 重启、脱离 spawn 父子链：按唯一 profile 路径兜底清整棵树，
+  // 不留残留实例给下一轮门禁抢端口 / 喂旧缓存。
+  spawnSync('powershell', ['-NoProfile', '-Command', `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*${profile}*' -and $_.ProcessId -ne $PID } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { stdio: 'ignore' });
   server.close();
   rmSync(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 300 });
 } catch {}
@@ -380,3 +392,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 console.log(`PASS：${checks} 项（参数实验场：M3 改 L/a、A3 改 Rc → 确认闸门 / 三处同源 / 结果跟着变）`);
+process.exit(0);

@@ -21,7 +21,7 @@ import { existsSync, readFileSync, mkdtempSync, rmSync, statSync } from 'node:fs
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 
 const root = process.cwd();
 const dist = resolve(root, 'dist');
@@ -42,7 +42,6 @@ const ok = (name, pass, extra = '') => {
 };
 
 const PORT = 5198;
-const CDP = 9354;
 const server = createServer((req, res) => {
   const path = decodeURIComponent((req.url ?? '/').split('?')[0].split('#')[0]);
   const candidate = resolve(dist, `.${path === '/' ? '/index.html' : path}`);
@@ -62,21 +61,29 @@ await new Promise((done) => server.listen(PORT, '127.0.0.1', done));
 const profile = mkdtempSync(join(tmpdir(), 'coherence-'));
 const browser = spawn(
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-  ['--headless=new', '--disable-gpu', '--no-first-run', '--no-proxy-server', `--user-data-dir=${profile}`, `--remote-debugging-port=${CDP}`, '--window-size=1500,1100', 'about:blank'],
+  ['--headless=new', '--disable-gpu', '--no-first-run', '--no-proxy-server', `--user-data-dir=${profile}`, '--remote-debugging-port=0', '--window-size=1500,1100', 'about:blank'],
   { stdio: 'ignore' },
 );
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// 端口 0 + DevToolsActivePort：固定端口会被残留 headless 实例抢占 ——
+// 旧实例带旧磁盘缓存 ⇒ 假绿；socket 连到别人家的浏览器 ⇒ PASS 后不退、卡死整条 build。
+let debugPort = 0;
+for (let i = 0; i < 50 && !debugPort; i += 1) {
+  try { debugPort = Number(readFileSync(join(profile, 'DevToolsActivePort'), 'utf8').split('\n')[0]); } catch {}
+  if (!debugPort) await sleep(200);
+}
+
 
 let page;
 for (let i = 0; i < 50; i += 1) {
   try {
-    const targets = await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json();
+    const targets = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json();
     page = targets.find((t) => t.type === 'page' && t.webSocketDebuggerUrl);
     if (page) break;
   } catch {}
   await sleep(200);
 }
-if (!page) throw new Error('headless 浏览器没起来');
+if (!debugPort || !page) throw new Error('headless 浏览器没起来');
 const socket = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((open, reject) => {
   socket.addEventListener('open', open, { once: true });
@@ -405,7 +412,11 @@ ok('⑧ 首页不出现裸「库」与 check:mech-parity', libHits.length === 0 
 }
 
 try {
-  browser.kill();
+  socket.close();
+  // 同步清理：spawn _fire-and-forget_ 会在 node 立即 exit 时被掐断（2026-11-17 实测），
+  // 残留浏览器下一轮抢端口 / 喂旧缓存 ⇒ 假绿或挂死。spawnSync 等清完再退。
+  spawnSync('taskkill', ['/PID', String(browser.pid), '/T', '/F'], { stdio: 'ignore' });
+  spawnSync('powershell', ['-NoProfile', '-Command', `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*${profile}*' -and $_.ProcessId -ne $PID } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { stdio: 'ignore' });
   server.close();
   rmSync(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 300 });
 } catch {}
@@ -417,3 +428,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 console.log(`PASS：${checks} 项（A 批同源与口径 / B 批画布 fit、打印稿 / C0 画布尺寸·屏幕表·恒零做全 / C1 内部名·a11y）`);
+process.exit(0);

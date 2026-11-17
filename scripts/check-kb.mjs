@@ -19,7 +19,7 @@
  *  - 变异四：把 live 图的 templateId 写错 → ④ 必红（引用落地断言）
  */
 import { existsSync, readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -296,18 +296,25 @@ if (!existsSync(join(root, '..', 'dist', 'index.html'))) {
   const profile = mkdtempSync(join(tmpdir(), 'kb-check-'));
   const browser = spawn(
     'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-    ['--headless=new', '--disable-gpu', '--no-first-run', '--no-proxy-server', `--user-data-dir=${profile}`, '--remote-debugging-port=9357', '--window-size=1500,1100', 'about:blank'],
+    ['--headless=new', '--disable-gpu', '--no-first-run', '--no-proxy-server', `--user-data-dir=${profile}`, '--remote-debugging-port=0', '--window-size=1500,1100', 'about:blank'],
     { stdio: 'ignore' },
   );
+  // 端口 0 + DevToolsActivePort：固定端口会被残留 headless 实例抢占 ——
+  // 旧实例带旧磁盘缓存 ⇒ 假绿；socket 连到别人家的浏览器 ⇒ PASS 后不退、卡死整条 build。
+  let debugPort = 0;
+  for (let i = 0; i < 50 && !debugPort; i += 1) {
+    try { debugPort = Number(readFileSync(join(profile, 'DevToolsActivePort'), 'utf8').split('\n')[0]); } catch {}
+    if (!debugPort) await new Promise((r) => setTimeout(r, 200));
+  }
   let page = null;
   for (let i = 0; i < 50 && !page; i += 1) {
     try {
-      const targets = await (await fetch('http://127.0.0.1:9357/json/list')).json();
+      const targets = await (await fetch(`http://127.0.0.1:${debugPort}/json/list`)).json();
       page = targets.find((t) => t.type === 'page' && t.webSocketDebuggerUrl);
     } catch {}
     if (!page) await new Promise((r) => setTimeout(r, 200));
   }
-  if (!page) {
+  if (!debugPort || !page) {
     problems.push('⑦ / headless Edge 没起来');
   } else {
     const ws = new WebSocket(page.webSocketDebuggerUrl);
@@ -383,7 +390,10 @@ if (!existsSync(join(root, '..', 'dist', 'index.html'))) {
     console.log('⑦  CDP：主页=搜索页（无示例清单/有搜索框+解题面板）、搜「莫尔圆」首条正确、索引 52 行、条目页骨架与交接完整');
     ws.close();
   }
-  browser.kill();
+  spawnSync('taskkill', ['/PID', String(browser.pid), '/T', '/F'], { stdio: 'ignore' });
+  // Edge 可能换 PID 重启、脱离 spawn 父子链：按唯一 profile 路径兜底清整棵树，
+  // 不留残留实例给下一轮门禁抢端口 / 喂旧缓存。
+  spawnSync('powershell', ['-NoProfile', '-Command', `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*${profile}*' -and $_.ProcessId -ne $PID } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { stdio: 'ignore' });
   server.close();
 }
 
@@ -395,3 +405,4 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(`PASS：${checks} 项（知识库地基）`);
+process.exit(0);
