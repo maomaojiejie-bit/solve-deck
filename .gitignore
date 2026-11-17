@@ -31,8 +31,6 @@ tmp/
 
 # 巡检 / 自动化截图证据（本地保留，不进库）
 .bsk/
-# 随手截的巡检/验证图；正式站点截图（docs/shots/<id>.png）与成批归档（docs/shots/audit-*/）仍然入库
-docs/shots/audit-*.png
-docs/shots/audit2-*.png
-docs/shots/fix-*.png
-docs/shots/verify-*.png
+# docs/ 整棵目录是本地过程材料（任务书 / 计划书 / 巡检报告 / 截图），不进库；
+# 站点真正要用的产品图在 public/shots/r32-product.png。
+docs/

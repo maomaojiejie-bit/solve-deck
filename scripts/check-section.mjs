@@ -7,8 +7,7 @@
  *  ③ 双 rot 收口：attach.ts 不再导出 dirToRot，GraphOp / 门禁 / UI 不再出现图元角 270 断言；
  *  ④ 贴题页只有一张表，结构草稿收进 caption，来源列仍在；
  *  ⑤ A7 点名：中文名 + kind + 位置 id，netSolve 不再吐「暂不支持」万能句；
- *  ⑥ debt 表 D4–D7 四条带触发条件；
- *  ⑦ 红线：examples / templates 的 24 小时内 mtime 与本批无关、零新依赖、既有门禁条数不降。
+ *  ⑥ 红线：examples / templates 的 24 小时内 mtime 与本批无关、零新依赖、既有门禁条数不降。
  */
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
@@ -39,7 +38,6 @@ const deviceNames = read('src/core/lab/deviceNames.ts');
 const checkAttach = read('scripts/check-attach.mjs');
 const checkPointer = read('scripts/check-pointer.mjs');
 const paramlab = read('scripts/check-paramlab.mjs');
-const debt = read('docs/交接-P45数值加固.md');
 const pkg = JSON.parse(read('package.json'));
 
 /* ── ① 右栏截面输入 ───────────────────────────────────────────── */
@@ -81,13 +79,7 @@ ok('⑤', /unknownDeviceNote\(graph\)/.test(netSolve), '⑤ netSolve 还在吐�
 ok('⑤', !/暂不支持，先删掉它或换题型/.test(netSolve), '⑤ 旧的万能拒答文案没删');
 ok('⑤', !/unsupported/.test(read('src/core/lab/deviceNames.ts').replace(/^ \*.*$/gm, '')), '⑤ 点名文案里出现裸 unsupported');
 
-/* ── ⑥ debt 表 ───────────────────────────────────────────────── */
-for (const id of ['D4', 'D5', 'D6', 'D7']) {
-  ok('⑥', debt.includes(`| ${id} |`), `⑥ debt 表缺 ${id}`);
-}
-ok('⑥', /触发条件/.test(debt) && /唯一能答的那型/.test(debt), '⑥ debt 表没写触发条件');
-
-/* ── ⑦ 红线 ──────────────────────────────────────────────────── */
+/* ── ⑥ 红线 ──────────────────────────────────────────────────── */
 /* 快照「不许手改」的判据是 mtime 截断。截断日期推进规则：每次走完
  * build-example.mjs 再生 + check-p3 复验的正规链之后，把日期推到再生时刻 ——
  * 红线真正要抓的是「手改了快照却没再生 / 没复验」，不是再生本身。
@@ -96,16 +88,16 @@ ok('⑥', /触发条件/.test(debt) && /唯一能答的那型/.test(debt), '⑥ 
  * 后按正规链重生成 M1/M2/M3/M3-cantilever/M4/M5/M8。截断取 21:30。
  * 下一次正规再生 / 历史重写后同样把日期往前推。 */
 const touchedRecently = (path) => statSync(join(root, path)).mtimeMs >= new Date('2026-11-16T21:30:00+08:00').getTime();
-ok('⑦', !['src/examples/M3.json', 'src/examples/M5.json', 'src/examples/A3.json', 'src/examples/A7.json'].some(touchedRecently), '⑦ 本批动了 examples 快照');
-ok('⑦', !touchedRecently('src/core/templates/mechanics/M3.ts') || !/求解内核|与基准题逐字段对拍/.test(readFileSync(join(root, 'src/core/templates/mechanics/M3.ts'), 'utf8')), '⑦ 模板文案被 C1 批改过且没回退干净（templates 文案被快照 P3 钉住，改文案=快照漂移）');
-ok('⑦', Object.keys(pkg.dependencies ?? {}).length === 3 && Object.keys(pkg.devDependencies ?? {}).length === 12 && !pkg.scripts['check:section'].includes('node_modules'), '⑦ 依赖数变了 / 引入了新依赖');
-ok('⑦', /check:measures/.test(pkg.scripts.build) && /check:section/.test(pkg.scripts.check), '⑦ 新门禁没接进链');
-ok('⑦', /mmax/.test(paramlab) && /结论卡上的 \|M\|max 跟着变/.test(paramlab), '⑦ check:paramlab 的 M3 没有改硬到结论卡 |M|max');
+ok('⑥', !['src/examples/M3.json', 'src/examples/M5.json', 'src/examples/A3.json', 'src/examples/A7.json'].some(touchedRecently), '⑥ 本批动了 examples 快照');
+ok('⑥', !touchedRecently('src/core/templates/mechanics/M3.ts') || !/求解内核|与基准题逐字段对拍/.test(readFileSync(join(root, 'src/core/templates/mechanics/M3.ts'), 'utf8')), '⑥ 模板文案被 C1 批改过且没回退干净（templates 文案被快照 P3 钉住，改文案=快照漂移）');
+ok('⑥', Object.keys(pkg.dependencies ?? {}).length === 3 && Object.keys(pkg.devDependencies ?? {}).length === 12 && !pkg.scripts['check:section'].includes('node_modules'), '⑥ 依赖数变了 / 引入了新依赖');
+ok('⑥', /check:measures/.test(pkg.scripts.build) && /check:section/.test(pkg.scripts.check), '⑥ 新门禁没接进链');
+ok('⑥', /mmax/.test(paramlab) && /结论卡上的 \|M\|max 跟着变/.test(paramlab), '⑥ check:paramlab 的 M3 没有改硬到结论卡 |M|max');
 
-console.log(`W20 源码断言：截面输入 / 结论卡 / 双 rot 收口 / 单表 / A7 点名 / debt D4–D7 / 红线`);
+console.log(`W20 源码断言：截面输入 / 结论卡 / 双 rot 收口 / 单表 / A7 点名 / 红线`);
 if (problems.length > 0) {
   console.error(`FAIL：${problems.length}/${checks} 项未通过`);
   for (const problem of problems) console.error(`- ${problem}`);
   process.exit(1);
 }
-console.log(`PASS：${checks} 项（W20 源码与红线：截面 / rot / 单表 / 点名 / debt / 红线）`);
+console.log(`PASS：${checks} 项（W20 源码与红线：截面 / rot / 单表 / 点名 / 红线）`);

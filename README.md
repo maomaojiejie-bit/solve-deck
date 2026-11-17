@@ -66,7 +66,7 @@ src/
   confidence/             构建期校验与置信度
 scripts/                  门禁（check-*.mjs）与快照生成脚本
 public/kb/                知识库插图
-docs/shots/               过程截图（站点只带 About 实际引用的 r32-product.png）
+public/shots/             站点用图（About 页的产品图 r32-product.png）
 ```
 
 ## 一条题怎么走
@@ -128,8 +128,8 @@ node scripts/build-example.mjs A3 --config=CB --id=A3-CB
 ## 站点发布
 
 - 构建：`npm run build`，产物在 `dist/`。
-- 只上传 `dist/`；`README.md`、巡检报告、`docs/shots` 里的过程截图都不会进站点。
-- `docs/shots` 只允许 `r32-product.png` 进入 `dist/shots/`；这是 `vite.config.ts` 里的 `SITE_SHOTS` 白名单。
+- 只上传 `dist/`；`README.md` 与本地过程材料（`docs/`、巡检 md）都不会进站点。
+- 站点用图放 `public/shots/`，构建时由 Vite 原样拷进 `dist/shots/`（不再走自定义白名单插件）。
 - Qoder Sites 发布需要 `prepare_site` 的 `projectRoot` 指向项目根、`webDirectory: "dist"`，然后 `publish_site` 并确认 `published: true`。
 
 ## 给 AI / 自动化代理的工作约定
@@ -142,7 +142,7 @@ node scripts/build-example.mjs A3 --config=CB --id=A3-CB
 - 不手改 `src/examples/*.json`；必须用 `build-example` 生成。
 - 不把模板参数硬套到通用求解的图上；确认闸门要跟路由走。
 - 不在运行时新增网络请求；AI 识图必须保持默认关、手动触发。
-- 不把 `docs/`、巡检 md、过程截图打进 `dist`。
+- 不把本地过程材料（`docs/`、巡检 md、过程截图）打进 `dist`。
 - 不用未验证的数字写「已验证 / 已通过」。
 
 ### 改了这些地方要特别小心
