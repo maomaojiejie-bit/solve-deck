@@ -236,6 +236,17 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [cursor, setCursor] = useState<[number, number] | null>(null);
   const [fullscreenDenied, setFullscreenDenied] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  // 全屏进出都换了一整块视口：不重 fit 视图就停在旧宽高比上。
+  useEffect(() => {
+    const onChange = () => {
+      const on = document.fullscreenElement === wrapRef.current;
+      setIsFullscreen(on);
+      setView(parseBox(fitBox));
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, [fitBox]);
   const [hoverPin, setHoverPin] = useState<string | null>(null);
   /**
    * 黑盒 #2：力学族结点圆心 r=8 的引脚热区盖住了 [data-node] r=18 的拖动热区，
@@ -606,7 +617,7 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
   return (
     <div
       ref={wrapRef}
-      className={`relative select-none ${panning || spaceHeld ? 'cursor-grab' : ''}`}
+      className={`relative select-none ${isFullscreen ? 'fixed inset-0 z-50 bg-bg' : ''} ${panning || spaceHeld ? 'cursor-grab' : ''}`}
       style={{ touchAction: 'none', WebkitUserDrag: 'none' } as React.CSSProperties}
       // R2-T1：可拖元素是 SVG 图元（不走 HTML5 drag API，draggable 属性不适用），
       // 原生 dragstart 会冒泡到容器 —— 在容器上拦掉，配合 pointerdown preventDefault 双保险。

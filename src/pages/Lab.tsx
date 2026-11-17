@@ -2203,7 +2203,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   {verdict.tier === 'F' ? '数值与等效图都对上了' : verdict.tier === 'N' ? '数值已验证（等效图未核）' : '不适用'} · {verdict.headline}
                 </span>
               ) : null}
-              <div className="ml-auto flex shrink-0 flex-wrap justify-end gap-1.5">
+              <div className="ml-auto flex min-w-0 flex-wrap justify-end gap-1.5">
                 <button
                   type="button"
                   data-testid="undo-button"
@@ -2415,7 +2415,7 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                   <button
                     type="button"
                     data-testid="jump-to-result"
-                    onClick={() => document.getElementById('lab-result')?.scrollIntoView({ block: 'start' })}
+                    onClick={() => resultSectionRef.current?.scrollIntoView({ block: 'start' })}
                     className="focus-ring whitespace-nowrap rounded-[4px] border border-ok/50 px-2.5 py-1 text-[11px] text-ok hover:bg-ok/10"
                   >
                     看结论 ↓
