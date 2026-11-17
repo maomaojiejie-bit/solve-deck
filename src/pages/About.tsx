@@ -141,7 +141,7 @@ export function About({ onBack }: AboutProps) {
         <section data-testid="kb-section">
           <h2 className="mb-2 text-[20px] font-medium text-ink">知识库</h2>
           <p className="max-w-[620px] text-[15px] leading-7 text-muted">
-            知识点覆盖电路、数字、材力、理力四科，另有大学物理 / 高数 / C·C# 基础扩展。每条给四样东西：怎么下手（解题思路）、
+            知识点覆盖电路、数字、材力、理力四科，另有大学物理 / 高数 / C 基础扩展。每条给四样东西：怎么下手（解题思路）、
             哪几个公式够用、一张图、老师嘴上说过但书上不写的那种坑。能算的题型在条目页底部有按钮，
             点过去题型已经替你选好。搜索支持打错字——搜「莫而圆」也找得到莫尔圆。
           </p>

@@ -14,7 +14,7 @@ const SUBJECT_LABEL: Record<Subject, string> = {
   statics: '理论力学',
   physics: '大学物理',
   math: '高等数学',
-  programming: '程序设计 · C/C#',
+  programming: '程序设计 · C',
 };
 const SUBJECT_ORDER: Subject[] = ['circuit', 'digital', 'mechanics', 'statics', 'physics', 'math', 'programming'];
 

@@ -531,4 +531,34 @@ export const CIRCUIT: KnowledgeEntry[] = [
     pitfalls: ['线量相量混乘——根号三关系只在星形线电压与相电压之间成立。'],
     related: ['circuit.resonance'],
   },
+  {
+    id: 'circuit.mutual-inductance',
+    subject: 'circuit',
+    chapter: '只讲专题',
+    title: '互感、同名端与理想变压器',
+    aliases: ['互感', '同名端', '耦合电感', '理想变压器'],
+    oneLine: '互感电压由同名端定号，理想变压器按匝比换电压电流阻抗。',
+    approach: [
+      '标同名端：两电流同进同名端时，互感电压与自感电压同号。',
+      '列回路方程，把 M·di/dt 项按同名端定的符号补进去。',
+      '串联去耦：顺接取 L1+L2+2M，反接取 L1+L2-2M。',
+      '理想变压器用三条：电压比 n、电流比 1/n、阻抗折算 n²。',
+    ],
+    formulas: [
+      { tex: 'u_2 = M\\,\\frac{\\mathrm{d}i_1}{\\mathrm{d}t}', note: '互感电压，符号由同名端定' },
+      { tex: 'L_{\\text{顺}} = L_1 + L_2 + 2M', note: '顺接串联去耦' },
+      { tex: 'k = \\frac{M}{\\sqrt{L_1 L_2}} \\le 1', note: '耦合系数' },
+      { tex: 'Z_{\\text{in}} = n^2 Z_L', note: '副边负载折算到原边' },
+    ],
+    points: [
+      '同名端只影响互感项符号，自感项永远为正。',
+      '全耦合 k=1 且无损耗，才谈得上理想变压器。',
+      '阻抗折算把副边负载乘 n² 搬到原边，两边就解耦。',
+      '空心变压器用去耦等效或反映阻抗，别硬套理想式。',
+    ],
+    pitfalls: [
+      '同名端标反，互感项符号全错，等效电感差一个 2M。',
+    ],
+    related: ['circuit.resonance', 'circuit.transient-first-order'],
+  },
 ];

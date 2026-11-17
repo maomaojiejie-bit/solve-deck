@@ -381,4 +381,33 @@ export const STATICS: KnowledgeEntry[] = [
     pitfalls: ['无阻尼的放大系数公式到处套——有阻尼时分母还有那一项。'],
     related: ['statics.kinematics', 'statics.dynamics'],
   },
+  {
+    id: 'statics.impulse-momentum',
+    subject: 'statics',
+    chapter: '只讲专题',
+    title: '动量定理与动量矩定理',
+    aliases: ['动量定理', '动量矩', '冲量', '动量守恒'],
+    oneLine: '力对时间积累改动量，力矩对时间积累改动量矩。',
+    approach: [
+      '选系统只画外力：内力成对抵消，不进动量方程。',
+      '列动量定理：末动量减初动量等于外力冲量之和。',
+      '找守恒：某方向外力冲量为零，该方向动量守恒。',
+      '转动取矩：对定点或质心列动量矩定理，刚体用 Jω。',
+    ],
+    formulas: [
+      { tex: '\\vec{p}_2 - \\vec{p}_1 = \\sum \\int \\vec{F}\\,\\mathrm{d}t', note: '动量定理' },
+      { tex: '\\frac{\\mathrm{d}\\vec{L}_O}{\\mathrm{d}t} = \\sum \\vec{M}_O', note: '对定点 O 的动量矩定理' },
+      { tex: 'L_C = J_C\\,\\omega', note: '定轴转动刚体对质心' },
+    ],
+    points: [
+      '碰撞用动量守恒加恢复系数，不去算接触力。',
+      '动量矩守恒看外力矩为零，不是看外力为零。',
+      '对质心取矩形式最简，惯性力矩不出现。',
+      '冲量是矢量，按方向投影后再相加。',
+    ],
+    pitfalls: [
+      '把守恒条件记成瞬时合外力为零——要看整个过程的冲量。',
+    ],
+    related: ['statics.dynamics', 'statics.kinematics'],
+  },
 ];

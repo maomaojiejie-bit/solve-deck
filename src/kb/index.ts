@@ -13,7 +13,7 @@ import { MATH } from './entries/math.ts';
 import { PROGRAMMING } from './entries/programming.ts';
 import type { KnowledgeEntry } from './types.ts';
 
-/** 全部条目：工科四科按账本顺序在前，基础扩展（大物/高数/C·C#）在后。 */
+/** 全部条目：工科四科按账本顺序在前，基础扩展（大物/高数/C）在后。 */
 export const KB: KnowledgeEntry[] = [
   ...CIRCUIT,
   ...DIGITAL,

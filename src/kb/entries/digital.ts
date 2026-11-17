@@ -377,4 +377,32 @@ export const DIGITAL: KnowledgeEntry[] = [
     pitfalls: ['用缓慢的边沿去触发单稳——脉宽会跟着触发沿漂。'],
     related: ['digital.flip-flops', 'digital.gate-electrical'],
   },
+  {
+    id: 'digital.pld-fpga',
+    subject: 'digital',
+    chapter: '只讲专题',
+    title: '可编程逻辑器件：从 PLD 到 FPGA',
+    aliases: ['可编程逻辑', 'PLD', 'FPGA', '查找表'],
+    oneLine: '与或阵列定逻辑，FPGA 用查找表加触发器拼出任意电路。',
+    approach: [
+      '认结构：PROM 固定与可编程或，PAL 相反，GAL 可擦写。',
+      'CPLD 看宏单元与互连，适合组合逻辑和简单时序。',
+      'FPGA 看基本单元：LUT + 触发器 + 进位链，逻辑靠配置位。',
+      '走流程：硬件描述语言 → 综合网表 → 布局布线 → 下载配置。',
+    ],
+    formulas: [
+      { tex: '2^n', note: 'n 输入查找表需要的配置位数' },
+      { tex: '\\text{LUT} \\equiv \\text{真值表存储}', note: '查找表的本质' },
+    ],
+    points: [
+      'LUT 本质是小存储器，把真值表直接存进去。',
+      'SRAM 型 FPGA 掉电丢配置，上电要从外部存储重载。',
+      'CPLD 掉电不丢，互连延时确定，时序更好预估。',
+      '资源超限先看 LUT 与触发器用量，再改描述写法。',
+    ],
+    pitfalls: [
+      '把硬件当软件顺序执行：阻塞赋值会综合出意外锁存器。',
+    ],
+    related: ['digital.memory', 'digital.combinational-design'],
+  },
 ];
