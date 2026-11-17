@@ -24,13 +24,28 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createServer } from 'node:http';
-import katex from 'katex';
-import { KB, KB_BY_ID, KB_INDEX } from '../src/kb/index.ts';
-import { detectIntent, INTENT_CASES } from '../src/kb/intent.ts';
-import { searchKb } from '../src/kb/search.ts';
-import { getTemplateRoute } from '../src/core/templates/registry.ts';
-
 const root = dirname(fileURLToPath(import.meta.url));
+
+// 崩溃自愈：变异子进程被外部杀掉时 finally 来不及还原（2026-11-17 实测：
+// 残留在 intent.ts 的 '// MUTATION' 行让 ① 十条题面全判 concept）。
+// 必须在 import 项目模块之前清掉——静态 import 会先把变异版代码绑进本进程。
+// 子进程（变异测试）必须看到父进程刚注入的变异，不参与自愈。
+if (process.env.KB_CHILD !== '1') for (const [rel, marker] of [
+  ['src/kb/intent.ts', '// MUTATION'],
+  ['src/kb/entries/circuit.ts', 'circuit.mut-bad-'],
+]) {
+  const file = join(root, '..', rel);
+  const text = readFileSync(file, 'utf8');
+  if (!text.includes(marker)) continue;
+  writeFileSync(file, text.split('\n').filter((line) => !line.includes(marker)).join('\n'), 'utf8');
+  console.warn('警告：' + rel + ' 残留上次变异行（' + marker + '），已自动清除');
+}
+
+const katex = (await import('katex')).default;
+const { KB, KB_BY_ID, KB_INDEX } = await import('../src/kb/index.ts');
+const { detectIntent, INTENT_CASES } = await import('../src/kb/intent.ts');
+const { searchKb } = await import('../src/kb/search.ts');
+const { getTemplateRoute } = await import('../src/core/templates/registry.ts');
 const problems = [];
 const warnings = [];
 let checks = 0;
