@@ -18,7 +18,7 @@ function prefersReducedMotion(): boolean {
 /**
  * 深色模式切换钮：只做一件事 —— 翻转 <html> 上的 data-theme，
  * 值的替换全部发生在 tokens.css 的 dark 变量层。
- * 首选项落在 localStorage('sd-theme')；初次访问跟随系统 prefers-color-scheme
+ * 首选项落在 localStorage('sd-theme')；**没有显式选择时默认深色**（不再跟随系统）
  * （由 index.html 的内联脚本在渲染前设置，避免首屏闪色）。
  *
  * 动效（motion.css ⑱）：主题是一整页颜色，硬切会像闪一下 —— 所以让新主题

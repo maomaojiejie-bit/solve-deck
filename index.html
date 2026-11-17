@@ -6,20 +6,17 @@
     <meta name="color-scheme" content="light dark" />
     <title>拆解台 · SolveDeck</title>
     <script>
-      /* 深色模式防闪烁：渲染前定主题 —— localStorage 优先，否则跟随系统。 */
+      /* 深色模式防闪烁：渲染前定主题 —— localStorage 里的显式选择优先，其余一律深色（站内默认深色）。 */
       (function () {
         try {
           var saved = localStorage.getItem('sd-theme');
-          var theme =
-            saved === 'dark' || saved === 'light'
-              ? saved
-              : window.matchMedia('(prefers-color-scheme: dark)').matches
-                ? 'dark'
-                : 'light';
+          var theme = saved === 'dark' || saved === 'light' ? saved : 'dark';
           document.documentElement.dataset.theme = theme;
           document.documentElement.style.colorScheme = theme;
         } catch (e) {
-          /* 存储不可用：保持浅色 */
+          /* 存储不可用：也按默认深色来，别先闪一下浅色 */
+          document.documentElement.dataset.theme = 'dark';
+          document.documentElement.style.colorScheme = 'dark';
         }
       })();
     </script>
