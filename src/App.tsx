@@ -17,6 +17,7 @@ const DigitalLab = lazy(() =>
 );
 const KbIndex = lazy(() => import('./pages/KbIndex').then((module) => ({ default: module.KbIndex })));
 const KbEntry = lazy(() => import('./pages/KbEntry').then((module) => ({ default: module.KbEntry })));
+const Mine = lazy(() => import('./pages/Mine').then((module) => ({ default: module.Mine })));
 
 type Route =
   | { page: 'home' }
@@ -24,6 +25,7 @@ type Route =
   | { page: 'wizard' }
   | { page: 'solve' }
   | { page: 'scope' }
+  | { page: 'mine' }
   | { page: 'lab'; templateId?: string }
   | { page: 'digital' }
   | { page: 'kb' }
@@ -37,6 +39,7 @@ function parseRoute(): Route {
   if (hash === 'wizard') return { page: 'wizard' };
   if (hash === 'solve') return { page: 'solve' };
   if (hash === 'scope') return { page: 'scope' };
+  if (hash === 'mine') return { page: 'mine' };
   if (hash === 'lab') return { page: 'lab' };
   if (hash === 'lab/digital') return { page: 'digital' };
   if (hash === 'kb') return { page: 'kb' };
@@ -81,6 +84,8 @@ export function App() {
               ? '我有道题 · 拆解台'
               : route.page === 'scope'
                 ? '范围判别 · 拆解台'
+                : route.page === 'mine'
+                  ? '我的 · 拆解台'
                 : route.page === 'lab'
                   ? '装配台 · 拆解台'
               : route.page === 'digital'
@@ -139,6 +144,8 @@ export function App() {
             <Solve onBack={backHome} onStart={navigate} onToast={showToast} />
           ) : route.page === 'scope' ? (
             <Scope onBack={backHome} />
+          ) : route.page === 'mine' ? (
+            <Mine onBack={backHome} onStart={navigate} onToast={showToast} />
           ) : route.page === 'lab' ? (
             <Lab
               templateId={route.templateId}

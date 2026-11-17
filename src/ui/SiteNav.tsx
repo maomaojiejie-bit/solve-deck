@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 /**
- * 黑盒 #31：全站同一套导航、同一顺序（知识库 · 数字求值 · 范围 · 页面专属）。
+ * 黑盒 #31：全站同一套导航、同一顺序（知识库 · 数字求值 · 范围 · 我的 · 页面专属）。
  * 以前装配台在右上、数字求值在左上另一套顺序，同一功能换页就搬家。
  * `current` 高亮当前页（aria-current），`children` 放页面专属入口（看原题 / 装配台）。
  */
@@ -9,10 +9,15 @@ export function SiteNav({
   current,
   children,
 }: {
-  current?: 'kb' | 'digital' | 'scope' | 'lab';
+  current?: 'kb' | 'digital' | 'scope' | 'lab' | 'mine';
   children?: ReactNode;
 }) {
-  const item = (href: string, label: string, key: 'kb' | 'digital' | 'scope', hiddenOnMobile = false) => {
+  const item = (
+    href: string,
+    label: string,
+    key: 'kb' | 'digital' | 'scope' | 'mine',
+    hiddenOnMobile = false,
+  ) => {
     const body =
       current === key ? (
         <span className="text-[13px] text-ink" aria-current="page">
@@ -30,6 +35,7 @@ export function SiteNav({
       {item('#/kb', '知识库', 'kb')}
       {item('#/lab/digital', '数字求值', 'digital')}
       {item('#/scope', '范围', 'scope', true)}
+      {item('#/mine', '我的', 'mine')}
       {children}
     </nav>
   );

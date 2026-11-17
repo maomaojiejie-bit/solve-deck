@@ -215,6 +215,9 @@ export function Home() {
             <a href="#/scope" className={NAV}>
               范围
             </a>
+            <a href="#/mine" className={NAV}>
+              我的
+            </a>
             <a href="#/about" className={NAV}>
               关于
             </a>
