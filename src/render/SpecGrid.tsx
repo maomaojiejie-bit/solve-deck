@@ -165,6 +165,10 @@ export interface EditableCanvas {
     power?: Record<string, number>;
     /** 画布角标文字，例如「通电中 · 4.26 mA」。 */
     label?: string;
+    /** 解不出来时的说明（缺模型参数 / 有本工具不认识的符号 / 没有接地…）。 */
+    note?: string;
+    /** 角标 hover 时的完整原因（note 只有一句话时，这里给全文）。 */
+    noteDetail?: string;
   };
 }
 
@@ -583,10 +587,21 @@ function EditableLayer({ spec, canvas, children }: { spec: RenderSpec; canvas: E
     canvas.flow?.label && (canvas.flow.label ?? '').length > 0 ? (
       <div
         data-testid="canvas-flow-chip"
-        className="pointer-events-none absolute right-2 top-2 z-20 flex items-center gap-1 rounded-lg border border-amber/40 bg-panel/90 px-2 py-0.5 text-[10px] text-amber shadow"
+        title={canvas.flow.noteDetail}
+        className="pointer-events-auto absolute right-2 top-2 z-20 flex items-center gap-1 rounded-lg border border-amber/40 bg-panel/90 px-2 py-0.5 text-[10px] text-amber shadow"
       >
         <span aria-hidden="true">⚡</span>
         <span className="font-mono tabular-nums">{canvas.flow.label}</span>
+      </div>
+    ) : canvas.flow?.note ? (
+      /* 解不出来（缺参数 / 不认识的符号 / 没接地）：说一句为什么，别静默熄灭。 */
+      <div
+        data-testid="canvas-flow-note"
+        title={canvas.flow.noteDetail ?? canvas.flow.note}
+        className="pointer-events-auto absolute right-2 top-2 z-20 flex max-w-[62%] items-center gap-1 rounded-lg border border-line-2 bg-panel/90 px-2 py-0.5 text-[10px] text-muted shadow"
+      >
+        <span aria-hidden="true">⚡</span>
+        <span className="font-mono tabular-nums">不通电 · {canvas.flow.note}</span>
       </div>
     ) : null;
 

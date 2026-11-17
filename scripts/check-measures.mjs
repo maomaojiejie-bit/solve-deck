@@ -268,18 +268,39 @@ ok('⑭', near(udlDelta, udlClosed, udlClosed * 0.0009) && near(udlAt, 2, 0.01),
   `⑭ 均布挠度 δmax=${udlDelta} @${udlAt}m，闭式解应为 ${udlClosed} @2m`);
 console.log(`⑭  均布挠度 δmax = ${udlDelta} mm @ x=${udlAt} m（闭式解 ${udlClosed} @2 m）`);
 
-/* ── ⑫ W20 A7：点名到器件与位置，不许裸 unsupported ────────────── */
+/* ── ⑫ W22-C：A7 的 sum / block 已进网表（不再是未知器件），
+ *   但「不认识的器件」这句文案仍然必须点名到器件与位置。 ────────── */
 
 const a7 = skeleton('A7');
-const a7Note = unknownDeviceNote(a7);
-const a7Refused = resolveLabSolve('A7', applyOp('A7', a7, { op: 'deleteDevice', nodeId: 'n-rin' }).graph);
+const a7Solved = resolveLabSolve('A7', a7);
+const a7SolvedReason = a7Solved.kind === 'refused' ? a7Solved.reason : '';
+ok('⑫', a7Solved.kind !== 'refused',
+  `⑫ A7 应该解得出来（sum/block 已进网表），实际仍拒答：${a7SolvedReason}`);
+
+// 造一个真不认识的器件，验证点名文案没退化。
+const a7Unknown = {
+  ...a7,
+  nodes: [...a7.nodes, { id: 'n-x1', x: 900, y: 620, kind: 'fluxgate', label: '磁通门' }],
+};
+const a7Note = unknownDeviceNote(a7Unknown);
+const a7Refused = resolveLabSolve('A7', a7Unknown);
 const a7Reason = a7Refused.kind === 'refused' ? a7Refused.reason : '';
 ok('⑫', Boolean(a7Note)
-  && a7Note.includes('求和圆') && a7Note.includes('sum') && a7Note.includes('n-sum')
-  && a7Reason.includes('sum') && a7Reason.includes('n-sum')
+  && a7Note.includes('n-x1')
+  && a7Reason.includes('n-x1')
   && !a7Reason.includes('unsupported') && !a7Note.includes('unsupported'),
-  `⑫ A7 文案没点名或仍带裸 unsupported：note「${a7Note}」reason「${a7Reason}」`);
-console.log(`⑫  A7 点名：「${a7Note.slice(0, 62)}…」不含裸 unsupported`);
+  `⑫ 未知器件文案没点名或仍带裸 unsupported：note「${a7Note}」reason「${a7Reason}」`);
+console.log(`⑫  A7 已可解（sum/block 进网表）；未知器件点名：「${a7Note.slice(0, 62)}…」不含裸 unsupported`);
+
+/* ── ⑮ W22-C：A7 框图的闭环增益必须与模板一致（AfMNA ≈ 99.899） ── */
+
+const a7Vo = (() => {
+  const solved = netSolve(a7, netSolveOptionsFor(a7).options);
+  return solved.ok ? Number(solved.solution.nodeVoltages['n-vo'] ?? NaN) : NaN;
+})();
+ok('⑮', near(a7Vo, 99.899, 0.01),
+  `⑮ A7 闭环 vo=${a7Vo}（应为 1/β 量级 99.899，sum/block 的 VCVS 映射或引脚接反）`);
+console.log(`⑮  A7 框图闭环 vo = ${a7Vo} V（模板 AfMNA 99.899）`);
 
 /* ── ⑬ W21-A A3：文案按能力分支 ───────────────────────────────────
  * 模板 solver 的「本工具不计算变形」在 M5（已经算出 δmax + 挠曲线）上是

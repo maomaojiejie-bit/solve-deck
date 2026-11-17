@@ -20,6 +20,11 @@ const onPanel = [...addBlock.matchAll(/kind: '([a-z0-9]+)'/g)].map((m) => m[1]);
 // 面板不该放的（非器件 / 需先行建模的），显式记账，不许偷偷扩
 const NOT_ON_PANEL = { ctrlsrc: '受控源无 stamp', zener: '无 stamp', pnp: '无 stamp', pmos: '无 stamp' };
 
+// 引擎能 stamp、但**不**进器件面板的：框图符号（W22-C 让 A7 的 sum / block 可解，
+// 它们的增益写在 label / params 里，画布上没有「加一个求和圆」这种操作）。
+// 与 NOT_ON_PANEL 的区别：这些是真能解的符号，只是不给面板按钮。
+const SKELETON_ONLY = { sum: '求和圆：只出现在 A7 这类框图骨架里', block: '功能块：增益来自 label / params' };
+
 let fails = 0;
 const log = (ok, msg) => { if (!ok) fails += 1; console.log(`${ok ? '[ok]  ' : '[FAIL]'} ${msg}`); };
 
@@ -27,6 +32,10 @@ log(stampable.has('gnd'), `引擎可 stamp 的集合含 gnd：${[...stampable].s
 log(addBlock.includes("kind: 'gnd'"), '面板上有「接地」按钮（无地整图拒答，这是 P0）');
 
 for (const kind of stampable) {
+  if (SKELETON_ONLY[kind]) {
+    console.log(`[ok]  ${kind} 引擎能 stamp，但按记账不进面板（${SKELETON_ONLY[kind]}）`);
+    continue;
+  }
   log(onPanel.includes(kind), `引擎可 stamp 的 ${kind} 在面板上有按钮`);
 }
 

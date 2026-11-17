@@ -25,7 +25,7 @@
 import { solveMNA, type AnalogCircuit, type Element } from '../templates/analog/mna.ts';
 import { anchorsOfNode, findAnchor } from './pins.ts';
 import { SYMBOLS } from '../../render/symbols.ts';
-import { unknownDeviceNote, unknownDevices } from './deviceNames.ts';
+import { UNKNOWN_KIND_LABEL, unknownDeviceNote, unknownDevices } from './deviceNames.ts';
 import type { CanvasEdge, CanvasGraph, CanvasNode } from './types.ts';
 
 /** 变异开关：check:netsolve 第 6 条把它关掉 = 无地不再拒答 → 第 5 条红。 */
@@ -455,6 +455,8 @@ export function netSolve(graph: CanvasGraph, options: NetSolveOptions = {}): Net
     inm: string;
   }
   const opamps: OpampInfo[] = [];
+  /** 控制框图里理想的受控源（求和圆 / 功能块）的输出网：它们不吃电流，要单独登记。 */
+  const idealOuts: { id: string; net: string }[] = [];
   const elements: Element[] = [];
   const elementSource: { elementId: string; deviceId: string }[] = [];
 
@@ -528,6 +530,40 @@ export function netSolve(graph: CanvasGraph, options: NetSolveOptions = {}): Net
         addElement({ id: `x:${id}:gm`, kind: 'VCCS', a: netOf(id, 'd') as string, b: netOf(id, 's') as string, value: gm, control: { a: netOf(id, 'g') as string, b: netOf(id, 's') as string } }, id);
         break;
       }
+      /**
+       * 求和圆 / 功能块：控制框图的两种图元，按**理想受控源**进网表。
+       *   - block：out = gain · in（in 对地取电压，输出对地）
+       *   - sum  ：out = in − fb（fb 是符号上的负号端，见 SYMBOLS.sum 的三脚）
+       * 都属于「理想电压源型」元件：输出端不吃电流，所以和电压源一样进 vPairs
+       * 做短路/环路判据，输出网也要并进导电并查集，否则会被当成悬空拒答。
+       */
+      case 'block':
+      case 'sum': {
+        const outNet = netOf(id, 'out');
+        const inNet = netOf(id, 'in');
+        if (!outNet || !inNet) {
+          return refuse('unsupported', `${UNKNOWN_KIND_LABEL[node.kind] ?? node.kind}「${node.label ?? id}」有引脚没接线：输入与输出都要连上。`);
+        }
+        let gain: number | undefined;
+        if (node.kind === 'sum') {
+          gain = 1;
+        } else {
+          const candidates = [node.params?.gain, node.params?.A, node.params?.k, node.value];
+          gain = candidates.find((value) => typeof value === 'number' && Number.isFinite(value)) as number | undefined;
+          if (typeof gain !== 'number') {
+            const match = (node.label ?? '').match(/-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/);
+            const parsed = match ? Number(match[0]) : NaN;
+            if (Number.isFinite(parsed)) gain = parsed;
+          }
+          if (typeof gain !== 'number') {
+            return refuse('unsupported', `功能块「${node.label ?? id}」没有增益：在标签里写个系数（如「A 1e5」），或在模型参数里填 gain。`);
+          }
+        }
+        const controlB = node.kind === 'sum' ? netOf(id, 'fb') ?? groundNet : groundNet;
+        addElement({ id: `x:${id}`, kind: 'VCVS', a: outNet, b: groundNet, value: gain, control: { a: inNet, b: controlB } }, id);
+        idealOuts.push({ id, net: outNet });
+        break;
+      }
       case 'opamp': {
         const out = netOf(id, 'out');
         const inp = netOf(id, 'inp');
@@ -549,6 +585,8 @@ export function netSolve(graph: CanvasGraph, options: NetSolveOptions = {}): Net
     if (node.kind === 'vsrc') vPairs.push([`x:${node.id}`, netOf(node.id, 'p') as string, netOf(node.id, 'n') as string]);
     if (node.kind === 'opamp') vPairs.push([`opamp:${node.id}`, netOf(node.id, 'out') as string, groundNet]);
   }
+  // 求和圆 / 功能块也是理想电压源型：两个挤在同一对节点上同样无定义。
+  for (const ideal of idealOuts) vPairs.push([`ideal:${ideal.id}`, ideal.net, groundNet]);
   for (const [id, a, b] of vPairs) {
     if (a === b) return refuse('shortVSource', `电压源两端接在同一个电气点上（短路）：${id} —— 检查它的连线。`);
   }
@@ -567,6 +605,7 @@ export function netSolve(graph: CanvasGraph, options: NetSolveOptions = {}): Net
     if (element.kind === 'R' || element.kind === 'V') condUf.union(element.a, element.b);
   }
   for (const opamp of opamps) condUf.union(opamp.out, groundNet);
+  for (const ideal of idealOuts) condUf.union(ideal.net, groundNet);
   // W22-B：pinnedNets / netNames 一律用归并后的代表网 —— 否则 ac 短路的旧名网
   // 会以孤立网进 MNA（singular）或被 floatingNet 误拒。
   const pinnedNets = new Set<string>();
@@ -574,7 +613,21 @@ export function netSolve(graph: CanvasGraph, options: NetSolveOptions = {}): Net
     const net = resolveNet(pin.net);
     if (net) pinnedNets.add(net);
   }
+  /**
+   * 可选引脚：功能块 `block` 的 `x` 是「控制端」，框图上常空着。
+   * 悬空的可选引脚只是没画线，不该按「有引脚没接」拒答（其余器件没有这种脚）。
+   */
+  const OPTIONAL_PINS: Record<string, string[]> = { block: ['x'] };
+  const kindOf = new Map(deviceNodes.map((node) => [node.id, node.kind]));
+  const danglingOptional = new Set<string>();
+  for (const pin of build.pins) {
+    const optional = (OPTIONAL_PINS[kindOf.get(pin.deviceId) ?? ''] ?? []).includes(pin.pinId);
+    if (!optional) continue;
+    const net = resolveNet(pin.net);
+    if (net && (build.netMembers.get(net) ?? []).length <= 1) danglingOptional.add(net);
+  }
   for (const net of pinnedNets) {
+    if (danglingOptional.has(net)) continue;
     if (condUf.find(net) !== condUf.find(groundNet)) {
       const members = (build.netMembers.get(net) ?? []).slice(0, 4).join('、');
       return refuse('floatingNet', `有一个子网没有任何到地的直流通路（悬空）：${members} —— 把它接到地 / 电源轨，或补上偏置电阻。`);
@@ -702,6 +755,16 @@ export function netSolve(graph: CanvasGraph, options: NetSolveOptions = {}): Net
         branchCurrents[id] = i;
         powers[id] = (voltageOf(id, 'p') - voltageOf(id, 'n')) * i;
         elementCurrents.push({ a: netOf(id, 'p') as string, b: netOf(id, 'n') as string, i });
+        break;
+      }
+      case 'sum':
+      case 'block': {
+        // 理想受控源：支路电流就是「流进输出端的信号电流」，与实测同源。
+        const i = branchById.get(`x:${id}`) ?? 0;
+        const outNet = netOf(id, 'out') as string;
+        branchCurrents[id] = i;
+        powers[id] = voltageOf(id, 'out') * i;
+        elementCurrents.push({ a: outNet, b: groundNet, i });
         break;
       }
       case 'isrc': {

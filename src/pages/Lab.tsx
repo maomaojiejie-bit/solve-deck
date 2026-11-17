@@ -66,7 +66,7 @@ import type { FrameSolution } from '../core/lab/frameSolve';
 import { GenericResult } from '../ui/GenericResult';
 import { deriveCircuitEquivalent, type CircuitEquivalent } from '../core/lab/equivalent';
 import { displayLabels } from '../core/lab/display';
-import { deviceParamFields, deviceParamValue, missingModelParams, type DeviceParamField } from '../core/lab/deviceParams';
+import { deviceParamFields, deviceParamValue, missingModelParams, withDerivedModelParams, type DeviceParamField } from '../core/lab/deviceParams';
 import { deriveAcEquivalent, type AcEquivalentResult } from '../core/lab/acEquivalent';
 import { GraphMeasures } from '../ui/GraphMeasures';
 import { confidenceSummary } from '../ui/confidenceSummary';
@@ -508,17 +508,41 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
   /**
    * 通电动画的数据源：对**当前这张图**再跑一遍节点电压法，拿器件电流 / 功率。
    * 与题型、模板、归约表都无关 —— 自拼的电路只要解得出，就一样会亮。
-   * 失败（无地 / 悬空 / 未接地源）就当作没电，不发光，也不报错。
+   * 失败（缺模型参数 / 有本工具不认识的符号 / 无地 / 悬空）时不发光，
+   * 但**要留下原因**：画布角标会写「不通电 · …」，别让用户对着不亮的图猜。
    */
-  const flowCircuit = useMemo<CircuitSolution | null>(() => {
-    if (stage !== 'solved' || !graph || graph.family !== 'circuit') return null;
+  /**
+   * A2 / A4 这类题：画布上的管子本来没有 Ic / β / VA 或 gm / ro（骨架给的是器件符号），
+   * 通用解因此硬拒答。本题的解里已经有直流工作点，就地派生出小信号参数放进
+   * **一份内存副本**交给动画 —— 图上的 params 与骨架一字不改，校验章也不会变红。
+   */
+  const flowInput = useMemo(
+    () => withDerivedModelParams(graph, solution?.parsed_given, solution?.result as Record<string, number | string> | undefined),
+    [graph, solution],
+  );
+  const flowSolve = useMemo<{ solution: CircuitSolution | null; reason: string | null }>(() => {
+    const target = flowInput.graph;
+    if (stage !== 'solved' || !target || target.family !== 'circuit') return { solution: null, reason: null };
     try {
-      const outcome = netSolve(graph, netSolveOptionsFor(graph).options);
-      return outcome.ok ? outcome.solution : null;
-    } catch {
-      return null;
+      const outcome = netSolve(target, netSolveOptionsFor(target).options);
+      return outcome.ok ? { solution: outcome.solution, reason: null } : { solution: null, reason: outcome.reason };
+    } catch (error) {
+      return { solution: null, reason: `这张图算不了：${(error as Error).message}` };
     }
-  }, [graph, stage]);
+  }, [flowInput, stage]);
+  const flowCircuit = flowSolve.solution;
+  /** 用了派生参数就挂到角标 title 上，别让人以为图上本来就有这些数。 */
+  const flowDerivedNote = flowInput.derived.length > 0 ? flowInput.derived.map((item) => `${item.label}：${item.how}`).join('；') : undefined;
+  /** 角标上一句话（完整原因挂 title）：把常见的三档说法归一。 */
+  const flowRefusalNote = useMemo(() => {
+    const reason = flowSolve.reason;
+    if (!reason) return undefined;
+    if (/缺工作点参数|缺小信号参数/.test(reason)) return '器件缺模型参数';
+    if (/不认识的器件/.test(reason)) return '含本工具不支持的符号';
+    if (/接地/.test(reason)) return '没有接地';
+    if (/悬空|浮空/.test(reason)) return '有引脚没接';
+    return '这张图解不出来';
+  }, [flowSolve.reason]);
 
   /**
    * 通电角标的读数：**只报结果面板已经在用的那一份解**（generic.circuit），
@@ -526,6 +550,11 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
    * 通用网表按 Vf 直降），角标写 4.30 mA 而面板写 4.257 mA 会互相打脸。
    * 模板路径没有这份解，就只显示「通电中」，不给数字。
    */
+  /** 这张图画的是不是控制框图（求和圆 / 功能块）。框图里没有「电流」，读数换成输出电位。 */
+  const flowHasGainBlocks = useMemo(
+    () => (flowInput.graph?.nodes ?? []).some((node) => node.kind === 'sum' || node.kind === 'block'),
+    [flowInput],
+  );
   const flowChipLabel = useMemo(() => {
     if (!flowCircuit) return undefined;
     /** 电源电流就是回路电流；没有电源就退到最大支路电流。 */
@@ -535,6 +564,17 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
       if (fromSource > 1e-9) return fromSource;
       return Math.max(0, ...Object.values(solution.branchCurrents).map((value) => Math.abs(value)));
     };
+    // 控制框图：读「输出电位」比读电流更像话（信号流过 gain 块，本来就没有回路电流）。
+    if (flowHasGainBlocks) {
+      const entries = Object.entries(flowCircuit.nodeVoltages).filter(([, value]) => Number.isFinite(value));
+      const rank = ([key]: [string, number]) => (/^n-.*vo|^n-out|^n-vo/i.test(key) ? 0 : /vo|out/i.test(key) ? 1 : 2);
+      const pick = [...entries].sort((a, b) => rank(a) - rank(b) || Math.abs(b[1]) - Math.abs(a[1]))[0];
+      if (!pick) return '信号已通';
+      const value = pick[1];
+      if (!(Math.abs(value) > 1e-9)) return '信号已通';
+      const name = pick[0].replace(/^n-/, '');
+      return `信号已通 · ${name} = ${Math.abs(value).toPrecision(4)} V`;
+    }
     // 没电流就不挂角标 —— 角标与画布上的光必须同真同假。
     if (!(ampsOf(flowCircuit) > 1e-9)) return undefined;
     const panel = generic?.circuit;
@@ -543,7 +583,16 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
     if (!(amps > 1e-9)) return '通电中';
     const text = amps >= 0.1 ? `${amps.toFixed(3)} A` : `${(amps * 1000).toPrecision(3)} mA`;
     return `通电中 · I = ${text}`;
-  }, [flowCircuit, generic, graph]);
+  }, [flowCircuit, generic, graph, flowHasGainBlocks]);
+  /**
+   * 解出来了但一点电流都没有：最常见的是图上**根本没有电源符号**。
+   * A2 / A4 这类直流偏置图的电源轨只是一个「VCC 12V」文字，不是 vsrc，
+   * 所以电流必然为 0 —— 这不是解不出来，得说清楚，否则又变成静默。
+   */
+  const flowNoSourceNote =
+    flowCircuit && !flowChipLabel ? '图里没有电源' : undefined;
+  const flowNoSourceDetail =
+    '这张图里没有电压源 / 电流源的符号（电源轨只是文字标注，比如「VCC 12V」），所以网络里没有电流可以流动。要看到发光，从器件面板加一个「电压源」接到电源轨与地之间；或者这张图本来就是直流偏置 / 小信号等效图，属于「算得出但图上不会有电流」的情况。';
   /** 确认区「图上元件 · 实时读数」：直接读当前画布的支座 / 载荷 / 构件，
    *  图一动立刻刷新 —— 核对数字时能对着实物看，不靠记忆里的题面值。 */
   const liveDeviceRows = useMemo(() => {
@@ -3393,14 +3442,22 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
                         : (edgeId: string | null) => selectWire(edgeId),
                       linkMode: isBeam && linkMode,
                       // 通电动画：解出来了才给，数据就是 netSolve 的器件电流 / 功率。
-                      flow:
-                        !isBeam && flowCircuit
+                      // 解不出来时给 note（一句话）+ noteDetail（完整原因），
+                      // 角标写成「不通电 · …」—— 不亮要有不亮的理由。
+                      flow: !isBeam
+                        ? flowChipLabel
                           ? {
-                              current: flowCircuit.branchCurrents,
-                              power: flowCircuit.powers,
+                              current: flowCircuit?.branchCurrents ?? {},
+                              power: flowCircuit?.powers ?? {},
                               label: flowChipLabel,
+                              noteDetail: flowDerivedNote,
                             }
-                          : undefined,
+                          : flowCircuit && flowNoSourceNote
+                            ? { current: {}, note: flowNoSourceNote, noteDetail: flowNoSourceDetail }
+                            : flowRefusalNote
+                              ? { current: {}, note: flowRefusalNote, noteDetail: flowSolve.reason ?? undefined }
+                              : undefined
+                        : undefined,
                       // R3-4 U1：放置器（力学族）。tool='off' 时画布事件与以前完全一致。
                       place: isBeam
                         ? {

@@ -121,7 +121,8 @@
           "x": 520,
           "y": 400,
           "kind": "block",
-          "label": "β 0.01"
+          "label": "β 0.01",
+          "rot": 180
         },
         {
           "id": "n-rl",
@@ -567,7 +568,7 @@
     "skippedCount": 0,
     "allPassed": true
   },
-  "validatedAt": "2026-11-10T10:12:21.551Z",
+  "validatedAt": "2026-11-17T11:31:25.206Z",
   "contractVersion": "v2.2",
   "warnings": []
 }

@@ -8,9 +8,14 @@
 
 import type { CanvasGraph } from './types.ts';
 
-/** 通用电路求解器（MNA）认识的器件。零新模型：加名字等于开新模型，须走 W20 §4 的触发条件。 */
+/**
+ * 通用电路求解器（MNA）认识的器件。零新模型：加名字等于开新模型，须走 W20 §4 的触发条件。
+ * W22-C：加了 `sum` / `block` —— 控制框图的两种图元按理想受控源（VCVS）进网表，
+ * 见 netSolve 的对应分支；它们不是电路器件，所以只在「画布上真有」时才参与。
+ */
 export const CIRCUIT_DEVICE_KINDS = [
   'res', 'vsrc', 'isrc', 'cap', 'diode', 'npn', 'nmos', 'opamp', 'gnd',
+  'sum', 'block',
 ] as const;
 
 /** 图元 kind → 中文名。未列出的用 kind 原文照实写（不瞎猜名字）。 */

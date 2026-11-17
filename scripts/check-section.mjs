@@ -88,7 +88,20 @@ ok('⑤', !/unsupported/.test(read('src/core/lab/deviceNames.ts').replace(/^ \*.
  * 后按正规链重生成 M1/M2/M3/M3-cantilever/M4/M5/M8。截断取 21:30。
  * 下一次正规再生 / 历史重写后同样把日期往前推。 */
 const touchedRecently = (path) => statSync(join(root, path)).mtimeMs >= new Date('2026-11-16T21:30:00+08:00').getTime();
-ok('⑥', !['src/examples/M3.json', 'src/examples/M5.json', 'src/examples/A3.json', 'src/examples/A7.json'].some(touchedRecently), '⑥ 本批动了 examples 快照');
+/* 例外：A7 的 β 功能块改成 rot:180（信号在反馈支路里从右往左流），并让 sum / block
+ * 进网表 —— 快照按正规链 `node scripts/build-example.mjs A7` 再生（P3 allPassed）。
+ * 手改快照会丢掉 rot 字段，所以这里用「快照里真有 rot:180」当再生的证据。 */
+const a7SnapshotRegenerated = (() => {
+  try {
+    const spec = JSON.parse(read('src/examples/A7.json')).render_specs?.[0];
+    return (spec?.nodes ?? []).some((node) => node.id === 'n-fb' && node.rot === 180);
+  } catch {
+    return false;
+  }
+})();
+ok('⑥', !['src/examples/M3.json', 'src/examples/M5.json', 'src/examples/A3.json'].some(touchedRecently), '⑥ 本批动了 examples 快照');
+ok('⑥', a7SnapshotRegenerated
+  || !touchedRecently('src/examples/A7.json'), '⑥ A7 快照是新时间戳但没走正规再生（n-fb 上缺 rot:180）');
 ok('⑥', !touchedRecently('src/core/templates/mechanics/M3.ts') || !/求解内核|与基准题逐字段对拍/.test(readFileSync(join(root, 'src/core/templates/mechanics/M3.ts'), 'utf8')), '⑥ 模板文案被 C1 批改过且没回退干净（templates 文案被快照 P3 钉住，改文案=快照漂移）');
 ok('⑥', Object.keys(pkg.dependencies ?? {}).length === 3 && Object.keys(pkg.devDependencies ?? {}).length === 12 && !pkg.scripts['check:section'].includes('node_modules'), '⑥ 依赖数变了 / 引入了新依赖');
 ok('⑥', /check:measures/.test(pkg.scripts.build) && /check:section/.test(pkg.scripts.check), '⑥ 新门禁没接进链');

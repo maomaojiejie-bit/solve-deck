@@ -583,7 +583,11 @@ export function feedbackLayout(labels: Labels): Layout {
   const sum = b.part('n-sum', 'sum', [400, 250], {});
   const amp = b.part('n-amp', 'block', [520, 250], { label: lb('n-amp', 'A') });
   const rout = b.part('n-rout', 'res', [630, 250], { label: lb('n-rout', 'Rout'), labelSide: 'up' });
-  const fb = b.part('n-fb', 'block', [520, 400], { label: lb('n-fb', 'β') });
+  // 反馈支路：输出 → β → 求和点的 − 端
+  // β 转 180°：信号在这条支路里是**从右往左**流的，必须让「in 脚朝右（接放大器输出）、
+  // out 脚朝左（接求和点）」，否则图上画对了、网表把输入输出当成反的，解出来是发散的。
+  // （矩形框与框内小字在 180° 下视觉不变，见 AnalogSchematic 的 Glyph / label 分离。）
+  const fb = b.part('n-fb', 'block', [520, 400], { rot: 180, label: lb('n-fb', 'β') });
   const rl = b.part('n-rl', 'res', [880, 350], { rot: 90, label: 'Rl', labelSide: 'right' });
 
   b.wire('e-in', [vs.pin('p'), [160, 250], rin.pin('a')]);
@@ -601,16 +605,16 @@ export function feedbackLayout(labels: Labels): Layout {
     rl.pin('b'),
     [880, GND_Y],
   ]);
-  // 反馈支路：输出 → β → 求和点的 − 端
+  // 反馈支路（β 已转 180°：in 脚在右、out 脚在左）
   b.wire('e-out-fb', [
     [760, 250],
     [760, 440],
     [620, 440],
     [620, 400],
-    fb.pin('out'),
+    fb.pin('in'),
   ]);
   b.wire('e-fb-sum', [
-    fb.pin('in'),
+    fb.pin('out'),
     [400, 400],
     [400, 294],
   ]);
