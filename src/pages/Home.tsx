@@ -6,9 +6,10 @@
  *
  * 门禁钩子（不要删）：
  *   · input[data-testid=kb-search]（受控 + onChange）
- *   · [data-testid=nav-solve] → [data-testid=solve-panel] → solve-panel-lab
  *   · [data-testid=kb-results] / home-candidates / home-candidate / home-problem-hint
  *   · 源码里必须留着 'pt-24 pb-8'、homeSolveTarget(text)、href="#/scope"
+ *   · nav-solve / solve-panel / solve-panel-lab 三个 testid 现在在 src/ui/SiteHeader.tsx
+ *     （全站共用一条 60px 表头），首页只负责把它挂在最上面。
  */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
@@ -17,7 +18,7 @@ import { detectIntent } from '../kb/intent.ts';
 import { KB } from '../kb/index.ts';
 import type { Subject } from '../kb/types.ts';
 import { homeSolveTarget, type HomeCandidate } from '../core/ai/homeRoute.ts';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { SiteHeader } from '../ui/SiteHeader';
 import {
   CountUp,
   DecodeText,
@@ -98,9 +99,7 @@ const LIMITS = [
 export function Home() {
   const [query, setQuery] = useState('');
   const [candidates, setCandidates] = useState<HomeCandidate[]>([]);
-  const [solvePanelOpen, setSolvePanelOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
   const { active, setStep } = useActiveStep(STEPS.length);
 
   // ⌘K / Ctrl+K 唤起检索
@@ -114,16 +113,6 @@ export function Home() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
-
-  // 点外面收起「解题」二选一面板
-  useEffect(() => {
-    if (!solvePanelOpen) return;
-    const onDown = (event: PointerEvent) => {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) setSolvePanelOpen(false);
-    };
-    window.addEventListener('pointerdown', onDown);
-    return () => window.removeEventListener('pointerdown', onDown);
-  }, [solvePanelOpen]);
 
   const hits = useMemo(() => (query.trim() ? searchKb(query).slice(0, 6) : []), [query]);
   const isProblem = query.trim().length > 0 && detectIntent(query) === 'problem';
@@ -160,71 +149,8 @@ export function Home() {
 
   return (
     <div className="min-h-screen overflow-x-hidden">
-      <header className="sticky top-0 z-40 border-b border-line bg-bg/92 backdrop-blur-md">
-        <div className={`${SHELL} flex h-[60px] items-center gap-4`}>
-          <a href="#/" aria-label="拆解台首页" className="focus-ring flex shrink-0 items-center gap-2.5">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M4 20V6l8 4 8-4v14l-8-4-8 4Z" stroke="var(--color-ink)" strokeWidth="1.5" strokeLinejoin="round" />
-              <path d="M12 10v8" stroke="var(--color-cyan)" strokeWidth="1.5" />
-            </svg>
-            <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">拆解台</span>
-            <span className="hidden font-mono text-[10.5px] tracking-[0.12em] text-faint sm:inline">v0.3</span>
-          </a>
-          <nav className="ml-auto flex shrink-0 items-center gap-6 whitespace-nowrap sm:gap-8">
-            <a href="#/kb" className={NAV}>
-              知识库
-            </a>
-            {/* 解题：二选一面板（就地展开，不是新页面） */}
-            <span className="relative" ref={panelRef}>
-              <button
-                type="button"
-                data-testid="nav-solve"
-                aria-haspopup="true"
-                aria-expanded={solvePanelOpen}
-                onClick={() => setSolvePanelOpen((open) => !open)}
-                className={NAV}
-              >
-                解题
-              </button>
-              {solvePanelOpen ? (
-                <div
-                  data-testid="solve-panel"
-                  className="absolute right-0 top-9 z-40 w-[260px] rounded-[4px] border border-line-2 bg-panel p-2 shadow-lg"
-                >
-                  <a
-                    href="#/solve"
-                    data-testid="solve-panel-template"
-                    onClick={() => setSolvePanelOpen(false)}
-                    className="focus-ring block rounded-[3px] px-3 py-2.5 transition-colors hover:bg-panel-2"
-                  >
-                    <span className="block text-[13px] text-ink">① 按模板解</span>
-                    <span className="mt-0.5 block text-[11px] text-faint">选一道熟悉的题型</span>
-                  </a>
-                  <a
-                    href="#/lab"
-                    data-testid="solve-panel-lab"
-                    onClick={() => setSolvePanelOpen(false)}
-                    className="focus-ring block rounded-[3px] px-3 py-2.5 transition-colors hover:bg-panel-2"
-                  >
-                    <span className="block text-[13px] text-ink">② 自己拼</span>
-                    <span className="mt-0.5 block text-[11px] text-faint">在画布上搭结构</span>
-                  </a>
-                </div>
-              ) : null}
-            </span>
-            <a href="#/scope" className={NAV}>
-              范围
-            </a>
-            <a href="#/mine" className={NAV}>
-              我的
-            </a>
-            <a href="#/about" className={NAV}>
-              关于
-            </a>
-          </nav>
-          <ThemeToggle />
-        </div>
-      </header>
+      {/* 全站唯一表头（这里的样式就是基准，其余页面都向它看齐） */}
+      <SiteHeader />
 
       <main>
         {/* ── 首屏：标题 / 检索 / 实时演算 ─────────────────────────────── */}

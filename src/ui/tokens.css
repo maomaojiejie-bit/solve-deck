@@ -326,10 +326,24 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   }
 
-  /* 工具栏随滚动加深：纯 CSS 滚动驱动动画，零 JS。
+  /* 全站表头：首页顶栏那套外观的唯一定义处（60px 玻璃纸带 + 底部发丝线）。
+     以前每页各抄一条 header：52 / 56 / 60px 三种高度、bg/85 与 bg/92 两种底色、
+     返回键四种形态 —— 换页就像换了站。现在所有页面都走 .site-header
+     （组件见 src/ui/SiteHeader.tsx），改外观只改这里。 */
+  .site-header {
+    height: 60px;
+    background: var(--toolbar-bg);
+    -webkit-backdrop-filter: blur(18px) saturate(var(--glass-sat));
+    backdrop-filter: blur(18px) saturate(var(--glass-sat));
+    border-bottom: 1px solid var(--card-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+
+  /* 表头随滚动加深：纯 CSS 滚动驱动动画，零 JS。
      旧浏览器不支持 animation-timeline 时这条整体不生效（@supports 兜住）。 */
   @supports (animation-timeline: scroll()) {
-    .toolbar {
+    .toolbar,
+    .site-header {
       animation: sd-deepen linear both;
       animation-timeline: scroll(root block);
       animation-range: 0 96px;

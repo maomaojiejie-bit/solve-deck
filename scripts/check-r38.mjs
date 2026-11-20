@@ -72,8 +72,15 @@ const panel = read('src/ui/ParamPanel.tsx');
 const reduce = read('src/core/lab/reduce.ts');
 const model = read('src/core/lab/graphToModel.ts');
 ok('①', result.includes('const embedded = Boolean(override)'), '嵌入态有显式标志');
-ok('①', result.includes("embedded ? 'sticky") === false && result.includes("embedded ? 'border-t border-line' : 'sticky top-0'"), '嵌入态不再 sticky');
-ok('①', result.includes("embedded ? '分步推导与讲解' : displayTitle"), '嵌入态标题不重复题型全名');
+/* 表头已统一到 SiteHeader（src/ui/SiteHeader.tsx）：只看嵌入态那一段，
+   确认它既不 sticky、也不重复题型全名；独立页的品牌/导航交给 SiteHeader。 */
+const embeddedHeader = (() => {
+  const start = result.indexOf('result-header no-print');
+  const standalone = result.indexOf('<SiteHeader');
+  return start >= 0 && standalone > start ? result.slice(start, standalone) : '';
+})();
+ok('①', embeddedHeader.length > 0 && embeddedHeader.includes('border-t border-line') && !embeddedHeader.includes('sticky'), '嵌入态不再 sticky');
+ok('①', embeddedHeader.includes('分步推导与讲解') && !embeddedHeader.includes('displayTitle'), '嵌入态标题不重复题型全名');
 ok('①', result.includes('embedded-param-note'), '嵌入态不再挂第二份参数面板');
 ok('①', result.includes('canLab && !embedded'), '嵌入态不重复「改结构」入口');
 ok('②', result.includes('model-caveat') && result.includes('modelCaveatFor'), '模型前提接在结果页');

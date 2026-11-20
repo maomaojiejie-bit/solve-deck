@@ -2,7 +2,7 @@
  * #/kb/:id · 知识条目页（K4）：骨架顺序按设计稿 §5，不许变 ——
  * 思路 → 知识点 → 公式 → 图 → 坑 → 去解题 → 关联。
  */
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { SITE_LINK, SiteHeader } from '../ui/SiteHeader';
 import { Formula } from '../render/Formula.tsx';
 import { KB_BY_ID } from '../kb/index.ts';
 import { getTemplateRoute } from '../core/templates/registry';
@@ -69,13 +69,7 @@ export function KbEntry({ id }: { id: string }) {
   if (!entry) {
     return (
       <div className="min-h-screen">
-        <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
-          <div className="mx-auto flex h-14 w-full max-w-[900px] items-center gap-4 px-6">
-            <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">
-              ← 知识库
-            </a>
-          </div>
-        </header>
+        <SiteHeader page="kb" title="知识库" note="条目不存在" width={900} backLabel="知识库" onBack={() => { window.location.hash = '#/kb'; }} />
         <main className="mx-auto w-full max-w-[900px] px-6 py-20 text-center">
           <p className="text-[15px] text-muted">没有这条知识点（id：{id}）。</p>
           <a href="#/kb" className="focus-ring mt-4 inline-block text-[13px] text-cyan">
@@ -88,20 +82,21 @@ export function KbEntry({ id }: { id: string }) {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-[900px] items-center gap-4 px-6">
-          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">
-            ← 知识库
-          </a>
-          <span className="hidden text-[13px] text-faint sm:inline">
-            {SUBJECT_LABEL[entry.subject]} / {entry.chapter}
-          </span>
-          <a href="#/solve" className="focus-ring ml-auto text-[13px] text-muted transition-colors hover:text-ink">
+      <SiteHeader
+        page="kb"
+        title="知识库"
+        note={`${SUBJECT_LABEL[entry.subject]} / ${entry.chapter}`}
+        width={900}
+        backLabel="知识库"
+        onBack={() => {
+          window.location.hash = '#/kb';
+        }}
+        extra={
+          <a href="#/solve" className={SITE_LINK}>
             去解题 →
           </a>
-          <ThemeToggle />
-        </div>
-      </header>
+        }
+      />
 
       <main className="mx-auto w-full max-w-[900px] px-6 pb-20 pt-10">
         {/* 面包屑 + 标题 + 一句话 */}

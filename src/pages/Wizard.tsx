@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { getTemplateRoute } from '../core/templates/registry';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { SiteHeader } from '../ui/SiteHeader';
 
 interface WizardProps {
   onBack: () => void;
@@ -259,23 +259,13 @@ export function Wizard({ onBack }: WizardProps) {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center gap-4 px-6">
-          <button
-            type="button"
-            onClick={onBack}
-            className="focus-ring text-[13px] text-muted transition-colors hover:text-ink"
-          >
-            ← 返回
-          </button>
-          <span className="text-[13px] text-muted">选型向导</span>
-          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
-          <span className="ml-auto text-[13px] text-faint">
-            {step === 0 ? '先选课' : step === 1 ? '再选题型' : '确认后进入拆解'}
-          </span>
-          <ThemeToggle />
-        </div>
-      </header>
+      <SiteHeader
+        page="wizard"
+        title="选型向导"
+        note="三步选到能算的那一款"
+        onBack={onBack}
+        extra={<span className="text-[13px] text-faint">{step === 0 ? '先选课' : step === 1 ? '再选题型' : '确认后进入拆解'}</span>}
+      />
 
       <main className="mx-auto w-full max-w-[1120px] px-6 pb-16 pt-8">
         <div className="mb-5 h-1 overflow-hidden rounded bg-line">

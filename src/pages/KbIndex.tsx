@@ -3,7 +3,7 @@
  * 纯读物页：不挂解题逻辑，只把人送到条目页。
  */
 import { useState } from 'react';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { SITE_LINK, SiteHeader } from '../ui/SiteHeader';
 import { KB } from '../kb/index.ts';
 import type { Subject } from '../kb/types.ts';
 
@@ -30,19 +30,20 @@ export function KbIndex() {
     : KB;
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center gap-4 px-6">
-          <a href="#/" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">
-            ← 首页
-          </a>
-          <span className="text-[13px] text-muted">知识库</span>
-          <span className="id-mono text-[13px] text-faint">共 {KB.length} 条</span>
-          <a href="#/solve" className="focus-ring ml-auto text-[13px] text-muted transition-colors hover:text-ink">
+      <SiteHeader
+        page="kb"
+        title="知识库"
+        note={`共 ${KB.length} 条`}
+        onBack={() => {
+          window.location.hash = '#/';
+        }}
+        backLabel="首页"
+        extra={
+          <a href="#/solve" className={SITE_LINK}>
             去解题 →
           </a>
-          <ThemeToggle />
-        </div>
-      </header>
+        }
+      />
 
       <main className="mx-auto w-full max-w-[1120px] px-6 pb-16 pt-10">
         <p className="kicker">先看懂，再算出来</p>

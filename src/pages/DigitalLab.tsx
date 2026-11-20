@@ -10,8 +10,7 @@
  */
 
 import { useState } from 'react';
-import { ThemeToggle } from '../ui/ThemeToggle';
-import { SiteNav } from '../ui/SiteNav';
+import { SITE_LINK, SiteHeader } from '../ui/SiteHeader';
 import { gateSolve, type GateSolveOutcome } from '../core/lab/gateSolve';
 
 const EXAMPLES: { label: string; text: string }[] = [
@@ -55,25 +54,17 @@ export function DigitalLab({ onBack }: DigitalLabProps) {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center gap-4 px-6">
-          <button
-            type="button"
-            onClick={onBack}
-            className="focus-ring text-[13px] text-muted transition-colors hover:text-ink"
-          >
-            ← 返回
-          </button>
-          <span className="text-[13px] text-muted">数字求值</span>
-          {/* 黑盒 #31：与装配台同一套 SiteNav、同一顺序（知识库 · 数字求值 · 范围 · 装配台） */}
-          <SiteNav current="digital">
-            <a href="#/lab" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">
-              装配台
-            </a>
-          </SiteNav>
-          <ThemeToggle />
-        </div>
-      </header>
+      <SiteHeader
+        page="digital"
+        title="数字求值"
+        note="门级网表 · 逐行给值"
+        onBack={onBack}
+        extra={
+          <a href="#/lab" className={SITE_LINK}>
+            装配台
+          </a>
+        }
+      />
 
       <main className="mx-auto grid w-full max-w-[1120px] gap-6 px-6 py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         {/* 左：文本网表输入 */}

@@ -35,8 +35,7 @@ import {
 } from '../core/lab/library';
 import { copyText } from '../ui/clipboard.ts';
 import { downloadBlob } from '../ui/exportGraph';
-import { SiteNav } from '../ui/SiteNav';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { SiteHeader } from '../ui/SiteHeader';
 import {
   CountUp,
   DecodeText,
@@ -243,22 +242,7 @@ export function Mine({
   return (
     <div className="min-h-screen" data-testid="mine-stage">
 
-      <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center gap-4 px-6">
-          <button
-            type="button"
-            onClick={onBack}
-            className="focus-ring inline-flex items-center gap-1.5 border border-line px-2.5 py-1 text-[11.5px] text-muted transition-colors hover:border-cyan/50 hover:text-ink shrink-0"
-            aria-label="返回上一页"
-          >
-            ← 返回
-          </button>
-          <span className="text-[22px] font-semibold leading-[1.3] tracking-[-0.02em] text-ink shrink-0">我的</span>
-          <span className="kicker hidden shrink-0 sm:inline">存这台浏览器</span>
-          <SiteNav current="mine" />
-          <ThemeToggle />
-        </div>
-      </header>
+      <SiteHeader page="mine" title="我的" note="存这台浏览器" onBack={onBack} />
 
       <main className="mx-auto w-full max-w-[1120px] px-6 pb-20 pt-10">
         {/* ── Hero ───────────────────────────────────────────────────── */}

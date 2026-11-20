@@ -35,7 +35,7 @@ import {
 import { prepareImages } from '../ui/imagePipeline';
 import { takeSolveSeed } from '../ui/solveSeed';
 import { QuickFill, QUICKFILL_TEMPLATES } from '../ui/QuickFill.tsx';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { SITE_LINK, SiteHeader } from '../ui/SiteHeader';
 import { parseSimplifications, simplificationNotice } from '../core/scope/simplifications';
 import { labDraftFromAIDraft, LAB_DRAFT_DISCLAIMER } from '../core/ai/labDraft';
 import { imageRefNotice } from '../core/ai/imgref';
@@ -340,24 +340,17 @@ export function Solve({ onBack, onStart, onToast }: SolveProps) {
 
   return (
     <div className="min-h-screen">
-      <header className="toolbar no-print sticky top-0 z-20">
-        <div className={`${SHELL} flex h-[52px] items-center gap-3`}>
-          <span className="traffic hidden shrink-0 sm:inline-flex" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </span>
-          <button type="button" onClick={onBack} className="focus-ring rounded-[6px] border border-line px-2 py-1 text-[11px] text-muted transition-colors hover:border-line-2 hover:text-ink">
-            ← 返回
-          </button>
-          <span className="font-serif text-[13px] text-ink">我有道题</span>
-          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
-          <a href="#/wizard" className="focus-ring ml-auto text-[11px] text-muted transition-colors hover:text-ink">
+      <SiteHeader
+        page="solve"
+        title="我有道题"
+        note="贴题、给数，然后看结构"
+        onBack={onBack}
+        extra={
+          <a href="#/wizard" className={`${SITE_LINK} hidden md:inline`}>
             不知道选哪个？走选型向导
           </a>
-          <ThemeToggle />
-        </div>
-      </header>
+        }
+      />
 
       <main className={`page-enter ${SHELL} pb-32 pt-12`}>
         <h1 className="text-[28px] font-normal leading-[1.2] text-ink sm:text-[32px]">贴题、给数，然后看结构</h1>

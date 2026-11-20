@@ -52,6 +52,7 @@ import { ConfidenceBadge, confidenceTone } from '../ui/ConfidenceBadge';
 import { confidenceSummary, formatDisplayValue, skippedChecks } from '../ui/confidenceSummary';
 import { StepPlayer } from '../ui/StepPlayer';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { SiteHeader } from '../ui/SiteHeader';
 import { LoadingPlate } from '../ui/LoadingPlate';
 import { ReadoutPanel } from '../ui/ReadoutPanel';
 import { buildReadouts } from '../core/readouts.ts';
@@ -1233,150 +1234,166 @@ export function Result({ templateId, search, onBack, onToast, override }: Result
   /** R-38：理想模型题要把「图上没有电源也能求解」的前提说清楚。 */
   const caveat = solution ? modelCaveatFor(entry.id, solution.result) : null;
 
+  /**
+   * 表头右侧那组控制（自检 / 单位 / 复制步骤 / 手机 ⋯）。
+   * 独立页走全站统一表头、嵌入讲解稿走窄条，两种表头用的是同一份控制簇。
+   */
+  const headerControls = (
+    <>
+      <span className="no-print hidden sm:inline-flex">
+        <ConfidenceBadge
+          report={solution.confidence}
+          validatedAt={solution.validatedAt}
+          contractVersion={solution.contractVersion}
+          expanded={checksOpen}
+          onToggle={() => setChecksOpen((value) => !value)}
+        />
+      </span>
+      <button
+        type="button"
+        onClick={() => setChecksOpen((value) => !value)}
+        className="no-print hidden rounded border border-line px-2 py-1 text-[11px] text-muted hover:border-cyan/50 hover:text-cyan sm:inline-flex"
+      >
+        查看自检
+      </button>
+      <span className="no-print hidden sm:inline-flex">
+        <UnitModeSelect testId="unit-mode-result" showScope />
+      </span>
+      <div className="no-print relative hidden sm:block">
+        <button
+          type="button"
+          data-testid="copy-steps-toggle"
+          aria-expanded={stepsMenuOpen}
+          aria-label="复制解题步骤"
+          onClick={() => setStepsMenuOpen((open) => !open)}
+          className="rounded border border-line px-2 py-1 text-[11px] text-muted hover:border-cyan/50 hover:text-cyan"
+        >
+          复制步骤 ▾
+        </button>
+        {stepsMenuOpen ? (
+          <div
+            data-testid="copy-steps-menu"
+            className="absolute right-0 top-full z-50 mt-1 w-40 rounded-lg border border-line bg-panel p-1 shadow-lg"
+          >
+            <button
+              type="button"
+              data-testid="copy-steps-latex"
+              onClick={() => void copySteps('latex')}
+              className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
+            >
+              复制为 LaTeX
+            </button>
+            <button
+              type="button"
+              data-testid="copy-steps-markdown"
+              onClick={() => void copySteps('markdown')}
+              className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
+            >
+              复制为 Markdown
+            </button>
+          </div>
+        ) : null}
+      </div>
+      <div className="no-print relative sm:hidden">
+        <button
+          type="button"
+          onClick={() => setMenuOpen((value) => !value)}
+          aria-expanded={menuOpen}
+          aria-label="更多操作"
+          className="rounded border border-line px-2 py-1 text-[13px] leading-none text-muted hover:border-cyan/50 hover:text-cyan"
+        >
+          ⋯
+        </button>
+        {menuOpen ? (
+          <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-lg border border-line bg-panel p-1 shadow-lg">
+            <button
+              type="button"
+              onClick={() => {
+                setChecksOpen((value) => !value);
+                setMenuOpen(false);
+              }}
+              className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
+            >
+              查看自检
+            </button>
+            <button
+              type="button"
+              onClick={copyLink}
+              className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
+            >
+              复制链接
+            </button>
+            <button
+              type="button"
+              data-testid="print-button"
+              onClick={exportPdf}
+              className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-cyan hover:bg-ink/[0.04]"
+            >
+              打印 / 另存 PDF
+            </button>
+            <button
+              type="button"
+              data-testid="copy-steps-latex-mobile"
+              onClick={() => void copySteps('latex')}
+              className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
+            >
+              复制步骤（LaTeX）
+            </button>
+            {canLab && !embedded ? (
+              <a
+                href={`#/lab/t/${templateId}`}
+                onClick={() => setMenuOpen(false)}
+                className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
+              >
+                改结构 →
+              </a>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </>
+  );
+
+  /** 巡检 D7：打印页脚去掉内部路由 #/t/A1（像调试残留），题号 + 时间够定位了。 */
+  const printMetaBlock = (
+    <div className="print-only print-meta">
+      <span>拆解台 · SolveDeck</span>
+      <span>{displayId}</span>
+      <span>{printTime}</span>
+    </div>
+  );
+
   return (
     <div className="result-page min-h-screen pb-24" data-embedded={embedded ? '1' : undefined} data-printing={printing ? '1' : undefined}>
-      <header className={`result-header toolbar no-print z-30 ${embedded ? 'border-t border-line' : 'sticky top-0'}`}>
-        <div className={`mx-auto flex max-w-[1600px] flex-wrap items-center gap-3 px-4 ${embedded ? 'py-2' : 'h-[52px]'}`}>
-          {!embedded ? (
-            <span className="traffic hidden shrink-0 sm:inline-flex" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-            </span>
-          ) : null}
-          {!embedded ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="no-print rounded-[6px] border border-line px-2 py-1 text-[11px] text-muted transition-colors hover:border-line-2 hover:text-ink"
-            >
-              ← 题库
-            </button>
-          ) : null}
-          <span className="id-mono shrink-0 text-cyan">{embedded ? '讲解稿' : displayId}</span>
-          <h1 className="min-w-0 flex-1 truncate font-serif text-[13px] font-normal text-ink">
-            {embedded ? '分步推导与讲解' : displayTitle}
-          </h1>
-          <span className="no-print hidden sm:inline-flex">
-            <ConfidenceBadge
-              report={solution.confidence}
-              validatedAt={solution.validatedAt}
-              contractVersion={solution.contractVersion}
-              expanded={checksOpen}
-              onToggle={() => setChecksOpen((value) => !value)}
-            />
-          </span>
-          <button
-            type="button"
-            onClick={() => setChecksOpen((value) => !value)}
-            className="no-print hidden rounded border border-line px-2 py-1 text-[11px] text-muted hover:border-cyan/50 hover:text-cyan sm:inline-flex"
-          >
-            查看自检
-          </button>
-          <span className="no-print hidden sm:inline-flex">
-            <UnitModeSelect testId="unit-mode-result" showScope />
-          </span>
-          <div className="no-print relative hidden sm:block">
-            <button
-              type="button"
-              data-testid="copy-steps-toggle"
-              aria-expanded={stepsMenuOpen}
-              aria-label="复制解题步骤"
-              onClick={() => setStepsMenuOpen((open) => !open)}
-              className="rounded border border-line px-2 py-1 text-[11px] text-muted hover:border-cyan/50 hover:text-cyan"
-            >
-              复制步骤 ▾
-            </button>
-            {stepsMenuOpen ? (
-              <div
-                data-testid="copy-steps-menu"
-                className="absolute right-0 top-full z-50 mt-1 w-40 rounded-lg border border-line bg-panel p-1 shadow-lg"
-              >
-                <button
-                  type="button"
-                  data-testid="copy-steps-latex"
-                  onClick={() => void copySteps('latex')}
-                  className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
-                >
-                  复制为 LaTeX
-                </button>
-                <button
-                  type="button"
-                  data-testid="copy-steps-markdown"
-                  onClick={() => void copySteps('markdown')}
-                  className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
-                >
-                  复制为 Markdown
-                </button>
-              </div>
-            ) : null}
+      {embedded ? (
+        /* 嵌进装配台右栏的窄条：不挂全站导航（下面整页都是这份讲解稿），只留题号与操作 */
+        <header className="result-header no-print z-30 border-t border-line">
+          <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-3 px-4 py-2">
+            <span className="id-mono shrink-0 text-cyan">讲解稿</span>
+            <h1 className="min-w-0 flex-1 truncate font-serif text-[13px] font-normal text-ink">分步推导与讲解</h1>
+            {headerControls}
+            <ThemeToggle />
+            {printMetaBlock}
           </div>
-          <div className="no-print relative sm:hidden">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((value) => !value)}
-              aria-expanded={menuOpen}
-              aria-label="更多操作"
-              className="rounded border border-line px-2 py-1 text-[13px] leading-none text-muted hover:border-cyan/50 hover:text-cyan"
-            >
-              ⋯
-            </button>
-            {menuOpen ? (
-              <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-lg border border-line bg-panel p-1 shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setChecksOpen((value) => !value);
-                    setMenuOpen(false);
-                  }}
-                  className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
-                >
-                  查看自检
-                </button>
-                <button
-                  type="button"
-                  onClick={copyLink}
-                  className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
-                >
-                  复制链接
-                </button>
-                <button
-                  type="button"
-                  data-testid="print-button"
-                  onClick={exportPdf}
-                  className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-cyan hover:bg-ink/[0.04]"
-                >
-                  打印 / 另存 PDF
-                </button>
-                <button
-                  type="button"
-                  data-testid="copy-steps-latex-mobile"
-                  onClick={() => void copySteps('latex')}
-                  className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
-                >
-                  复制步骤（LaTeX）
-                </button>
-                {canLab && !embedded ? (
-                  <a
-                    href={`#/lab/t/${templateId}`}
-                    onClick={() => setMenuOpen(false)}
-                    className="block w-full rounded px-2 py-1.5 text-left text-[11px] text-ink hover:bg-ink/[0.04]"
-                  >
-                    改结构 →
-                  </a>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-          <ThemeToggle />
-          <div className="print-only print-meta">
-            {/* 巡检 D7：打印页脚去掉内部路由 #/t/A1（像调试残留），题号 + 时间够定位了。 */}
-            <span>拆解台 · SolveDeck</span>
-            <span>{displayId}</span>
-            <span>{printTime}</span>
-          </div>
-        </div>
-      </header>
+        </header>
+      ) : (
+        /* 独立结果页：与首页同一条 60px 玻璃纸带 —— 品牌 / 当前页 / 全站导航 / 这一页的控制簇 */
+        <SiteHeader
+          page="result"
+          z="z-30"
+          width={1600}
+          onBack={onBack}
+          backLabel="题库"
+          title={
+            <>
+              <span className="id-mono shrink-0 text-cyan">{displayId}</span>
+              <h1 className="min-w-0 flex-1 truncate font-serif text-[13px] font-normal text-ink">{displayTitle}</h1>
+              {headerControls}
+              {printMetaBlock}
+            </>
+          }
+        />
+      )}
 
       {solution ? (
         <ParamBadge

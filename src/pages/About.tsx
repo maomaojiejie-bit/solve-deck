@@ -1,6 +1,6 @@
 import { TEMPLATES } from '../core/templates/registry';
 import { LAB_LEDGER, LAB_LEDGER_COUNTS, type Subject } from '../core/lab/coverage';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { SITE_LINK, SiteHeader } from '../ui/SiteHeader';
 
 interface AboutProps {
   onBack: () => void;
@@ -65,34 +65,25 @@ export function About({ onBack }: AboutProps) {
 
   return (
     <div className="min-h-screen">
-      <header className="no-print sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center gap-4 px-6">
-          <button
-            type="button"
-            onClick={onBack}
-            className="focus-ring text-[13px] text-muted transition-colors hover:text-ink"
-          >
-            ← 返回
-          </button>
-          <span className="text-[13px] text-muted">关于</span>
-          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
-          <a href="#/" className="focus-ring ml-auto text-[13px] text-muted transition-colors hover:text-ink">
-            返回首页
-          </a>
+      <SiteHeader
+        page="about"
+        title="关于"
+        note="能力边界 · 校验契约 · 更新记录"
+        onBack={onBack}
+        extra={
           <a
             href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
             aria-label="GitHub 仓库（新窗口打开）"
             title="源码在 GitHub 上（新窗口打开）"
-            className="focus-ring flex items-center gap-1.5 text-[13px] text-muted transition-colors hover:text-ink"
+            className={`${SITE_LINK} flex items-center gap-1.5`}
           >
             <GitHubIcon />
             <span className="hidden sm:inline">GitHub</span>
           </a>
-          <ThemeToggle />
-        </div>
-      </header>
+        }
+      />
 
       <main className="mx-auto w-full max-w-[1120px] space-y-12 px-6 pb-16 pt-10">
         {/* 第一屏：三步流程，与主页「先看懂，再算出来」呼应 */}

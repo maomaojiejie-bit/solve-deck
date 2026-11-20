@@ -73,7 +73,7 @@ import { confidenceSummary } from '../ui/confidenceSummary';
 import { formatScalar, isInfiniteValue } from '../core/format.ts';
 import { ParamPanel } from '../ui/ParamPanel';
 import { prepareImages } from '../ui/imagePipeline';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { SiteHeader } from '../ui/SiteHeader';
 import { LoadingPlate, LoadingInline } from '../ui/LoadingPlate';
 import {
   CountUp,
@@ -94,7 +94,6 @@ import { VISION_CONFIG } from '../core/ai/config';
 import { validateLive } from '../confidence/live';
 import { SpecGrid } from '../render/SpecGrid';
 import { AnalogSchematic } from '../render/AnalogSchematic';
-import { SiteNav } from '../ui/SiteNav';
 import { Result } from './Result';
 import type { CanvasGraph, GraphOp } from '../core/lab/types';
 import { buildStandaloneSvg, downloadBlob, findGraphSvg, graphFileName, svgToPngBlob } from '../ui/exportGraph';
@@ -1986,41 +1985,26 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
         <Parallax speed={0.04} className="draft-grid absolute -inset-x-10 -top-16 h-[170%] opacity-[0.14]" />
       </div>
 
-      <header className="no-print sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-[60px] w-full max-w-[1440px] items-center gap-4 px-6">
-          <button
-            type="button"
-            onClick={onBack}
-            className="focus-ring shrink-0 font-mono text-[11px] tracking-[0.08em] text-muted transition-colors hover:text-ink"
-          >
-            ← 返回
-          </button>
-          <span className="h-4 w-px shrink-0 bg-[var(--color-line-2)]" aria-hidden="true" />
-          <a href="#/lab" aria-label="装配台索引" className="focus-ring flex shrink-0 items-center gap-2.5">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M4 20V6l8 4 8-4v14l-8-4-8 4Z" stroke="var(--color-ink)" strokeWidth="1.5" strokeLinejoin="round" />
-              <path d="M12 10v8" stroke="var(--color-cyan)" strokeWidth="1.5" />
-            </svg>
-            <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">装配台</span>
-            <span className="hidden font-mono text-[10.5px] tracking-[0.12em] text-faint sm:inline">改结构，不改求解器</span>
-          </a>
-          {/* 黑盒 #31：全站同一套 SiteNav（知识库 · 数字求值 · 范围 · 看原题） */}
-          <SiteNav current="lab">
-            {peekTemplateId ? (
-              <a
-                href={`#/t/${peekTemplateId}`}
-                onClick={(e) => { e.preventDefault(); onStart(`#/t/${peekTemplateId}`); }}
-                className="focus-ring text-[13px] text-cyan transition-colors hover:text-ink"
-              >
-                看原题
-              </a>
-            ) : pickId ? (
-              <span className="hidden text-[11px] text-faint md:inline">看原题（当前题型不在装配台清单里）</span>
-            ) : null}
-          </SiteNav>
-          <ThemeToggle />
-        </div>
-      </header>
+      <SiteHeader
+        page="lab"
+        title="装配台"
+        note="改结构，不改求解器"
+        onBack={onBack}
+        width={1440}
+        extra={
+          peekTemplateId ? (
+            <a
+              href={`#/t/${peekTemplateId}`}
+              onClick={(e) => { e.preventDefault(); onStart(`#/t/${peekTemplateId}`); }}
+              className="focus-ring text-[13px] text-cyan transition-colors hover:text-ink"
+            >
+              看原题
+            </a>
+          ) : pickId ? (
+            <span className="hidden text-[11px] text-faint md:inline">看原题（当前题型不在装配台清单里）</span>
+          ) : null
+        }
+      />
 
       <main className="lab-surface page-enter relative z-10 mx-auto w-full max-w-[1440px] px-6 pb-16 pt-6">
         {naView ? (

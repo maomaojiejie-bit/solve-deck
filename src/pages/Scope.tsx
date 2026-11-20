@@ -10,7 +10,7 @@
 
 import { useMemo, useState } from 'react';
 import { SCOPE_QUESTIONS } from '../core/scope/questions';
-import { ThemeToggle } from '../ui/ThemeToggle';
+import { SITE_LINK, SiteHeader } from '../ui/SiteHeader';
 import { answersFromMask, classifyScope, type ScopeVerdict } from '../core/scope/classify';
 import { getTemplateRoute } from '../core/templates/registry';
 import { assumptionNoticeTitle } from '../core/scope/simplifications';
@@ -50,23 +50,17 @@ export function Scope({ onBack }: ScopeProps) {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center gap-4 px-6">
-          <button
-            type="button"
-            onClick={onBack}
-            className="focus-ring text-[13px] text-muted transition-colors hover:text-ink"
-          >
-            ← 返回
-          </button>
-          <span className="text-[13px] text-muted">范围判别 · 六问</span>
-          <a href="#/kb" className="focus-ring text-[13px] text-muted transition-colors hover:text-ink">知识库</a>
-          <a href="#/about" className="focus-ring ml-auto text-[13px] text-muted transition-colors hover:text-ink">
+      <SiteHeader
+        page="scope"
+        title="范围判别 · 六问"
+        note="六个问题判「能不能算」"
+        onBack={onBack}
+        extra={
+          <a href="#/about" className={SITE_LINK}>
             能力边界 →
           </a>
-          <ThemeToggle />
-        </div>
-      </header>
+        }
+      />
 
       <main className="mx-auto grid w-full max-w-[1120px] gap-4 px-6 pb-20 pt-8">
         <section className="card elev rounded-2xl p-4">
