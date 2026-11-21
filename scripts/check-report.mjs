@@ -167,7 +167,8 @@ console.log('③  N 档：第 4 帧替换 + 等效图过滤 + F 档显式分支�
           const stripped = line.trim();
           if (stripped.startsWith('//') || stripped.startsWith('/*') || stripped.startsWith('*')) return;
           const cleaned = line
-            .replace(/题库|素材库|词库|数据库|仓库|求解内核|样例库|词法/g, '')
+            // 2026-11-21 三维分区：算例库/截面库/材料库是正当复合词（非裸「库」指代求解内核），并入白名单
+            .replace(/题库|素材库|词库|数据库|仓库|求解内核|样例库|算例库|截面库|材料库|词法/g, '')
             .replace(/杠杆|压杆|拉杆|斜杆|导杆|连杆|杆件/g, (m) => (m === '杆件' ? '' : m));
           if (banned.test(line) && !/构件/.test(line.replace(/构件/g, ''))) offenders.push(`${rel}:${index + 1} 术语 ${banned.exec(line)?.[0]}`);
           else if (banned.test(cleaned)) offenders.push(`${rel}:${index + 1} 术语 ${banned.exec(cleaned)?.[0]}`);

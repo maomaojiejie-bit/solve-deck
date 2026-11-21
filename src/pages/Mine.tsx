@@ -288,6 +288,17 @@ export function Mine({
                 <span aria-hidden="true">→</span>
               </button>
             </Magnetic>
+            <Magnetic>
+              <button
+                type="button"
+                data-testid="mine-cta-space"
+                onClick={() => onStart('#/space/build')}
+                className="focus-ring group inline-flex h-11 items-center gap-2 border border-cyan/50 px-5 text-[13px] font-medium text-cyan transition-colors hover:bg-cyan/10"
+              >
+                去三维装配台
+                <span aria-hidden="true">→</span>
+              </button>
+            </Magnetic>
             <span className="text-[11.5px] leading-5 text-muted">
               最近一次 · <span className="text-ink">{lastAt ? relativeTime(lastAt) : '还没动过'}</span>
             </span>

@@ -144,7 +144,8 @@ export function Home() {
       return;
     }
     setCandidates([]);
-    window.location.hash = target.kind === 'unique' ? target.hash : `#/solve?q=${encodeURIComponent(text)}`;
+    window.location.hash =
+      target.kind === 'unique' || target.kind === 'space' ? target.hash : `#/solve?q=${encodeURIComponent(text)}`;
   };
 
   return (
@@ -522,6 +523,50 @@ export function Home() {
                 </li>
               ))}
             </ul>
+          </div>
+        </section>
+
+        {/* ── §04 三维力学实验场（lab3d 合并分区） ────────────────────── */}
+        <section className="border-t border-line">
+          <div className={`${SHELL} grid gap-12 py-24 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]`}>
+            <Reveal>
+              <span className="sec-idx">§04</span>
+              <h2 className="mt-3 text-[26px] font-semibold leading-[1.3] tracking-[-0.02em] text-ink sm:text-[30px]">
+                三维力学实验场。
+              </h2>
+              <p className="mt-4 max-w-[380px] text-[13.5px] leading-[1.9] text-muted">
+                47 个三维算例：杆系与梁的静力、多刚体系、机构运动学与动力学。模板只读可看 3D 场景与逐位对账的结果，装配台可自由改模型即时重解。
+              </p>
+              <a
+                href="#/space"
+                className="focus-ring group mt-6 inline-flex items-center gap-2 border-b border-ink/30 pb-1 text-[13px] text-ink transition-colors hover:border-cyan hover:text-cyan"
+              >
+                分区说明与算例总览
+                <span className="transition-transform duration-300 group-hover:translate-x-0.5">→</span>
+              </a>
+            </Reveal>
+
+            <Reveal delay={120}>
+              <Spotlight className="edge relative border border-line-2 bg-panel px-6 py-8">
+                <div className="relative z-[1] flex flex-col gap-3">
+                  <p className="font-mono text-[10.5px] tracking-[0.14em] text-faint">E1 杆系 · E2 刚体 · E3 机构</p>
+                  <Magnetic strength={0.16}>
+                    <a
+                      href="#/space/build"
+                      className="sheen focus-ring inline-flex h-10 items-center justify-center bg-cyan px-5 text-[14px] font-medium text-white transition-colors hover:bg-cyan-deep"
+                    >
+                      打开三维装配台 →
+                    </a>
+                  </Magnetic>
+                  <a
+                    href="#/space"
+                    className="focus-ring inline-flex h-10 items-center justify-center border border-line-2 bg-elev px-5 text-[14px] text-ink transition-colors hover:border-ink/40"
+                  >
+                    浏览 47 个三维算例
+                  </a>
+                </div>
+              </Spotlight>
+            </Reveal>
           </div>
         </section>
 

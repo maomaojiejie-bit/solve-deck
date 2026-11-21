@@ -266,23 +266,33 @@ export function Typewriter({
   delay = 0,
   className = '',
   onDone,
+  once = false,
 }: {
   text: string;
   speed?: number;
   delay?: number;
   className?: string;
   onDone?: () => void;
+  /** 只在首次出现时打字；后续文本更新直接替换（编辑器里每次重解不重播） */
+  once?: boolean;
 }) {
   const reduced = usePrefersReducedMotion();
   const [shown, setShown] = useState(reduced ? text : '');
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
+  const played = useRef(false);
 
   useEffect(() => {
     if (reduced) {
       setShown(text);
       return;
     }
+    if (once && played.current) {
+      setShown(text);
+      doneRef.current?.();
+      return;
+    }
+    played.current = true;
     setShown('');
     const chars = [...text];
     let index = 0;

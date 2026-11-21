@@ -27,11 +27,12 @@ export const SITE_LINK = 'focus-ring text-[13px] text-muted transition-colors ho
 const SITE_CURRENT = 'text-[13px] text-ink';
 
 /** 导航里出现的页签（比 SitePage 少 lab / solve / wizard / result 这些不在导航里的）。 */
-type SitePageBase = 'kb' | 'digital' | 'scope' | 'mine' | 'about';
+type SitePageBase = 'kb' | 'space' | 'digital' | 'scope' | 'mine' | 'about';
 
 /** 全站导航顺序 —— 所有页面共用一份，改顺序只改这里。 */
 const NAV_ITEMS: ReadonlyArray<{ href: string; label: string; page: SitePageBase; clamp?: string }> = [
   { href: '#/kb', label: '知识库', page: 'kb' },
+  { href: '#/space', label: '三维', page: 'space', clamp: 'hidden sm:inline' },
   { href: '#/lab/digital', label: '数字求值', page: 'digital', clamp: 'hidden sm:inline' },
   { href: '#/scope', label: '范围', page: 'scope', clamp: 'hidden sm:inline' },
   { href: '#/mine', label: '我的', page: 'mine' },
@@ -40,6 +41,7 @@ const NAV_ITEMS: ReadonlyArray<{ href: string; label: string; page: SitePageBase
 
 export type SitePage =
   | 'kb'
+  | 'space'
   | 'digital'
   | 'scope'
   | 'lab'
@@ -134,6 +136,15 @@ function SolveMenu({ active }: { active: boolean }) {
             <span className="block text-[13px] text-ink">② 自己拼</span>
             <span className="mt-0.5 block text-[11px] text-faint">在画布上搭结构</span>
           </a>
+          <a
+            href="#/space/build"
+            data-testid="solve-panel-space"
+            onClick={() => setOpen(false)}
+            className="focus-ring block rounded-[3px] px-3 py-2.5 transition-colors hover:bg-panel-2"
+          >
+            <span className="block text-[13px] text-ink">③ 三维装配</span>
+            <span className="mt-0.5 block text-[11px] text-faint">空间桁架/塔架/棱台圆台，搭完即解</span>
+          </a>
         </div>
       ) : null}
     </span>
@@ -183,15 +194,16 @@ export function SiteHeader({
           <span className="hidden font-mono text-[10.5px] tracking-[0.12em] text-faint sm:inline">v0.3</span>
         </a>
 
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        {/* ISSUE-08：中列 overflow-hidden + 子项可收缩截断，窄屏时不再压到右侧导航上 */}
+        <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
           {title ? (
             <>
-              <span className="hidden text-[13px] text-faint sm:inline" aria-hidden="true">
+              <span className="hidden shrink-0 text-[13px] text-faint sm:inline" aria-hidden="true">
                 /
               </span>
               {typeof title === 'string' ? (
                 <span
-                  className={`shrink-0 truncate text-[13px] text-muted ${duplicatedOnMobile ? 'hidden sm:inline' : ''}`}
+                  className={`min-w-0 truncate text-[13px] text-muted ${duplicatedOnMobile ? 'hidden sm:inline' : ''}`}
                 >
                   {title}
                 </span>
@@ -201,7 +213,7 @@ export function SiteHeader({
             </>
           ) : null}
           {note ? (
-            <span className="hidden shrink-0 font-mono text-[10.5px] tracking-[0.12em] text-faint lg:inline">
+            <span className="hidden min-w-0 truncate font-mono text-[10.5px] tracking-[0.12em] text-faint lg:inline">
               {note}
             </span>
           ) : null}

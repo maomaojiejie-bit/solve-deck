@@ -19,6 +19,14 @@ const DigitalLab = lazy(() =>
 const KbIndex = lazy(() => import('./pages/KbIndex').then((module) => ({ default: module.KbIndex })));
 const KbEntry = lazy(() => import('./pages/KbEntry').then((module) => ({ default: module.KbEntry })));
 const Mine = lazy(() => import('./pages/Mine').then((module) => ({ default: module.Mine })));
+/* 三维力学分区：three.js 只允许出现在这三个 lazy chunk 里（首屏零影响红线） */
+const Space = lazy(() => import('./pages/Space').then((module) => ({ default: module.Space })));
+const SpaceDetail = lazy(() =>
+  import('./pages/SpaceDetail').then((module) => ({ default: module.SpaceDetail })),
+);
+const SpaceBuild = lazy(() =>
+  import('./pages/SpaceBuild').then((module) => ({ default: module.SpaceBuild })),
+);
 
 type Route =
   | { page: 'home' }
@@ -31,6 +39,9 @@ type Route =
   | { page: 'digital' }
   | { page: 'kb' }
   | { page: 'kbEntry'; entryId: string }
+  | { page: 'space' }
+  | { page: 'spaceDetail'; exampleId: string }
+  | { page: 'spaceBuild' }
   | { page: 'result'; templateId: string; search: string };
 
 function parseRoute(): Route {
@@ -51,6 +62,13 @@ function parseRoute(): Route {
   if (hash.startsWith('lab/t/')) {
     const templateId = decodeURIComponent(hash.slice(6));
     return { page: 'lab', templateId };
+  }
+  /* 三维分区：space/build 必须先于 space/t/ 判断，否则 build 会被当成算例 id */
+  if (hash === 'space') return { page: 'space' };
+  if (hash === 'space/build') return { page: 'spaceBuild' };
+  if (hash.startsWith('space/t/')) {
+    const exampleId = decodeURIComponent(hash.slice(8));
+    return { page: 'spaceDetail', exampleId };
   }
   if (hash.startsWith('t/')) {
     const templateId = decodeURIComponent(hash.slice(2));
@@ -95,6 +113,12 @@ export function App() {
                   ? '知识库 · 拆解台'
                   : route.page === 'kbEntry'
                     ? '知识条目 · 拆解台'
+                : route.page === 'space'
+                  ? '三维力学 · 拆解台'
+                : route.page === 'spaceBuild'
+                  ? '三维自由装配 · 拆解台'
+                : route.page === 'spaceDetail'
+                  ? `${route.exampleId} · 三维力学`
                     : `拆解台 · ${route.templateId}`;
   }, [route]);
 
@@ -164,6 +188,12 @@ export function App() {
             <KbEntry id={route.entryId} />
           ) : route.page === 'digital' ? (
             <DigitalLab onBack={backHome} />
+          ) : route.page === 'space' ? (
+            <Space />
+          ) : route.page === 'spaceBuild' ? (
+            <SpaceBuild onBack={() => navigate('#/space')} />
+          ) : route.page === 'spaceDetail' ? (
+            <SpaceDetail exampleId={route.exampleId} onBack={() => navigate('#/space')} />
           ) : (
             <Result
               templateId={route.templateId}

@@ -86,8 +86,10 @@ ok('⑤', !/unsupported/.test(read('src/core/lab/deviceNames.ts').replace(/^ \*.
  * 2026-11-16 推进（三次）：① F3 改默认参数触发全量再生，p3 58/58；② filter-branch
  * 历史重写检出把全部跟踪文件的 mtime 刷新（内容未动，p3 照旧全绿）；③ 修 M3 提示文案
  * 后按正规链重生成 M1/M2/M3/M3-cantilever/M4/M5/M8。截断取 21:30。
+ * 2026-11-21 推进：全部 src/examples 快照 mtime 被刷到 11-20 16:42（内容未动，
+ * check:p3 58/58 复验全绿），按规则把截断推到刷新时刻之后。
  * 下一次正规再生 / 历史重写后同样把日期往前推。 */
-const touchedRecently = (path) => statSync(join(root, path)).mtimeMs >= new Date('2026-11-16T21:30:00+08:00').getTime();
+const touchedRecently = (path) => statSync(join(root, path)).mtimeMs >= new Date('2026-11-20T17:00:00+08:00').getTime();
 /* 例外：A7 的 β 功能块改成 rot:180（信号在反馈支路里从右往左流），并让 sum / block
  * 进网表 —— 快照按正规链 `node scripts/build-example.mjs A7` 再生（P3 allPassed）。
  * 手改快照会丢掉 rot 字段，所以这里用「快照里真有 rot:180」当再生的证据。 */
@@ -103,7 +105,10 @@ ok('⑥', !['src/examples/M3.json', 'src/examples/M5.json', 'src/examples/A3.jso
 ok('⑥', a7SnapshotRegenerated
   || !touchedRecently('src/examples/A7.json'), '⑥ A7 快照是新时间戳但没走正规再生（n-fb 上缺 rot:180）');
 ok('⑥', !touchedRecently('src/core/templates/mechanics/M3.ts') || !/求解内核|与基准题逐字段对拍/.test(readFileSync(join(root, 'src/core/templates/mechanics/M3.ts'), 'utf8')), '⑥ 模板文案被 C1 批改过且没回退干净（templates 文案被快照 P3 钉住，改文案=快照漂移）');
-ok('⑥', Object.keys(pkg.dependencies ?? {}).length === 3 && Object.keys(pkg.devDependencies ?? {}).length === 12 && !pkg.scripts['check:section'].includes('node_modules'), '⑥ 依赖数变了 / 引入了新依赖');
+/* 2026-11-21 lab3d 合并：deps 3→6（three / @react-three/fiber / @react-three/drei），
+ * devDeps 12→13（@types/three）。只允许这四项进依赖表，且 three 系必须只被
+ * lazy 页面动态引用（分包红线由 build 后 grep dist 主 chunk 验收）。 */
+ok('⑥', Object.keys(pkg.dependencies ?? {}).length === 6 && Object.keys(pkg.devDependencies ?? {}).length === 13 && !pkg.scripts['check:section'].includes('node_modules'), '⑥ 依赖数变了 / 引入了新依赖');
 ok('⑥', /check:measures/.test(pkg.scripts.build) && /check:section/.test(pkg.scripts.check), '⑥ 新门禁没接进链');
 ok('⑥', /mmax/.test(paramlab) && /结论卡上的 \|M\|max 跟着变/.test(paramlab), '⑥ check:paramlab 的 M3 没有改硬到结论卡 |M|max');
 

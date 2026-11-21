@@ -1,0 +1,34 @@
+{
+  "_notice": "生成物，禁止手改。由 scripts/build-snapshot.mjs 产出；求解器/算例变更后重跑 npm run snapshot，并以 npm run check:solve 对账。",
+  "generatedBy": "scripts/build-snapshot.mjs",
+  "solution": {
+    "modelId": "K4M",
+    "kind": "kin",
+    "headline": "拒答：曲柄滑块无法装配：r=1.2 ≥ l=1",
+    "verified": false,
+    "duration": 1,
+    "frames": [],
+    "series": [],
+    "keyValues": [],
+    "steps": [
+      {
+        "title": "认题",
+        "detail": "曲柄滑块（r≥l 装配失败）（E3 K4 模板）"
+      },
+      {
+        "title": "建模",
+        "detail": "曲柄滑块无法装配：r=1.2 ≥ l=1"
+      },
+      {
+        "title": "求解",
+        "detail": "拒答，不产出数字"
+      }
+    ],
+    "checks": [],
+    "warnings": [],
+    "refusals": [
+      "曲柄滑块无法装配：r=1.2 ≥ l=1",
+      "曲柄整周回转要求 r < l（连杆更长）"
+    ]
+  }
+}

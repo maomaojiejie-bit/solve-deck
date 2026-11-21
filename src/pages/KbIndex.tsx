@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { SITE_LINK, SiteHeader } from '../ui/SiteHeader';
 import { KB } from '../kb/index.ts';
+import { spaceDemosFor } from '../kb/spaceLinks';
 import type { Subject } from '../kb/types.ts';
 
 const SUBJECT_LABEL: Record<Subject, string> = {
@@ -120,6 +121,9 @@ export function KbIndex() {
                               ) : null}
                               {entry.approach.length > 0 ? (
                                 <span className="rounded border border-line px-1.5 text-[11px] text-muted">有思路</span>
+                              ) : null}
+                              {spaceDemosFor(entry.id).length > 0 ? (
+                                <span className="rounded border border-cyan/40 px-1.5 text-[11px] text-cyan">三维演示</span>
                               ) : null}
                               {entry.solvable ? (
                                 <span className="rounded border border-cyan/40 bg-cyan/10 px-1.5 text-[11px] text-cyan">可解题</span>

@@ -1,0 +1,187 @@
+{
+  "_notice": "生成物，禁止手改。由 scripts/build-snapshot.mjs 产出；求解器/算例变更后重跑 npm run snapshot，并以 npm run check:solve 对账。",
+  "generatedBy": "scripts/build-snapshot.mjs",
+  "solution": {
+    "modelId": "S5",
+    "headline": "2 刚体 12 个约束力已解出（刚体静力·物体系拆体，静定)",
+    "verified": true,
+    "determinacy": "determinate",
+    "reactions": {
+      "N1": [
+        0,
+        10000,
+        0
+      ],
+      "N2": [
+        0,
+        0,
+        0
+      ],
+      "N4": [
+        0,
+        0,
+        0
+      ],
+      "N3": [
+        0,
+        10000,
+        0
+      ]
+    },
+    "memberForces": [],
+    "displacements": {
+      "N1": [
+        0,
+        0,
+        0
+      ],
+      "N2": [
+        0,
+        0,
+        0
+      ],
+      "N4": [
+        0,
+        0,
+        0
+      ],
+      "N3": [
+        0,
+        0,
+        0
+      ]
+    },
+    "steps": [
+      {
+        "title": "认题",
+        "detail": "2 刚体 4 结点，支座 2 处；12 个平衡方程 = 12 个未知约束力 → 静定"
+      },
+      {
+        "title": "建模",
+        "detail": "逐刚体列 ΣF=0/ΣM=0（B1:6，B2:6）；铰 1 处（内力 3 分量）；摩擦接触 0 处按全约束求解后判别摩擦锥"
+      },
+      {
+        "title": "求解",
+        "detail": "列主元高斯消元 12×12，耗时 {ms} ms；拆体 2 份"
+      },
+      {
+        "title": "简化",
+        "detail": "主动力系：|R|=2.0000e+4 N，对 O 主矩 |M|=1.2000e+5 N·m → 单力（主矢不为零，简化中心可移至合力作用线使主矩归零）"
+      },
+      {
+        "title": "校核",
+        "detail": "逐刚体平衡残差 ✓（残差 0.00e+0）；主矢主矩归零 ✓（残差 0.00e+0）"
+      }
+    ],
+    "checks": [
+      {
+        "name": "逐刚体平衡残差",
+        "pass": true,
+        "residual": 0,
+        "note": "每刚体 ΣF=0、ΣM=0 方程组残差（消元后回代）"
+      },
+      {
+        "name": "主矢主矩归零",
+        "pass": true,
+        "residual": 0,
+        "note": "荷载+反力全系统简化：R=0 且 M=0"
+      }
+    ],
+    "warnings": [],
+    "reactionMoments": {
+      "N1": [
+        0,
+        0,
+        40000
+      ],
+      "N2": [
+        0,
+        0,
+        0
+      ],
+      "N4": [
+        0,
+        0,
+        0
+      ],
+      "N3": [
+        0,
+        0,
+        0
+      ]
+    },
+    "reactionLabels": {
+      "N1": {
+        "type": "固定端",
+        "force": [
+          "FAx",
+          "FAy",
+          "FAz"
+        ],
+        "moment": [
+          "MAx",
+          "MAy",
+          "MAz"
+        ]
+      },
+      "N3": {
+        "type": "固定端（平面）",
+        "force": [
+          "",
+          "FBy",
+          "FBz"
+        ],
+        "moment": [
+          "",
+          "MBy",
+          ""
+        ]
+      }
+    },
+    "hingeForces": [
+      {
+        "node": "N2",
+        "bodies": [
+          "B1",
+          "B2"
+        ],
+        "f": [
+          0,
+          10000,
+          0
+        ]
+      }
+    ],
+    "simplify": {
+      "O": [
+        0,
+        0,
+        0
+      ],
+      "R": [
+        0,
+        -20000,
+        0
+      ],
+      "M": [
+        0,
+        0,
+        -120000
+      ],
+      "form": "force",
+      "formCn": "单力（主矢不为零，简化中心可移至合力作用线使主矩归零）",
+      "axis": {
+        "p": [
+          6,
+          0,
+          0
+        ],
+        "d": [
+          0,
+          -1,
+          0
+        ]
+      }
+    }
+  }
+}

@@ -575,6 +575,14 @@ export function Solve({ onBack, onStart, onToast }: SolveProps) {
               </span>
             </div>
 
+            {/* 空间/三维题分流：本题台只算平面题，三维去三维分区 */}
+            <p className="text-[12px] leading-5 text-muted">
+              空间 / 三维题（空间桁架、棱台圆台、球铰支架）→{' '}
+              <a href="#/space" className="text-cyan transition-colors hover:text-ink">三维算例库</a>
+              {' '}或{' '}
+              <a href="#/space/build" className="text-cyan transition-colors hover:text-ink">三维装配台自己搭</a>
+            </p>
+
             {/* U2：图片区必须有一句话把「不参与计算」说死（门禁 check:imgref ④ 钉这句） */}
             <p data-testid="image-ref-note" className="text-[12px] leading-5 text-muted">
               {imageRefNotice(images.length)}

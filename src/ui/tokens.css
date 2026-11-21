@@ -157,6 +157,11 @@
     background-size: 24px 24px;
   }
 
+  /* 自由装配画布：不透明纯色实底（随主题换色），不铺格线 —— 格线会干扰看图 */
+  .canvas-solid {
+    background-color: var(--canvas-solid);
+  }
+
   .step-active {
     box-shadow: inset 3px 0 0 var(--color-cyan);
   }
@@ -272,8 +277,11 @@
 
   /* 全站带边框的中性按钮：玻璃底、墨描边、hover 提亮。
      一条按「有没有边框」筛，覆盖三层粗改不了的地方。
-     语义色按钮（indigo/香槟/绿/红实底）不带 border-line，不进这条，保持实色。 */
-  button[class*='border-line'],
+     语义色按钮（indigo/香槟/绿/红实底）不带 border-line，不进这条，保持实色。
+     2026-11-21 修订：装配台等页面的选中态是「同一个按钮上 border-line-2 + bg-cyan」，
+     属性选择器 (0,1,1) 会压过 .bg-cyan (0,1,0)，导致选中态一直是玻璃白 —— 这里显式排除
+     带语义实底色的按钮（含 hover 与 active），选中态才看得见。 */
+  button[class*='border-line']:not([class*='bg-cyan']):not([class*='bg-danger']):not([class*='bg-ok']):not([class*='bg-gold']):not([class*='bg-indigo']):not([class*='bg-amber']),
   button[class*='border-white'],
   button[class*='border-2'] {
     background: var(--glass-fill-hi);
@@ -284,14 +292,14 @@
       color 0.2s ease-out;
   }
 
-  button[class*='border-line']:hover,
+  button[class*='border-line']:not([class*='bg-cyan']):not([class*='bg-danger']):not([class*='bg-ok']):not([class*='bg-gold']):not([class*='bg-indigo']):not([class*='bg-amber']):hover,
   button[class*='border-white']:hover,
   button[class*='border-2']:hover {
     background: var(--color-elev);
     border-color: var(--color-line-2);
   }
 
-  button[class*='border-line']:active,
+  button[class*='border-line']:not([class*='bg-cyan']):not([class*='bg-danger']):not([class*='bg-ok']):not([class*='bg-gold']):not([class*='bg-indigo']):not([class*='bg-amber']):active,
   button[class*='border-white']:active,
   button[class*='border-2']:active {
     background: var(--color-panel);
@@ -316,9 +324,17 @@
     border-bottom: 1px solid var(--card-border);
   }
 
-  /* 工具栏：52px、玻璃条、底部发丝线、无重阴影（色值变量化，dark 换值） */
+  /* 工具栏：玻璃条、底部发丝线、无重阴影（色值变量化，dark 换值）。
+     评审 P0-8：原来是固定 height:52px 且没有 display 声明（block），
+     JSX 上的 flex-wrap / gap / ml-auto 全是死类 → 内容溢出压到画布、撤销键被裁。
+     改为 flex + min-height：放得下时仍是 52px，放不下自动换行并把主区压小。 */
   .toolbar {
-    height: 52px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    min-height: 52px;
+    height: auto;
+    flex-shrink: 0;
     background: var(--toolbar-bg);
     -webkit-backdrop-filter: blur(18px) saturate(var(--glass-sat));
     backdrop-filter: blur(18px) saturate(var(--glass-sat));
@@ -452,6 +468,11 @@
   --schematic-idle: #a29b8c;
   --schematic-text: #5c574c;
   --schematic-active-text: #ffffff;
+  /* 三维画布标签光晕：透明画布上保证文字可读，暗底换黑晕。
+     浓度压到 0.55/0.6 —— 原来 0.9 的字晕会把 10px 小字糊成一小块白/黑，显得臃肿 */
+  --scene-halo: 0 1px 2px rgba(255, 255, 255, 0.6);
+  /* 自由装配画布不透明底色：浅档比纸亮半档的实面，深档暖黑实面 */
+  --canvas-solid: #f6f2e8;
   /* 组件级变量：dark 主题只换这组值，规则本体不重复写 */
   --card-border: rgba(22, 20, 15, 0.14);
   --card-sheen: rgba(255, 255, 255, 0.5);
@@ -842,6 +863,8 @@ svg text {
   --schematic-idle: #6d6759;
   --schematic-text: #a8a190;
   --schematic-active-text: #14120d;
+  --scene-halo: 0 1px 2px rgba(0, 0, 0, 0.55);
+  --canvas-solid: #1b1811;
   /* 光：暗底上同一色相压到最低浓度，只留一点方向感 */
   --ambient-a: rgba(226, 190, 126, 0.1);
   --ambient-b: rgba(120, 152, 205, 0.16);
@@ -1151,4 +1174,12 @@ details:not([open]) > :not(summary) {
 .result-heavy {
   content-visibility: auto;
   contain-intrinsic-size: auto 800px;
+}
+
+/* 原生下拉列表跟随主题：暗色下 Chromium 仍按浅色渲染弹层底，
+   而 option 继承了深色主题的浅色文字 → 白底白字看不清（评审截图复现）。
+   给 option 显式上实面色，浅/深两档都跟主题走。 */
+select option {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
 }

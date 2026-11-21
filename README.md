@@ -1,12 +1,15 @@
 # 拆解台 · SolveDeck
 
-纯前端的工科解题拆解台：把一道题拆成「认题 → 建模 → 求解 → 校核」四步，数字由本机求解器现算，不联网、不上传题面。
+纯前端的工科解题拆解台：把一道题拆成「认题 → 建模 → 求解 → 校核」四步，数字由本机求解器现算，不联网、不上传题面。站内另含「三维力学实验场」：47 个三维算例 + 可自由装配的三维刚度法求解器。
 
 在线站点：<https://solve-deck-8oaeaejjmx0.qoder.zone>
+
+> **给自动化代理**：项目修改入口、不变量与最近更新记录见 [AGENTS.md](./AGENTS.md)。
 
 ## 它解决什么
 
 - **按题型解**：28 个已校验题型，覆盖数字逻辑、模拟电路、材料力学、理论力学。
+- **三维也能搭**：47 个三维算例（杆系/梁、刚体、机构），点进详情看 3D 场景；`#/space/build` 可放结点、连构件、加实体块/框架、设支座与荷载，改一次即时重算。
 - **按图装配**：可以载入骨架，也可以清空画布，从两个结点、一根构件或几只器件开始自己搭；结构改动逐条记进改动台账。
 - **拒绝装懂**：静不定、机构、缺截面、没有接地、导线穿体等场景直接拒答并说明怎么改；不拿默认值硬凑一个答案。
 - **数字有出处**：模板解、通用解、图内读数、讲解稿各自标明口径；校核不过不会盖「已验证」章。
@@ -46,6 +49,9 @@ npm run build         # 门禁 + tsc + vite build
 | `#/scope` | 范围与限制判别 |
 | `#/about` | 关于、来源与覆盖范围 |
 | `#/lab/digital` | 数字求值（门级网表） |
+| `#/space` | 三维力学实验场 · 47 个算例库（E1 杆系 / E2 刚体 / E3 机构） |
+| `#/space/t/<ID>` | 三维算例只读详情（3D 画布 + 结果卡） |
+| `#/space/build` | 三维自由装配台（编辑 → 即时重解，含实体块/框架） |
 
 ## 目录地图
 
@@ -58,12 +64,17 @@ src/
     mechanics/            M1–M8（轴力、扭转、弯曲、稳定、组合变形）
     statics/              S1–S7（平面力系、桁架、摩擦、运动学等）
   core/lab/               装配台：图结构、归约、通用求解路由、器件/引脚、分享
+  core/space/             三维静力/刚体/机构内核（直接刚度法、梁、稳定、应力、实体生成）
   core/statics/           平面刚体与桁架内核
   core/mechanics/         力学通用求解与截面/内力工具
   render/                 SVG 示意、图表、表格、莫尔圆、卡诺图
+  scene/space/            三维画布：构件、结点、支座、荷载、实体块、变形/屈曲、机构动画
   ui/                     外壳、参数面板、结果卡、单位、打印样式
+  ui/space/               三维编辑面板、结果卡、机构播放条
+  pages/                  首页、知识库、贴题、结果、装配台、三维算例库/详情/装配台
   examples/               每型黄金快照（由 build-example 生成，不手改）
   confidence/             构建期校验与置信度
+snapshots-space/          47 份三维快照（由 snapshot:space 生成，不手改）
 scripts/                  门禁（check-*.mjs）与快照生成脚本
 public/kb/                知识库插图
 public/shots/             站点用图（About 页的产品图 r32-product.png）
@@ -94,6 +105,17 @@ public/shots/             站点用图（About 页的产品图 r32-product.png�
 
 原则：**图是输入，归约是中间真相，结果只认一条路由**。不要让同一屏出现两套互不说明的数字。
 
+**三维装配台路径**
+
+```text
+TrussModel（结点 / 构件 / 支座 / 荷载 / 实体块）
+→ solveTruss(model) 直接刚度法（6-DOF，零刚度凝聚，机构拒答）
+→ Solution3D（反力、杆力、位移、内力、应力、屈曲、能量、校核）
+→ Canvas3D 场景 + ResultCard 结果卡（同源）
+```
+
+实体块（`solids`）只负责外观与内部刚性连接：内部构件标记 `hidden`，参与求解但不显示、不进结果；框架形式（`form: 'frame'`）则只生成可见构件。
+
 ## 验证与快照
 
 仓库里的 `src/examples/<ID>.json` 是已校验快照，不是手写数据。
@@ -103,11 +125,16 @@ npm run check:p3                 # 快照 == 实时 solver
 node scripts/build-example.mjs M3
 node scripts/build-example.mjs M3 --config=cantilever --id=M3-cantilever
 node scripts/build-example.mjs A3 --config=CB --id=A3-CB
+
+# 三维：47 份快照在 snapshots-space/
+npm run snapshot:space           # 重生（内核口径变化时才跑）
+npm run check:space-solve        # 快照 == 实时解
+npm run check:space-verify       # 手算基准（B3 / C7 / C12 / D 系列）
 ```
 
 规则：
 
-1. **不要手改快照**；改完求解器后走正规生成链，再跑 `check:p3`。
+1. **不要手改快照**；改完求解器后走正规生成链，再跑 `check:p3`；三维走 `npm run snapshot:space`，再跑 `check:space-solve`。
 2. 改布局 / 坐标 / 文案可能触发快照漂移，按 `check:section` 注释里的规则推进 mtime 截断；不要为了过门禁删断言。
 3. 新增题型：registry + solver + example +（可装配的）`core/lab/picks.ts` 归约表 + 对应门禁。
 4. 交付前至少跑 `npm run verify`；单独门禁可逐项运行，不能跳过。
@@ -124,6 +151,8 @@ node scripts/build-example.mjs A3 --config=CB --id=A3-CB
 | `check:labshell` / `check:responsive` | 三栏外壳、断点、无横向溢出 |
 | `check:labimport` | 题面草稿两条入口同解 |
 | `check:readouts` / `check:paramlab` | 参数实验场、单位、三处同源 |
+| `check:space-verify` | 三维手算基准（B3、C7、C12、D 系列） |
+| `check:space-solve` | 47 份三维快照与实时解逐字段一致 |
 
 ## 站点发布
 
@@ -134,7 +163,7 @@ node scripts/build-example.mjs A3 --config=CB --id=A3-CB
 
 ## 给 AI / 自动化代理的工作约定
 
-先读本 README，再读 `package.json` 的 scripts 和对应 `scripts/check-*.mjs`。不要凭文件名猜行为。
+先读本 README，再读 [AGENTS.md](./AGENTS.md)（三维分区的完整修改入口、不变量、最近更新记录），最后读 `package.json` 的 scripts 和对应 `scripts/check-*.mjs`。不要凭文件名猜行为。
 
 ### 绝不
 
@@ -163,6 +192,7 @@ node scripts/build-example.mjs A3 --config=CB --id=A3-CB
 - **改画布 / 图表**：`render/*` → `check:chart`、`check:schematic`、`check:readouts`，必要时重建截图快照。
 - **新增器件 / 拓扑**：`core/lab/types.ts`、`pins.ts`、`netSolve.ts` / `frameSolve.ts`、`picks.ts`、门禁用例一起改。
 - **发布**：先 `npm run verify`，再 `npx vite build`，最后只上传 `dist/`。
+- **改三维内核 / 画布 / 装配台**：先看 [AGENTS.md](./AGENTS.md) 的「修改入口索引」；改数值后必须 `npm run snapshot:space` + `check:space-solve` + `check:space-verify`。
 
 ### 失败处理
 
@@ -178,6 +208,9 @@ node scripts/build-example.mjs A3 --config=CB --id=A3-CB
 - 通用电路把二极管线性化为 `Vf + 1Ω`，模板口径是 `Vf + I·Rz`；两者同图可能差约 1%，结果卡会标明当前口径。
 - 自建图与骨架不一致时会走通用求解，骨架参数表只作参考，不再作为确认闸门。
 - 数字求值只做门级网表；不模拟延迟 / 扇出 / 物理布线。
+- 三维静力只做线弹性小变形 6-DOF 直接刚度法；机构与零刚度方向拒答并点名自由度。
+- 三维「实体块」是外观 + 内部隐藏刚性连接（参与求解、不显示）；它不是单独的刚体求解引擎，外接构件请在角点用「+构件」连接。
+- 材料输入单位（工程制 ↔ SI）只影响输入框，结果固定按 kN / mm / MPa / kN·m 展示。
 
 ## 许可与第三方
 

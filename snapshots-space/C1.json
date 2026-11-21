@@ -1,0 +1,142 @@
+{
+  "_notice": "生成物，禁止手改。由 scripts/build-snapshot.mjs 产出；求解器/算例变更后重跑 npm run snapshot，并以 npm run check:solve 对账。",
+  "generatedBy": "scripts/build-snapshot.mjs",
+  "solution": {
+    "modelId": "C1",
+    "headline": "2 根杆件轴力与 3 个结点位移已解出（直接刚度法，静定）",
+    "verified": true,
+    "determinacy": "determinate",
+    "reactions": {
+      "N1": [
+        0,
+        10000,
+        0
+      ],
+      "N2": [
+        0,
+        0,
+        0
+      ],
+      "N3": [
+        0,
+        0,
+        0
+      ]
+    },
+    "memberForces": [
+      {
+        "id": "M1",
+        "N": -10000,
+        "kind": "compression"
+      },
+      {
+        "id": "M2",
+        "N": -10000,
+        "kind": "compression"
+      }
+    ],
+    "displacements": {
+      "N1": [
+        0,
+        0,
+        0
+      ],
+      "N2": [
+        0,
+        -0.00005,
+        0
+      ],
+      "N3": [
+        0,
+        -0.0001,
+        0
+      ]
+    },
+    "steps": [
+      {
+        "title": "认题",
+        "detail": "3 结点 2 杆 7 约束分量；m+r=9 vs 3n=9 → 静定"
+      },
+      {
+        "title": "建模",
+        "detail": "装配全局刚度矩阵 K（9×9），凝聚 2 个自由 DOF"
+      },
+      {
+        "title": "求解",
+        "detail": "列主元高斯消元，耗时 {ms} ms；节点法互校：最大杆力差 0.00e+0 N"
+      },
+      {
+        "title": "应力",
+        "detail": "逐截面应力后处理 1 杆：σ=N/A+|My|/Wy+|Mz|/Wz，τ=√((T/Wt)²+(ks·V/A)²)；主应力→第四理论校核（莫尔圆见结果卡）"
+      },
+      {
+        "title": "校核",
+        "detail": "结点平衡残差 ✓（残差 0.00e+0）；能量校核 ✓（残差 0.00e+0）；节点法互校 ✓（残差 0.00e+0）；强度校核（第四理论） ✓（残差 -9.36e-1）"
+      }
+    ],
+    "checks": [
+      {
+        "name": "结点平衡残差",
+        "pass": true,
+        "residual": 0,
+        "note": "每结点 Σ(杆力)+反力+外载=0"
+      },
+      {
+        "name": "能量校核",
+        "pass": true,
+        "residual": 0,
+        "note": "外力功 = 应变能（相对偏差）"
+      },
+      {
+        "name": "节点法互校",
+        "pass": true,
+        "residual": 0,
+        "note": "静定杆力双解逐字段一致"
+      },
+      {
+        "name": "强度校核（第四理论）",
+        "pass": true,
+        "residual": -0.9361702127659575,
+        "note": "最不利杆 M1：σr=1.000e+7 Pa，利用率 0.064（≤1 通过）"
+      }
+    ],
+    "warnings": [],
+    "stress": [
+      {
+        "id": "M1",
+        "points": [
+          {
+            "sigma": -10000000,
+            "tauT": 0,
+            "tauV": 0,
+            "tau": 0,
+            "s1": 0,
+            "s2": 0,
+            "s3": -10000000,
+            "tresca": 10000000,
+            "mises": 10000000,
+            "x": 0
+          },
+          {
+            "sigma": -10000000,
+            "tauT": 0,
+            "tauV": 0,
+            "tau": 0,
+            "s1": 0,
+            "s2": 0,
+            "s3": -10000000,
+            "tresca": 10000000,
+            "mises": 10000000,
+            "x": 1
+          }
+        ],
+        "worst": 0,
+        "sigmaMax": -10000000,
+        "tauMax": 0,
+        "ratio": 0.06382978723404256,
+        "tauRatio": 0,
+        "pass": true
+      }
+    ]
+  }
+}

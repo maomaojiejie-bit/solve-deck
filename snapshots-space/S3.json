@@ -1,0 +1,74 @@
+{
+  "_notice": "生成物，禁止手改。由 scripts/build-snapshot.mjs 产出；求解器/算例变更后重跑 npm run snapshot，并以 npm run check:solve 对账。",
+  "generatedBy": "scripts/build-snapshot.mjs",
+  "solution": {
+    "modelId": "S3",
+    "headline": "力系已简化为主矢 1.000e+4 N 的力螺旋",
+    "verified": true,
+    "determinacy": "determinate",
+    "reactions": {},
+    "memberForces": [],
+    "displacements": {},
+    "steps": [
+      {
+        "title": "认题",
+        "detail": "1 刚体 2 结点，支座 0 处；无约束 → 力系简化口径（不判静定/机构）"
+      },
+      {
+        "title": "简化",
+        "detail": "主矢 |R|=1.0000e+4 N，对 O 主矩 |M|=2.0616e+4 N·m → 力螺旋（主矢与主矩平行分量不可分离，中心轴 + 螺旋参数）；作用线过 (2.0000, 0.0000, 0.0000)，方向 (0.0000, 0.0000, -1.0000)，螺旋参数 -0.5000 m/rad"
+      },
+      {
+        "title": "校核",
+        "detail": "主矩变换一致性 ✓（残差 0.00e+0）；作用线验证 ✓（残差 0.00e+0）"
+      }
+    ],
+    "checks": [
+      {
+        "name": "主矩变换一致性",
+        "pass": true,
+        "residual": 0,
+        "note": "换基点 O′ 重算：M′=M+(O−O′)×R（力线平移定理）"
+      },
+      {
+        "name": "作用线验证",
+        "pass": true,
+        "residual": 0,
+        "note": "简化中心移至轴上点后主矩垂直分量归零"
+      }
+    ],
+    "warnings": [],
+    "simplify": {
+      "O": [
+        0,
+        0,
+        0
+      ],
+      "R": [
+        0,
+        0,
+        -10000
+      ],
+      "M": [
+        0,
+        20000,
+        5000
+      ],
+      "form": "wrench",
+      "formCn": "力螺旋（主矢与主矩平行分量不可分离，中心轴 + 螺旋参数）",
+      "axis": {
+        "p": [
+          2,
+          0,
+          0
+        ],
+        "d": [
+          0,
+          0,
+          -1
+        ],
+        "pitch": -0.5
+      }
+    }
+  }
+}

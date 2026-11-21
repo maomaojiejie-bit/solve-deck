@@ -1,0 +1,44 @@
+{
+  "_notice": "生成物，禁止手改。由 scripts/build-snapshot.mjs 产出；求解器/算例变更后重跑 npm run snapshot，并以 npm run check:solve 对账。",
+  "generatedBy": "scripts/build-snapshot.mjs",
+  "solution": {
+    "modelId": "S7",
+    "headline": "组合体重心/形心已解出 c=(0.4286, 0.2143, 0.0000)",
+    "verified": true,
+    "determinacy": "determinate",
+    "reactions": {},
+    "memberForces": [],
+    "displacements": {},
+    "steps": [
+      {
+        "title": "认题",
+        "detail": "0 刚体 3 结点，支座 0 处；无约束 → 力系简化口径（不判静定/机构）"
+      },
+      {
+        "title": "重心",
+        "detail": "组合体形心 c=(0.428571, 0.214286, 0.000000)，Σw=3.5000e+3"
+      },
+      {
+        "title": "校核",
+        "detail": "形心矩归零 ✓（残差 1.91e-13）"
+      }
+    ],
+    "checks": [
+      {
+        "name": "形心矩归零",
+        "pass": true,
+        "residual": 1.9065862296939058e-13,
+        "note": "Σw·(rᵢ−c)=0（对形心取矩）"
+      }
+    ],
+    "warnings": [],
+    "centroid": {
+      "c": [
+        0.4285714285714286,
+        0.2142857142857143,
+        0
+      ],
+      "W": 3500
+    }
+  }
+}

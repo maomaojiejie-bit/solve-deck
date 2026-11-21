@@ -1,0 +1,132 @@
+{
+  "_notice": "生成物，禁止手改。由 scripts/build-snapshot.mjs 产出；求解器/算例变更后重跑 npm run snapshot，并以 npm run check:solve 对账。",
+  "generatedBy": "scripts/build-snapshot.mjs",
+  "solution": {
+    "modelId": "S6",
+    "headline": "1 刚体 3 个约束力已解出（刚体静力·单一刚体·摩擦锥判别，静定)",
+    "verified": true,
+    "determinacy": "determinate",
+    "reactions": {
+      "N1": [
+        9.094947017729282e-13,
+        10000,
+        0
+      ]
+    },
+    "memberForces": [],
+    "displacements": {
+      "N1": [
+        0,
+        0,
+        0
+      ]
+    },
+    "steps": [
+      {
+        "title": "认题",
+        "detail": "1 刚体 1 结点，支座 0 处 + 摩擦接触 1 处；3 个平衡方程 = 3 个未知约束力 → 静定"
+      },
+      {
+        "title": "建模",
+        "detail": "逐刚体列 ΣF=0/ΣM=0（B1:3）；铰 0 处（内力 0 分量）；摩擦接触 1 处按全约束求解后判别摩擦锥"
+      },
+      {
+        "title": "求解",
+        "detail": "列主元高斯消元 3×3，耗时 {ms} ms；拆体 1 份"
+      },
+      {
+        "title": "简化",
+        "detail": "主动力系：|R|=1.0000e+4 N，对 O 主矩 |M|=0.0000e+0 N·m → 单力（主矢不为零，简化中心可移至合力作用线使主矩归零）"
+      },
+      {
+        "title": "摩擦",
+        "detail": "N1：|Ft|=5.000e+3 ≤ f·Fn=5.196e+3 N → 静止（摩擦角 φ=atan f=30.96°，利用率 0.962）"
+      },
+      {
+        "title": "校核",
+        "detail": "逐刚体平衡残差 ✓（残差 9.09e-13）；主矢主矩归零 ✓（残差 9.09e-13）；摩擦锥判别@N1 ✓（残差 0.00e+0）"
+      }
+    ],
+    "checks": [
+      {
+        "name": "逐刚体平衡残差",
+        "pass": true,
+        "residual": 9.094947017729282e-13,
+        "note": "每刚体 ΣF=0、ΣM=0 方程组残差（消元后回代）"
+      },
+      {
+        "name": "主矢主矩归零",
+        "pass": true,
+        "residual": 9.094947017729282e-13,
+        "note": "荷载+反力全系统简化：R=0 且 M=0"
+      },
+      {
+        "name": "摩擦锥判别@N1",
+        "pass": true,
+        "residual": 0,
+        "note": "|Ft|=5.000e+3 ≤ f·Fn=5.196e+3 N → 静止（摩擦角 φ=atan f=30.96°，利用率 0.962）"
+      }
+    ],
+    "warnings": [],
+    "reactionMoments": {
+      "N1": [
+        0,
+        0,
+        0
+      ]
+    },
+    "reactionLabels": {
+      "N1": {
+        "type": "摩擦接触",
+        "force": [
+          "",
+          "",
+          ""
+        ]
+      }
+    },
+    "hingeForces": [],
+    "simplify": {
+      "O": [
+        0,
+        0,
+        0
+      ],
+      "R": [
+        0,
+        -10000,
+        0
+      ],
+      "M": [
+        0,
+        0,
+        0
+      ],
+      "form": "force",
+      "formCn": "单力（主矢不为零，简化中心可移至合力作用线使主矩归零）",
+      "axis": {
+        "p": [
+          0,
+          0,
+          0
+        ],
+        "d": [
+          0,
+          -1,
+          0
+        ]
+      }
+    },
+    "friction": [
+      {
+        "node": "N1",
+        "Fn": 8660.254037844386,
+        "Ft": 5000.000000000001,
+        "Fmax": 5196.152422706632,
+        "state": "stick",
+        "angle": 0.5404195002705842,
+        "note": "|Ft|=5.000e+3 ≤ f·Fn=5.196e+3 N → 静止（摩擦角 φ=atan f=30.96°，利用率 0.962）"
+      }
+    ]
+  }
+}

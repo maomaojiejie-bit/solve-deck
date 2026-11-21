@@ -5,6 +5,7 @@
 import { SITE_LINK, SiteHeader } from '../ui/SiteHeader';
 import { Formula } from '../render/Formula.tsx';
 import { KB_BY_ID } from '../kb/index.ts';
+import { spaceDemosFor } from '../kb/spaceLinks';
 import { getTemplateRoute } from '../core/templates/registry';
 import type { KbFigure, Subject } from '../kb/types.ts';
 
@@ -174,6 +175,28 @@ export function KbEntry({ id }: { id: string }) {
                 </li>
               ))}
             </ul>
+          </section>
+        ) : null}
+
+        {/* 三维演示：条目 ↔ 三维分区算例（2026-11-21 强关联），把人送进 3D 现场 */}
+        {spaceDemosFor(entry.id).length > 0 ? (
+          <section className="mt-10" data-testid="kb-space-demos">
+            <h2 className="text-[15px] font-semibold text-ink">三维演示</h2>
+            <div className="mt-3 grid gap-2">
+              {spaceDemosFor(entry.id).map((demo) => (
+                <a
+                  key={demo.note}
+                  href={demo.build ? '#/space/build' : `#/space/t/${demo.exampleId}`}
+                  className="focus-ring group flex items-start gap-3 rounded-lg border border-line bg-panel px-4 py-3 transition-colors hover:border-cyan/50"
+                >
+                  <span className="id-mono mt-0.5 shrink-0 text-[12px] text-cyan">{demo.build ? '装配' : demo.exampleId}</span>
+                  <span className="min-w-0 flex-1 text-[13px] leading-6 text-muted transition-colors group-hover:text-ink">{demo.note}</span>
+                  <span aria-hidden="true" className="mt-1 shrink-0 font-mono text-[10.5px] text-faint transition-transform group-hover:translate-x-0.5">
+                    →
+                  </span>
+                </a>
+              ))}
+            </div>
           </section>
         ) : null}
 

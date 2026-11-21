@@ -2061,6 +2061,16 @@ export function Lab({ templateId, onBack, onStart, onToast }: LabProps) {
               <p className="callout mt-5 max-w-[600px] font-mono text-[11px] leading-[1.9] text-muted">
                 <Typewriter text="骨架是起点：也能清空画布，从两个结点、一根构件开始自己搭。" speed={17} />
               </p>
+              {/* 三维分区入口：平面骨架之外，空间桁架 / 机构 / 实体去 #/space */}
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[10px] border border-cyan/30 bg-cyan/5 px-4 py-3 text-[12.5px]">
+                <span className="shrink-0 text-[11px] font-medium text-cyan">三维空间</span>
+                <a href="#/space" className="text-cyan transition-colors hover:text-ink">
+                  空间桁架 / 机构算例库 →
+                </a>
+                <a href="#/space/build" className="text-cyan transition-colors hover:text-ink">
+                  三维装配台：棱台 / 圆台 / 塔架，搭完即解 →
+                </a>
+              </div>
             </div>
 
             {/* 剩余漏洞 2.1：最近用过的不再埋在三步叙事之后 —— 卡片上方一条「继续上次」直通车。 */}

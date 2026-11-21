@@ -1,0 +1,73 @@
+{
+  "_notice": "生成物，禁止手改。由 scripts/build-snapshot.mjs 产出；求解器/算例变更后重跑 npm run snapshot，并以 npm run check:solve 对账。",
+  "generatedBy": "scripts/build-snapshot.mjs",
+  "solution": {
+    "modelId": "S2",
+    "headline": "力系已简化为主矢 3.000e+4 N 的合力",
+    "verified": true,
+    "determinacy": "determinate",
+    "reactions": {},
+    "memberForces": [],
+    "displacements": {},
+    "steps": [
+      {
+        "title": "认题",
+        "detail": "1 刚体 1 结点，支座 0 处；无约束 → 力系简化口径（不判静定/机构）"
+      },
+      {
+        "title": "简化",
+        "detail": "主矢 |R|=3.0000e+4 N，对 O 主矩 |M|=0.0000e+0 N·m → 单力（主矢不为零，简化中心可移至合力作用线使主矩归零）；作用线过 (0.0000, 0.0000, 0.0000)，方向 (0.3333, 0.6667, 0.6667)"
+      },
+      {
+        "title": "校核",
+        "detail": "主矩变换一致性 ✓（残差 0.00e+0）；作用线验证 ✓（残差 0.00e+0）"
+      }
+    ],
+    "checks": [
+      {
+        "name": "主矩变换一致性",
+        "pass": true,
+        "residual": 0,
+        "note": "换基点 O′ 重算：M′=M+(O−O′)×R（力线平移定理）"
+      },
+      {
+        "name": "作用线验证",
+        "pass": true,
+        "residual": 0,
+        "note": "简化中心移至轴上点后主矩垂直分量归零"
+      }
+    ],
+    "warnings": [],
+    "simplify": {
+      "O": [
+        0,
+        0,
+        0
+      ],
+      "R": [
+        10000,
+        20000,
+        20000
+      ],
+      "M": [
+        0,
+        0,
+        0
+      ],
+      "form": "force",
+      "formCn": "单力（主矢不为零，简化中心可移至合力作用线使主矩归零）",
+      "axis": {
+        "p": [
+          0,
+          0,
+          0
+        ],
+        "d": [
+          0.3333333333333333,
+          0.6666666666666666,
+          0.6666666666666666
+        ]
+      }
+    }
+  }
+}
